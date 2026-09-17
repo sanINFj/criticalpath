@@ -1,171 +1,597 @@
-@import './base.css';
+/* ============================================================
+   CRITICALPATH - MAIN APPLICATION UI
+   ============================================================ */
+
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  color: #e8edf5;
+  background: #11151b;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
 
 body {
+  background: #11151b;
+}
+
+/* ============================================================
+   APPLICATION
+   ============================================================ */
+
+.app {
+  width: 100vw;
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+
+  background: #11151b;
+  color: #e8edf5;
+}
+
+/* ============================================================
+   TOP TOOLBAR
+   ============================================================ */
+
+.toolbar {
+  height: 48px;
+  min-height: 48px;
+
   display: flex;
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background-image: url('./wavy-lines.svg');
-  background-size: cover;
+
+  padding: 0 14px;
+
+  background: #1b2028;
+
+  border-bottom: 1px solid #303844;
+
   user-select: none;
 }
 
-code {
-  font-weight: 600;
-  padding: 3px 5px;
-  border-radius: 2px;
-  background-color: var(--color-background-mute);
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Menlo,
-    Consolas,
-    Liberation Mono,
-    monospace;
-  font-size: 85%;
+.toolbar-title {
+  font-size: 17px;
+  font-weight: 700;
+
+  color: #f2f5f9;
+
+  margin-right: 28px;
+
+  letter-spacing: 0.2px;
 }
 
-#root {
+.toolbar-menu {
+  display: flex;
+  align-items: center;
+
+  gap: 2px;
+}
+
+.toolbar-menu button {
+  appearance: none;
+
+  border: 0;
+  border-radius: 5px;
+
+  background: transparent;
+
+  color: #cbd3df;
+
+  padding: 7px 11px;
+
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+.toolbar-menu button:hover {
+  background: #2a313c;
+  color: #ffffff;
+}
+
+.toolbar-menu button:active {
+  background: #343d49;
+}
+
+.toolbar-spacer {
+  flex: 1;
+}
+
+.run-button {
+  appearance: none;
+
+  border: 1px solid #4b9cff;
+  border-radius: 5px;
+
+  background: #2677d9;
+
+  color: white;
+
+  padding: 7px 20px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.run-button:hover {
+  background: #3185e8;
+}
+
+.run-button:active {
+  background: #1d68c5;
+}
+
+/* ============================================================
+   MAIN WORKSPACE
+   ============================================================ */
+
+.workspace {
+  flex: 1;
+
+  min-height: 0;
+
+  display: grid;
+
+  grid-template-columns: 190px minmax(0, 1fr) 230px;
+
+  overflow: hidden;
+}
+
+/* ============================================================
+   LEFT PANEL
+   ============================================================ */
+
+.left-panel {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #181d24;
+
+  border-right: 1px solid #303844;
+
+  overflow-y: auto;
+}
+
+.panel-title {
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 14px;
+
+  color: #f0f3f7;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  border-bottom: 1px solid #303844;
+
+  background: #1c222a;
+}
+
+.component-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  padding: 10px;
+}
+
+.component-list button {
+  width: 100%;
+
+  min-height: 36px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 7px 9px;
+
+  appearance: none;
+
+  border: 1px solid transparent;
+  border-radius: 5px;
+
+  background: transparent;
+
+  color: #cbd3df;
+
+  text-align: left;
+
+  font-size: 12px;
+
+  cursor: pointer;
+}
+
+.component-list button span {
+  width: 25px;
+  height: 25px;
+
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  margin-bottom: 80px;
-}
 
-.logo {
-  margin-bottom: 20px;
-  -webkit-user-drag: none;
-  height: 128px;
-  width: 128px;
-  will-change: filter;
-  transition: filter 300ms;
-}
-
-.logo:hover {
-  filter: drop-shadow(0 0 1.2em #6988e6aa);
-}
-
-.creator {
-  font-size: 14px;
-  line-height: 16px;
-  color: var(--ev-c-text-2);
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-.text {
-  font-size: 28px;
-  color: var(--ev-c-text-1);
-  font-weight: 700;
-  line-height: 32px;
-  text-align: center;
-  margin: 0 10px;
-  padding: 16px 0;
-}
-
-.tip {
-  font-size: 16px;
-  line-height: 24px;
-  color: var(--ev-c-text-2);
-  font-weight: 600;
-}
-
-.react {
-  background: -webkit-linear-gradient(315deg, #087ea4 55%, #7c93ee);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-.ts {
-  background: -webkit-linear-gradient(315deg, #3178c6 45%, #f0dc4e);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-weight: 700;
-}
-
-.actions {
-  display: flex;
-  padding-top: 32px;
-  margin: -6px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-}
-
-.action {
   flex-shrink: 0;
-  padding: 6px;
+
+  border: 1px solid #46515f;
+  border-radius: 4px;
+
+  background: #222933;
+
+  color: #e5ebf3;
+
+  font-size: 11px;
+  font-weight: 700;
 }
 
-.action a {
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  border: 1px solid transparent;
-  text-align: center;
-  font-weight: 600;
-  white-space: nowrap;
-  border-radius: 20px;
-  padding: 0 20px;
-  line-height: 38px;
-  font-size: 14px;
-  border-color: var(--ev-button-alt-border);
-  color: var(--ev-button-alt-text);
-  background-color: var(--ev-button-alt-bg);
+.component-list button:hover {
+  background: #252c36;
+  border-color: #394452;
+
+  color: #ffffff;
 }
 
-.action a:hover {
-  border-color: var(--ev-button-alt-hover-border);
-  color: var(--ev-button-alt-hover-text);
-  background-color: var(--ev-button-alt-hover-bg);
+.component-list button:hover span {
+  border-color: #5b6878;
+  background: #2c3541;
 }
 
-.versions {
-  position: absolute;
-  bottom: 30px;
-  margin: 0 auto;
-  padding: 15px 0;
-  font-family: 'Menlo', 'Lucida Console', monospace;
-  display: inline-flex;
+.component-list button:active {
+  background: #303945;
+}
+
+.panel-help {
+  margin-top: auto;
+
+  padding: 14px;
+
+  border-top: 1px solid #303844;
+
+  color: #8994a3;
+
+  font-size: 11px;
+
+  line-height: 1.7;
+}
+
+.panel-help strong {
+  color: #cdd5df;
+
+  font-size: 12px;
+}
+
+/* ============================================================
+   SCHEMATIC CANVAS
+   ============================================================ */
+
+.canvas {
+  position: relative;
+
+  min-width: 0;
+  min-height: 0;
+
   overflow: hidden;
+
+  background: #101419;
+}
+
+/* ============================================================
+   REACT FLOW
+   ============================================================ */
+
+.react-flow {
+  background: #101419;
+}
+
+.react-flow__renderer {
+  background: #101419;
+}
+
+.react-flow__background {
+  background: #101419;
+}
+
+/*
+   Grid dots
+*/
+
+.react-flow__background pattern circle {
+  fill: #39424e;
+}
+
+/*
+   Controls
+*/
+
+.react-flow__controls {
+  margin: 12px;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.react-flow__controls-button {
+  width: 30px;
+  height: 30px;
+
+  border: 1px solid #39434f;
+
+  background: #20262f;
+
+  color: #d7dee8;
+
+  fill: #d7dee8;
+}
+
+.react-flow__controls-button:hover {
+  background: #2b333e;
+}
+
+.react-flow__controls-button svg {
+  max-width: 14px;
+  max-height: 14px;
+}
+
+/*
+   Mini map
+*/
+
+.react-flow__minimap {
+  margin: 12px;
+
+  border: 1px solid #39434f;
+  border-radius: 5px;
+
+  overflow: hidden;
+
+  background: #181d24;
+
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(80, 100, 125, 0.22);
+}
+
+.react-flow__minimap-node {
+  fill: #68788a;
+  stroke: none;
+}
+
+/*
+   Edges
+*/
+
+.react-flow__edge-path {
+  stroke: #8fa3b8;
+  stroke-width: 2px;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #4b9cff;
+  stroke-width: 3px;
+}
+
+/*
+   Connection preview
+*/
+
+.react-flow__connection-path {
+  stroke: #4b9cff;
+  stroke-width: 2px;
+}
+
+/*
+   Selection rectangle
+*/
+
+.react-flow__selection {
+  background: rgba(60, 130, 220, 0.12);
+  border: 1px solid #4b9cff;
+}
+
+/* ============================================================
+   RIGHT PROPERTIES PANEL
+   ============================================================ */
+
+.right-panel {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #181d24;
+
+  border-left: 1px solid #303844;
+
+  overflow-y: auto;
+}
+
+.properties {
+  padding: 12px;
+}
+
+.property-row {
+  display: flex;
   align-items: center;
-  border-radius: 22px;
-  background-color: #202127;
-  backdrop-filter: blur(24px);
+  justify-content: space-between;
+
+  min-height: 34px;
+
+  padding: 0 4px;
+
+  border-bottom: 1px solid #292f38;
+
+  color: #8f9aa9;
+
+  font-size: 12px;
 }
 
-.versions li {
-  display: block;
-  float: left;
-  border-right: 1px solid var(--ev-c-gray-1);
-  padding: 0 20px;
-  font-size: 14px;
-  line-height: 14px;
-  opacity: 0.8;
-  &:last-child {
-    border: none;
+.property-row strong {
+  max-width: 120px;
+
+  overflow: hidden;
+
+  color: #dce3eb;
+
+  font-weight: 500;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.property-action,
+.property-delete {
+  width: 100%;
+
+  margin-top: 10px;
+
+  padding: 8px 10px;
+
+  border-radius: 5px;
+
+  font-size: 12px;
+
+  cursor: pointer;
+}
+
+.property-action {
+  border: 1px solid #3d4855;
+
+  background: #242b34;
+
+  color: #dce4ee;
+}
+
+.property-action:hover {
+  background: #2d3641;
+}
+
+.property-delete {
+  border: 1px solid #693b42;
+
+  background: #2a2024;
+
+  color: #e99aa4;
+}
+
+.property-delete:hover {
+  background: #38252a;
+}
+
+.no-selection {
+  padding: 18px 14px;
+
+  color: #7f8998;
+
+  font-size: 12px;
+}
+
+/* ============================================================
+   STATUS BAR
+   ============================================================ */
+
+.status-bar {
+  height: 28px;
+  min-height: 28px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 22px;
+
+  padding: 0 12px;
+
+  background: #1b2028;
+
+  border-top: 1px solid #303844;
+
+  color: #8994a3;
+
+  font-size: 11px;
+
+  user-select: none;
+}
+
+.status-bar span {
+  white-space: nowrap;
+}
+
+/* ============================================================
+   SCROLLBARS
+   ============================================================ */
+
+.left-panel::-webkit-scrollbar,
+.right-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.left-panel::-webkit-scrollbar-track,
+.right-panel::-webkit-scrollbar-track {
+  background: #171b21;
+}
+
+.left-panel::-webkit-scrollbar-thumb,
+.right-panel::-webkit-scrollbar-thumb {
+  background: #39434f;
+
+  border-radius: 4px;
+}
+
+.left-panel::-webkit-scrollbar-thumb:hover,
+.right-panel::-webkit-scrollbar-thumb:hover {
+  background: #4a5664;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 850px) {
+  .workspace {
+    grid-template-columns: 165px minmax(0, 1fr) 190px;
   }
-}
 
-@media (max-width: 720px) {
-  .text {
-    font-size: 20px;
+  .toolbar-title {
+    margin-right: 10px;
   }
-}
 
-@media (max-width: 620px) {
-  .versions {
-    display: none;
-  }
-}
-
-@media (max-width: 350px) {
-  .tip,
-  .actions {
-    display: none;
+  .toolbar-menu button {
+    padding-left: 7px;
+    padding-right: 7px;
   }
 }

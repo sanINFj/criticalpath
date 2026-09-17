@@ -1,45 +1,62 @@
-import { useCallback, useState } from "react"
-
-import ReactFlow, {
+import { useCallback, useEffect, useState } from "react"
+import {
+  addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
   Background,
+  ConnectionMode,
+  ConnectionLineType,
   Controls,
   MiniMap,
-  ReactFlowProvider,
-  addEdge,
-  applyNodeChanges,
-  applyEdgeChanges,
+  ReactFlow,
   type Connection,
   type Edge,
   type Node,
+  type NodeChange,
+  type EdgeChange,
 } from "reactflow"
 
 import "reactflow/dist/style.css"
-import "./App.css"
 
-import ResistorNode from "./components/ResistorNode"
+import SchematicNode from "./components/schematic/SchematicNode"
+import JunctionNode from "./components/schematic/JunctionNode"
 
-type ComponentNodeData = {
+import "./assets/main.css"
+
+type SchematicComponentType =
+  | "resistor"
+  | "capacitor"
+  | "inductor"
+  | "voltage-source"
+  | "current-source"
+  | "diode"
+  | "ground"
+
+interface SchematicNodeData {
   label: string
-  type: string
+  type: SchematicComponentType
   value?: string
+  rotation?: number
 }
 
 const nodeTypes = {
-  resistor: ResistorNode,
+  schematic: SchematicNode,
+  junction: JunctionNode,
 }
 
-const initialNodes: Node<ComponentNodeData>[] = [
+const initialNodes: Node<SchematicNodeData>[] = [
   {
-    id: "r1",
-    type: "resistor",
+    id: "R1",
+    type: "schematic",
     position: {
-      x: 300,
-      y: 180,
+      x: 350,
+      y: 250,
     },
     data: {
       label: "R1",
       type: "resistor",
       value: "1k",
+      rotation: 0,
     },
   },
 ]
@@ -48,175 +65,687 @@ const initialEdges: Edge[] = []
 
 function App() {
   const [nodes, setNodes] =
-    useState<Node<ComponentNodeData>[]>(initialNodes)
+    useState<Node<SchematicNodeData>[]>(initialNodes)
 
-  const [edges, setEdges] =
-    useState<Edge[]>(initialEdges)
+  const [edges, setEdges] = useState<Edge[]>(initialEdges)
 
-  const [selectedNode, setSelectedNode] =
-    useState<Node<ComponentNodeData> | null>(null)
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+
+  const [componentCounter, setComponentCounter] = useState({
+    resistor: 1,
+    capacitor: 0,
+    inductor: 0,
+    "voltage-source": 0,
+    "current-source": 0,
+    diode: 0,
+    ground: 0,
+    junction: 0,
+  })
+
+  /*
+   * ---------------------------------------------------------
+   * NODE CHANGES
+   * ---------------------------------------------------------
+   */
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      setNodes((currentNodes) =>
+        applyNodeChanges(changes, currentNodes),
+      )
+    },
+    [],
+  )
+
+  /*
+   * ---------------------------------------------------------
+   * EDGE CHANGES
+   * ---------------------------------------------------------
+   */
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      setEdges((currentEdges) =>
+        applyEdgeChanges(changes, currentEdges),
+      )
+    },
+    [],
+  )
+
+  /*
+   * ---------------------------------------------------------
+   * CREATE CONNECTION
+   * ---------------------------------------------------------
+   */
 
   const onConnect = useCallback((connection: Connection) => {
     setEdges((currentEdges) =>
       addEdge(
         {
           ...connection,
+          type: "step",
           animated: false,
+          style: {
+            strokeWidth: 2,
+          },
         },
         currentEdges,
       ),
     )
   }, [])
 
-  const addResistor = () => {
-    const resistorNumber =
-      nodes.filter((node) => node.type === "resistor").length + 1
+  /*
+   * ---------------------------------------------------------
+   * NODE CLICK
+   * ---------------------------------------------------------
+   */
 
-    const id = `r${resistorNumber}`
+  const onNodeClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      setSelectedNodeId(node.id)
+    },
+    [],
+  )
 
-    const newNode: Node<ComponentNodeData> = {
-      id,
-      type: "resistor",
-      position: {
-        x: 200 + nodes.length * 40,
-        y: 100 + nodes.length * 40,
-      },
-      data: {
-        label: `R${resistorNumber}`,
-        type: "resistor",
-        value: "1k",
-      },
+  /*
+   * ---------------------------------------------------------
+   * CANVAS CLICK
+   * ---------------------------------------------------------
+   */
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNodeId(null)
+  }, [])
+
+  /*
+   * ---------------------------------------------------------
+   * ADD COMPONENT
+   * ---------------------------------------------------------
+   */
+
+  const addComponent = useCallback(
+    (type: SchematicComponentType) => {
+      setComponentCounter((current) => {
+        const nextNumber = current[type] + 1
+
+        let prefix = "X"
+
+        switch (type) {
+          case "resistor":
+            prefix = "R"
+            break
+
+          case "capacitor":
+            prefix = "C"
+            break
+
+          case "inductor":
+            prefix = "L"
+            break
+
+          case "voltage-source":
+            prefix = "V"
+            break
+
+          case "current-source":
+            prefix = "I"
+            break
+
+          case "diode":
+            prefix = "D"
+            break
+
+          case "ground":
+            prefix = "GND"
+            break
+        }
+
+        const id =
+          type === "ground"
+            ? `GND${nextNumber}`
+            : `${prefix}${nextNumber}`
+
+        const newNode: Node<SchematicNodeData> = {
+          id,
+          type: "schematic",
+          position: {
+            x: 200 + Math.random() * 500,
+            y: 150 + Math.random() * 350,
+          },
+          data: {
+            label: id,
+            type,
+            value:
+              type === "resistor"
+                ? "1k"
+                : type === "capacitor"
+                  ? "1u"
+                  : type === "inductor"
+                    ? "1m"
+                    : type === "voltage-source"
+                      ? "5V"
+                      : type === "current-source"
+                        ? "1m"
+                        : undefined,
+            rotation: 0,
+          },
+        }
+
+        setNodes((currentNodes) => [
+          ...currentNodes,
+          newNode,
+        ])
+
+        setSelectedNodeId(id)
+
+        return {
+          ...current,
+          [type]: nextNumber,
+        }
+      })
+    },
+    [],
+  )
+
+  /*
+   * ---------------------------------------------------------
+   * ADD JUNCTION
+   * ---------------------------------------------------------
+   */
+
+  const addJunction = useCallback(() => {
+    setComponentCounter((current) => {
+      const nextNumber = current.junction + 1
+
+      const id = `J${nextNumber}`
+
+      const newNode: Node = {
+        id,
+        type: "junction",
+        position: {
+          x: 400 + Math.random() * 300,
+          y: 200 + Math.random() * 250,
+        },
+        data: {},
+      }
+
+      setNodes((currentNodes) => [
+        ...currentNodes,
+        newNode,
+      ])
+
+      setSelectedNodeId(id)
+
+      return {
+        ...current,
+        junction: nextNumber,
+      }
+    })
+  }, [])
+
+  /*
+   * ---------------------------------------------------------
+   * DELETE SELECTED
+   * ---------------------------------------------------------
+   */
+
+  const deleteSelected = useCallback(() => {
+    if (!selectedNodeId) {
+      return
     }
 
-    setNodes((currentNodes) => [
-      ...currentNodes,
-      newNode,
-    ])
-  }
+    setNodes((currentNodes) =>
+      currentNodes.filter(
+        (node) => node.id !== selectedNodeId,
+      ),
+    )
+
+    setEdges((currentEdges) =>
+      currentEdges.filter(
+        (edge) =>
+          edge.source !== selectedNodeId &&
+          edge.target !== selectedNodeId,
+      ),
+    )
+
+    setSelectedNodeId(null)
+  }, [selectedNodeId])
+
+  /*
+   * ---------------------------------------------------------
+   * ROTATE SELECTED
+   * ---------------------------------------------------------
+   */
+
+  const rotateSelected = useCallback(() => {
+    if (!selectedNodeId) {
+      return
+    }
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        if (node.id !== selectedNodeId) {
+          return node
+        }
+
+        const currentRotation =
+          node.data?.rotation ?? 0
+
+        const newRotation =
+          (currentRotation + 90) % 360
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            rotation: newRotation,
+          },
+        }
+      }),
+    )
+  }, [selectedNodeId])
+
+  /*
+   * ---------------------------------------------------------
+   * KEYBOARD SHORTCUTS
+   * ---------------------------------------------------------
+   */
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      /*
+       * Do not trigger shortcuts while typing.
+       */
+
+      const target = event.target as HTMLElement | null
+
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA")
+      ) {
+        return
+      }
+
+      /*
+       * Delete selected component
+       */
+
+      if (
+        event.key === "Delete" ||
+        event.key === "Backspace"
+      ) {
+        deleteSelected()
+      }
+
+      /*
+       * Rotate selected component
+       */
+
+      if (
+        event.key.toLowerCase() === "r"
+      ) {
+        rotateSelected()
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown,
+    )
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown,
+      )
+    }
+  }, [
+    deleteSelected,
+    rotateSelected,
+  ])
+
+  /*
+   * ---------------------------------------------------------
+   * RENDER
+   * ---------------------------------------------------------
+   */
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="logo">
+      {/* =====================================================
+          TOP TOOLBAR
+          ===================================================== */}
+
+      <header className="toolbar">
+        <div className="toolbar-title">
           CriticalPath
         </div>
 
-        <nav>
+        <div className="toolbar-menu">
           <button>File</button>
           <button>Edit</button>
           <button>Simulation</button>
           <button>Analysis</button>
           <button>AI</button>
-        </nav>
-
-        <div className="toolbar-actions">
-          <button className="run-button">
-            ▶ Run
-          </button>
         </div>
+
+        <div className="toolbar-spacer" />
+
+        <button className="run-button">
+          Run
+        </button>
       </header>
 
-      <main className="workspace">
+      {/* =====================================================
+          MAIN WORKSPACE
+          ===================================================== */}
+
+      <div className="workspace">
+
+        {/* ===================================================
+            LEFT COMPONENT PALETTE
+            =================================================== */}
+
         <aside className="left-panel">
-          <h3>Components</h3>
 
-          <button onClick={addResistor}>
-            + Resistor
-          </button>
+          <div className="panel-title">
+            Components
+          </div>
 
-          <button>+ Capacitor</button>
-          <button>+ Inductor</button>
-          <button>+ Voltage Source</button>
-          <button>+ Current Source</button>
-          <button>+ Diode</button>
-          <button>+ Transistor</button>
-          <button>+ Op-Amp</button>
-          <button>+ Logic Gate</button>
-          <button>+ Ground</button>
+          <div className="component-list">
+
+            <button
+              onClick={() =>
+                addComponent("resistor")
+              }
+            >
+              <span>R</span>
+              Resistor
+            </button>
+
+            <button
+              onClick={() =>
+                addComponent("capacitor")
+              }
+            >
+              <span>C</span>
+              Capacitor
+            </button>
+
+            <button
+              onClick={() =>
+                addComponent("inductor")
+              }
+            >
+              <span>L</span>
+              Inductor
+            </button>
+
+            <button
+              onClick={() =>
+                addComponent("voltage-source")
+              }
+            >
+              <span>V</span>
+              Voltage Source
+            </button>
+
+            <button
+              onClick={() =>
+                addComponent("current-source")
+              }
+            >
+              <span>I</span>
+              Current Source
+            </button>
+
+            <button
+              onClick={() =>
+                addComponent("diode")
+              }
+            >
+              <span>D</span>
+              Diode
+            </button>
+
+            <button
+              onClick={() =>
+                addComponent("ground")
+              }
+            >
+              <span>G</span>
+              Ground
+            </button>
+
+            <button
+              onClick={addJunction}
+            >
+              <span>●</span>
+              Junction
+            </button>
+
+          </div>
+
+          <div className="panel-help">
+            <div>
+              <strong>Mouse</strong>
+            </div>
+
+            <div>
+              Drag components
+            </div>
+
+            <div>
+              Drag from pin to pin
+            </div>
+
+            <div>
+              Delete = remove
+            </div>
+
+            <div>
+              R = rotate
+            </div>
+          </div>
+
         </aside>
 
-        <section className="canvas-area">
-          <ReactFlowProvider>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={nodeTypes}
-              onConnect={onConnect}
-              onNodeClick={(_, node) => {
-                setSelectedNode(node)
-              }}
-              onNodesChange={(changes) => {
-                setNodes((current) =>
-                  applyNodeChanges(
-                    changes,
-                    current,
-                  ),
-                )
-              }}
-              onEdgesChange={(changes) => {
-                setEdges((current) =>
-                  applyEdgeChanges(
-                    changes,
-                    current,
-                  ),
-                )
-              }}
-              fitView
-            >
-              <Background />
-              <Controls />
-              <MiniMap />
-            </ReactFlow>
-          </ReactFlowProvider>
-        </section>
+        {/* ===================================================
+            SCHEMATIC CANVAS
+            =================================================== */}
+
+        <main className="canvas">
+
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
+
+            /*
+             * Allow connections between handles
+             * without enforcing source/target direction.
+             */
+
+            connectionMode={ConnectionMode.Loose}
+
+            /*
+             * Use orthogonal stepped wires.
+             */
+
+            connectionLineType={
+              ConnectionLineType.Step
+            }
+
+            defaultEdgeOptions={{
+              type: "step",
+              animated: false,
+              style: {
+                strokeWidth: 2,
+              },
+            }}
+
+            /*
+             * Snap components to a 20x20 grid.
+             */
+
+            snapToGrid
+            snapGrid={[20, 20]}
+
+            fitView
+
+            deleteKeyCode={null}
+
+            minZoom={0.2}
+            maxZoom={2.5}
+          >
+
+            <Background
+              gap={20}
+              size={1}
+            />
+
+            <Controls />
+
+            <MiniMap />
+
+          </ReactFlow>
+
+        </main>
+
+        {/* ===================================================
+            RIGHT PROPERTIES PANEL
+            =================================================== */}
 
         <aside className="right-panel">
-          <h3>Properties</h3>
 
-          {selectedNode ? (
+          <div className="panel-title">
+            Properties
+          </div>
+
+          {selectedNodeId ? (
             <div className="properties">
-              <label>Component</label>
 
-              <input
-                value={selectedNode.data.label}
-                readOnly
-              />
+              <div className="property-row">
+                <span>ID</span>
+                <strong>
+                  {selectedNodeId}
+                </strong>
+              </div>
 
-              <label>Type</label>
+              {(() => {
+                const selectedNode =
+                  nodes.find(
+                    (node) =>
+                      node.id ===
+                      selectedNodeId,
+                  )
 
-              <input
-                value={selectedNode.data.type}
-                readOnly
-              />
-
-              <label>Value</label>
-
-              <input
-                value={
-                  selectedNode.data.value ?? ""
+                if (
+                  !selectedNode ||
+                  selectedNode.type !==
+                    "schematic"
+                ) {
+                  return null
                 }
-                readOnly
-              />
+
+                return (
+                  <>
+                    <div className="property-row">
+                      <span>Type</span>
+
+                      <strong>
+                        {
+                          selectedNode.data
+                            .type
+                        }
+                      </strong>
+                    </div>
+
+                    <div className="property-row">
+                      <span>Value</span>
+
+                      <strong>
+                        {
+                          selectedNode.data
+                            .value ?? "-"
+                        }
+                      </strong>
+                    </div>
+
+                    <div className="property-row">
+                      <span>Rotation</span>
+
+                      <strong>
+                        {
+                          selectedNode.data
+                            .rotation ?? 0
+                        }
+                        °
+                      </strong>
+                    </div>
+                  </>
+                )
+              })()}
+
+              <button
+                className="property-action"
+                onClick={rotateSelected}
+              >
+                Rotate 90°
+              </button>
+
+              <button
+                className="property-delete"
+                onClick={deleteSelected}
+              >
+                Delete
+              </button>
+
             </div>
           ) : (
-            <p>Select a component.</p>
+            <div className="no-selection">
+              Select a component
+            </div>
           )}
-        </aside>
-      </main>
 
-      <footer className="statusbar">
-        <span>
-          Simulation: Ready
-        </span>
+        </aside>
+
+      </div>
+
+      {/* =====================================================
+          STATUS BAR
+          ===================================================== */}
+
+      <footer className="status-bar">
 
         <span>
           Components: {nodes.length}
         </span>
 
         <span>
-          Connections: {edges.length}
+          Wires: {edges.length}
         </span>
+
+        <span>
+          Grid: 20 × 20
+        </span>
+
+        <span>
+          {selectedNodeId
+            ? `Selected: ${selectedNodeId}`
+            : "No selection"}
+        </span>
+
       </footer>
+
     </div>
   )
 }
