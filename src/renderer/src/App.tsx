@@ -1,17 +1,22 @@
-import { useState } from "react"
+import { useCallback, useState } from "react"
+
 import ReactFlow, {
   Background,
   Controls,
   MiniMap,
   ReactFlowProvider,
+  addEdge,
   applyNodeChanges,
   applyEdgeChanges,
-  type Node,
+  type Connection,
   type Edge,
+  type Node,
 } from "reactflow"
 
 import "reactflow/dist/style.css"
 import "./App.css"
+
+import ResistorNode from "./components/ResistorNode"
 
 type ComponentNodeData = {
   label: string
@@ -19,22 +24,22 @@ type ComponentNodeData = {
   value?: string
 }
 
+const nodeTypes = {
+  resistor: ResistorNode,
+}
+
 const initialNodes: Node<ComponentNodeData>[] = [
   {
     id: "r1",
-    position: { x: 300, y: 180 },
+    type: "resistor",
+    position: {
+      x: 300,
+      y: 180,
+    },
     data: {
       label: "R1",
       type: "resistor",
       value: "1k",
-    },
-    style: {
-      width: 100,
-      padding: 12,
-      border: "2px solid #444",
-      borderRadius: 6,
-      background: "#ffffff",
-      textAlign: "center",
     },
   },
 ]
@@ -42,47 +47,59 @@ const initialNodes: Node<ComponentNodeData>[] = [
 const initialEdges: Edge[] = []
 
 function App() {
-  const [nodes, setNodes] = useState<Node<ComponentNodeData>[]>(
-    initialNodes,
-  )
+  const [nodes, setNodes] =
+    useState<Node<ComponentNodeData>[]>(initialNodes)
 
-  const [edges, setEdges] = useState<Edge[]>(initialEdges)
+  const [edges, setEdges] =
+    useState<Edge[]>(initialEdges)
 
   const [selectedNode, setSelectedNode] =
     useState<Node<ComponentNodeData> | null>(null)
 
+  const onConnect = useCallback((connection: Connection) => {
+    setEdges((currentEdges) =>
+      addEdge(
+        {
+          ...connection,
+          animated: false,
+        },
+        currentEdges,
+      ),
+    )
+  }, [])
+
   const addResistor = () => {
-    const id = `R${nodes.length + 1}`
+    const resistorNumber =
+      nodes.filter((node) => node.type === "resistor").length + 1
+
+    const id = `r${resistorNumber}`
 
     const newNode: Node<ComponentNodeData> = {
       id,
+      type: "resistor",
       position: {
-        x: 200 + nodes.length * 30,
-        y: 100 + nodes.length * 30,
+        x: 200 + nodes.length * 40,
+        y: 100 + nodes.length * 40,
       },
       data: {
-        label: id,
+        label: `R${resistorNumber}`,
         type: "resistor",
         value: "1k",
       },
-      style: {
-        width: 100,
-        padding: 12,
-        border: "2px solid #444",
-        borderRadius: 6,
-        background: "#ffffff",
-        textAlign: "center",
-      },
     }
 
-    setNodes((current) => [...current, newNode])
+    setNodes((currentNodes) => [
+      ...currentNodes,
+      newNode,
+    ])
   }
 
   return (
     <div className="app">
-      {/* Top toolbar */}
       <header className="topbar">
-        <div className="logo">CriticalPath</div>
+        <div className="logo">
+          CriticalPath
+        </div>
 
         <nav>
           <button>File</button>
@@ -93,13 +110,13 @@ function App() {
         </nav>
 
         <div className="toolbar-actions">
-          <button className="run-button">▶ Run</button>
+          <button className="run-button">
+            ▶ Run
+          </button>
         </div>
       </header>
 
-      {/* Main workspace */}
       <main className="workspace">
-        {/* Component palette */}
         <aside className="left-panel">
           <h3>Components</h3>
 
@@ -118,23 +135,30 @@ function App() {
           <button>+ Ground</button>
         </aside>
 
-        {/* Schematic canvas */}
         <section className="canvas-area">
           <ReactFlowProvider>
             <ReactFlow
               nodes={nodes}
               edges={edges}
+              nodeTypes={nodeTypes}
+              onConnect={onConnect}
               onNodeClick={(_, node) => {
                 setSelectedNode(node)
               }}
               onNodesChange={(changes) => {
                 setNodes((current) =>
-                  applyNodeChanges(changes, current),
+                  applyNodeChanges(
+                    changes,
+                    current,
+                  ),
                 )
               }}
               onEdgesChange={(changes) => {
                 setEdges((current) =>
-                  applyEdgeChanges(changes, current),
+                  applyEdgeChanges(
+                    changes,
+                    current,
+                  ),
                 )
               }}
               fitView
@@ -146,7 +170,6 @@ function App() {
           </ReactFlowProvider>
         </section>
 
-        {/* Properties panel */}
         <aside className="right-panel">
           <h3>Properties</h3>
 
@@ -169,7 +192,9 @@ function App() {
               <label>Value</label>
 
               <input
-                value={selectedNode.data.value ?? ""}
+                value={
+                  selectedNode.data.value ?? ""
+                }
                 readOnly
               />
             </div>
@@ -179,9 +204,10 @@ function App() {
         </aside>
       </main>
 
-      {/* Status bar */}
       <footer className="statusbar">
-        <span>Simulation: Ready</span>
+        <span>
+          Simulation: Ready
+        </span>
 
         <span>
           Components: {nodes.length}
