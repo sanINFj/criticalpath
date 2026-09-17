@@ -71,7 +71,7 @@ function App() {
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
-  const [componentCounter, setComponentCounter] = useState({
+  const [, setComponentCounter] = useState({
     resistor: 1,
     capacitor: 0,
     inductor: 0,
