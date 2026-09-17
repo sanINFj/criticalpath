@@ -1,0 +1,162 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background: #f5f5f5;
+  color: #222;
+}
+
+button {
+  font: inherit;
+}
+
+.app {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 16px;
+  background: #202020;
+  color: white;
+  border-bottom: 1px solid #111;
+}
+
+.logo {
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 150px;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 4px;
+}
+
+.topbar button {
+  border: none;
+  background: transparent;
+  color: white;
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.topbar button:hover {
+  background: #333;
+}
+
+.toolbar-actions {
+  margin-left: auto;
+}
+
+.run-button {
+  background: #2e7d32 !important;
+  font-weight: 600;
+}
+
+.workspace {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.left-panel {
+  width: 190px;
+  padding: 16px;
+  background: #eeeeee;
+  border-right: 1px solid #ccc;
+  overflow-y: auto;
+}
+
+.right-panel {
+  width: 230px;
+  padding: 16px;
+  background: #eeeeee;
+  border-left: 1px solid #ccc;
+  overflow-y: auto;
+}
+
+.left-panel h3,
+.right-panel h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.left-panel button {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 9px;
+  text-align: left;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background: white;
+  cursor: pointer;
+}
+
+.left-panel button:hover {
+  background: #e4e4e4;
+}
+
+.canvas-area {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: white;
+}
+
+.properties {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.properties label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+
+.properties input {
+  width: 100%;
+  padding: 7px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: white;
+}
+
+.statusbar {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 0 12px;
+  background: #dedede;
+  border-top: 1px solid #c5c5c5;
+  font-size: 12px;
+  color: #444;
+}
