@@ -8,10 +8,12 @@ export type SchematicComponentType =
   | "resistor"
   | "capacitor"
   | "inductor"
+  | "diode"
   | "voltage-source"
   | "current-source"
-  | "diode"
   | "ground"
+  | "vcc"
+  | "generic"
 
 export interface SchematicNodeData {
   label: string
@@ -20,495 +22,291 @@ export interface SchematicNodeData {
   rotation?: number
 }
 
+/* ============================================================
+   PRECISE ENGINEERING SCHEMATIC SYMBOLS (LTspice Style)
+   All symbols: width 120, height 80, horizontal lead at y=40,
+   vertical lead at x=60. Connects seamlessly with 20px grid.
+   ============================================================ */
+
 function ResistorSymbol() {
   return (
-    <svg
-      width="100"
-      height="50"
-      viewBox="0 0 100 50"
-    >
-      <line
-        x1="0"
-        y1="25"
-        x2="20"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
-
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="0" y1="40" x2="30" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
       <polyline
-        points="20,25 27,12 34,38 41,12 48,38 55,12 62,38 69,12 76,38 83,25"
+        points="30,40 35,26 45,54 55,26 65,54 75,26 85,54 90,40"
         fill="none"
-        stroke="black"
-        strokeWidth="2"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
       />
-
-      <line
-        x1="83"
-        y1="25"
-        x2="100"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
+      <line x1="90" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }
 
 function CapacitorSymbol() {
   return (
-    <svg
-      width="100"
-      height="50"
-      viewBox="0 0 100 50"
-    >
-      <line
-        x1="0"
-        y1="25"
-        x2="42"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <line
-        x1="42"
-        y1="10"
-        x2="42"
-        y2="40"
-        stroke="black"
-        strokeWidth="3"
-      />
-
-      <line
-        x1="58"
-        y1="10"
-        x2="58"
-        y2="40"
-        stroke="black"
-        strokeWidth="3"
-      />
-
-      <line
-        x1="58"
-        y1="25"
-        x2="100"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="0" y1="40" x2="54" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="54" y1="24" x2="54" y2="56" stroke="#1f2937" strokeWidth="2.4" strokeLinecap="round" />
+      <line x1="66" y1="24" x2="66" y2="56" stroke="#1f2937" strokeWidth="2.4" strokeLinecap="round" />
+      <line x1="66" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }
 
 function InductorSymbol() {
   return (
-    <svg
-      width="100"
-      height="50"
-      viewBox="0 0 100 50"
-    >
-      <line
-        x1="0"
-        y1="25"
-        x2="20"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
-
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="0" y1="40" x2="30" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
       <path
-        d="
-          M20 25
-          C20 5, 35 5, 35 25
-          C35 5, 50 5, 50 25
-          C50 5, 65 5, 65 25
-          C65 5, 80 5, 80 25
-        "
+        d="M30,40 C30,22 45,22 45,40 C45,22 60,22 60,40 C60,22 75,22 75,40 C75,22 90,22 90,40"
         fill="none"
-        stroke="black"
-        strokeWidth="2"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
-
-      <line
-        x1="80"
-        y1="25"
-        x2="100"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-function VoltageSourceSymbol() {
-  return (
-    <svg
-      width="80"
-      height="80"
-      viewBox="0 0 80 80"
-    >
-      <line
-        x1="0"
-        y1="40"
-        x2="15"
-        y2="40"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <circle
-        cx="40"
-        cy="40"
-        r="25"
-        fill="white"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <line
-        x1="65"
-        y1="40"
-        x2="80"
-        y2="40"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <line
-        x1="40"
-        y1="25"
-        x2="40"
-        y2="35"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <line
-        x1="35"
-        y1="30"
-        x2="45"
-        y2="30"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <line
-        x1="35"
-        y1="50"
-        x2="45"
-        y2="50"
-        stroke="black"
-        strokeWidth="2"
-      />
-    </svg>
-  )
-}
-
-function CurrentSourceSymbol() {
-  return (
-    <svg
-      width="80"
-      height="80"
-      viewBox="0 0 80 80"
-    >
-      <line
-        x1="0"
-        y1="40"
-        x2="15"
-        y2="40"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <circle
-        cx="40"
-        cy="40"
-        r="25"
-        fill="white"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <line
-        x1="65"
-        y1="40"
-        x2="80"
-        y2="40"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <line
-        x1="40"
-        y1="55"
-        x2="40"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <polyline
-        points="35,32 40,25 45,32"
-        fill="none"
-        stroke="black"
-        strokeWidth="2"
-      />
+      <line x1="90" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }
 
 function DiodeSymbol() {
   return (
-    <svg
-      width="100"
-      height="50"
-      viewBox="0 0 100 50"
-    >
-      <line
-        x1="0"
-        y1="25"
-        x2="30"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="0" y1="40" x2="50" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <polygon points="50,26 50,54 70,40" fill="#1f2937" stroke="#1f2937" strokeWidth="1" />
+      <line x1="70" y1="26" x2="70" y2="54" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" />
+      <line x1="70" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
 
-      <polygon
-        points="30,10 30,40 65,25"
-        fill="white"
-        stroke="black"
-        strokeWidth="2"
-      />
+function VoltageSourceSymbol() {
+  return (
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="0" y1="40" x2="38" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      <circle cx="60" cy="40" r="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="82" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      {/* Plus / Minus */}
+      <line x1="51" y1="40" x2="59" y2="40" stroke="#1f2937" strokeWidth="1.5" />
+      <line x1="55" y1="36" x2="55" y2="44" stroke="#1f2937" strokeWidth="1.5" />
+      <line x1="64" y1="40" x2="70" y2="40" stroke="#1f2937" strokeWidth="1.5" />
+    </svg>
+  )
+}
 
-      <line
-        x1="65"
-        y1="10"
-        x2="65"
-        y2="40"
-        stroke="black"
-        strokeWidth="3"
-      />
-
-      <line
-        x1="65"
-        y1="25"
-        x2="100"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
+function CurrentSourceSymbol() {
+  return (
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="0" y1="40" x2="38" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      <circle cx="60" cy="40" r="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="82" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      {/* Arrow */}
+      <line x1="50" y1="40" x2="70" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <polyline points="65,35 70,40 65,45" fill="none" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 
 function GroundSymbol() {
   return (
-    <svg
-      width="60"
-      height="60"
-      viewBox="0 0 60 60"
-    >
-      <line
-        x1="30"
-        y1="0"
-        x2="30"
-        y2="25"
-        stroke="black"
-        strokeWidth="2"
-      />
-
-      <line
-        x1="10"
-        y1="25"
-        x2="50"
-        y2="25"
-        stroke="black"
-        strokeWidth="3"
-      />
-
-      <line
-        x1="17"
-        y1="32"
-        x2="43"
-        y2="32"
-        stroke="black"
-        strokeWidth="3"
-      />
-
-      <line
-        x1="24"
-        y1="39"
-        x2="36"
-        y2="39"
-        stroke="black"
-        strokeWidth="3"
-      />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="60" y1="0" x2="60" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="42" y1="40" x2="78" y2="40" stroke="#1f2937" strokeWidth="2.2" strokeLinecap="round" />
+      <line x1="48" y1="48" x2="72" y2="48" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="54" y1="56" x2="66" y2="56" stroke="#1f2937" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   )
 }
 
-function getSymbol(type: SchematicComponentType) {
+function VCCSymbol() {
+  return (
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="60" y1="40" x2="60" y2="80" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <polygon points="60,18 46,40 74,40" fill="none" stroke="#1f2937" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function GenericSymbol() {
+  return (
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <rect x="30" y="16" width="60" height="48" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="0" y1="40" x2="30" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="90" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      <text x="60" y="44" fontSize="11" fontWeight="700" textAnchor="middle" fill="#1f2937" fontFamily="monospace">IC</text>
+    </svg>
+  )
+}
+
+function renderSymbol(type: SchematicComponentType) {
   switch (type) {
     case "resistor":
       return <ResistorSymbol />
-
     case "capacitor":
       return <CapacitorSymbol />
-
     case "inductor":
       return <InductorSymbol />
-
-    case "voltage-source":
-      return <VoltageSourceSymbol />
-
-    case "current-source":
-      return <CurrentSourceSymbol />
-
     case "diode":
       return <DiodeSymbol />
-
+    case "voltage-source":
+      return <VoltageSourceSymbol />
+    case "current-source":
+      return <CurrentSourceSymbol />
     case "ground":
       return <GroundSymbol />
-
+    case "vcc":
+      return <VCCSymbol />
+    case "generic":
     default:
-      return null
+      return <GenericSymbol />
   }
 }
 
-function SchematicNode({
+export default function SchematicNode({
   data,
   selected,
+  isConnectable,
 }: NodeProps<SchematicNodeData>) {
   const rotation = data.rotation ?? 0
+  const isVertical = rotation === 90 || rotation === 270
+  const isSinglePin = data.type === "ground" || data.type === "vcc"
 
-  const twoPin =
-    data.type !== "ground"
-
-  const isVertical =
-    rotation === 90 || rotation === 270
-
-  const handlePositionA = isVertical
-    ? Position.Top
-    : Position.Left
-
-  const handlePositionB = isVertical
-    ? Position.Bottom
-    : Position.Right
+  const handlePosA = isVertical ? Position.Top : Position.Left
+  const handlePosB = isVertical ? Position.Bottom : Position.Right
 
   return (
     <div
       style={{
         position: "relative",
-        minWidth: 120,
-        minHeight: 90,
+        width: 120,
+        height: 80,
+        boxSizing: "border-box",
         display: "flex",
-        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         background: "transparent",
         userSelect: "none",
+        outline: selected ? "1px dashed #2563eb" : "none",
+        borderRadius: 4,
       }}
     >
-      {twoPin && (
+      {/* Bidirectional Handles locked precisely to (0, 40), (120, 40), (60, 0), (60, 80) */}
+      {!isSinglePin ? (
         <>
           <Handle
             type="source"
-            position={handlePositionA}
+            position={handlePosA}
             id="pin1"
+            isConnectable={isConnectable}
             style={{
-              width: 10,
-              height: 10,
-              background: selected
-                ? "#1976d2"
-                : "#111",
-              border:
-                "2px solid white",
+              width: 8,
+              height: 8,
+              top: isVertical ? 0 : 40,
+              left: isVertical ? 60 : 0,
+              transform: "translate(-50%, -50%)",
+              background: selected ? "#2563eb" : "#1f2937",
+              border: "1.5px solid #ffffff",
+              boxShadow: "0 0 0 1px rgba(31, 41, 55, 0.25)",
               zIndex: 10,
+              pointerEvents: isConnectable ? "all" : "none",
             }}
           />
-
           <Handle
-            type="target"
-            position={handlePositionB}
+            type="source"
+            position={handlePosB}
             id="pin2"
+            isConnectable={isConnectable}
             style={{
-              width: 10,
-              height: 10,
-              background: selected
-                ? "#1976d2"
-                : "#111",
-              border:
-                "2px solid white",
+              width: 8,
+              height: 8,
+              top: isVertical ? 80 : 40,
+              left: isVertical ? 60 : 120,
+              transform: "translate(-50%, -50%)",
+              background: selected ? "#2563eb" : "#1f2937",
+              border: "1.5px solid #ffffff",
+              boxShadow: "0 0 0 1px rgba(31, 41, 55, 0.25)",
               zIndex: 10,
+              pointerEvents: isConnectable ? "all" : "none",
             }}
           />
         </>
-      )}
-
-      {!twoPin && (
+      ) : (
         <Handle
-          type="target"
-          position={Position.Top}
+          type="source"
+          position={data.type === "ground" ? Position.Top : Position.Bottom}
           id="pin1"
+          isConnectable={isConnectable}
           style={{
-            width: 10,
-            height: 10,
-            background: selected
-              ? "#1976d2"
-              : "#111",
-            border:
-              "2px solid white",
+            width: 8,
+            height: 8,
+            top: data.type === "ground" ? 0 : 80,
+            left: 60,
+            transform: "translate(-50%, -50%)",
+            background: selected ? "#2563eb" : "#1f2937",
+            border: "1.5px solid #ffffff",
+            boxShadow: "0 0 0 1px rgba(31, 41, 55, 0.25)",
             zIndex: 10,
+            pointerEvents: isConnectable ? "all" : "none",
           }}
         />
       )}
 
+      {/* Rotating SVG Vector Graphic */}
       <div
         style={{
           transform: `rotate(${rotation}deg)`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          pointerEvents: "none",
         }}
       >
-        {getSymbol(data.type)}
+        {renderSymbol(data.type)}
       </div>
 
+      {/* Engineering Designator & Parameter Labels */}
       <div
         style={{
           position: "absolute",
-          bottom: -22,
+          bottom: -18,
           left: "50%",
           transform: "translateX(-50%)",
           whiteSpace: "nowrap",
           textAlign: "center",
           pointerEvents: "none",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 1,
         }}
       >
-        <div
+        <span
           style={{
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: 700,
+            color: "#1f2937",
+            fontFamily: '"JetBrains Mono", monospace',
+            lineHeight: 1.2,
           }}
         >
           {data.label}
-        </div>
-
+        </span>
         {data.value && (
-          <div
+          <span
             style={{
               fontSize: 11,
-              color: "#555",
+              fontWeight: 600,
+              color: "#2563eb",
+              fontFamily: '"JetBrains Mono", monospace',
+              lineHeight: 1.2,
             }}
           >
             {data.value}
-          </div>
+          </span>
         )}
       </div>
     </div>
   )
 }
-
-export default SchematicNode
