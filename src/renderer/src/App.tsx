@@ -37,6 +37,7 @@ import CadCrosshairLayer, {
   type WireDraft,
 } from "./components/schematic/CadCrosshairLayer"
 
+import { buildSpiceNetlist } from "./simulation/netlist"
 import "./assets/main.css"
 
 const nodeTypes = {
@@ -1405,6 +1406,216 @@ function SchematicEditor() {
     [selectedNodeId],
   )
 
+
+  /* ============================================================
+     FILE WORKFLOW: SAVE / OPEN
+     ============================================================ */
+
+
+
+  const simulateCircuit = useCallback(async () => {
+    setOpenMenu(null)
+
+    const result = buildSpiceNetlist(nodes, edges)
+    if (result.errors.length > 0) {
+      window.alert(
+        "Cannot simulate this circuit yet:\n\n" +
+          result.errors.map((error) => `• ${error}`).join("\n"),
+      )
+      return
+    }
+
+    if (typeof window.api?.runNgspice !== "function") {
+      window.alert(
+        "The ngspice runner is available in the Electron desktop app, not the browser-only build.",
+      )
+      return
+    }
+
+    try {
+      const simulation = await window.api.runNgspice(result.netlist)
+      const details = [
+        simulation.ok ? "Simulation completed." : "Simulation failed.",
+        simulation.error ? `\n${simulation.error}` : "",
+        simulation.stdout ? `\n--- ngspice output ---\n${simulation.stdout}` : "",
+        simulation.stderr ? `\n--- diagnostics ---\n${simulation.stderr}` : "",
+      ].join("")
+
+      window.alert(details)
+    } catch (error) {
+      window.alert(
+        "Could not run ngspice:\n" +
+          (error instanceof Error ? error.message : String(error)),
+      )
+    }
+  }, [nodes, edges])
+
+  const exportNetlist = useCallback(() => {
+    console.log("[CriticalPath] Export nodes:", JSON.stringify(
+      nodes.map((node) => ({
+        id: node.id,
+        type: node.type,
+        position: node.position,
+        data: node.data,
+      })),
+      null,
+      2,
+    ))
+
+    console.log("[CriticalPath] Export edges:", JSON.stringify(
+      edges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        sourceHandle: edge.sourceHandle,
+        target: edge.target,
+        targetHandle: edge.targetHandle,
+      })),
+      null,
+      2,
+    ))
+
+    const result = buildSpiceNetlist(nodes, edges)
+
+    if (result.errors.length > 0) {
+      window.alert(
+        "Cannot export this circuit yet:\n\n" +
+          result.errors.map((error) => `• ${error}`).join("\n"),
+      )
+      return
+    }
+
+    if (result.warnings.length > 0) {
+      window.alert(result.warnings.join("\n"))
+    }
+
+    const blob = new Blob([result.netlist], {
+      type: "text/plain;charset=utf-8",
+    })
+    const url = URL.createObjectURL(blob)
+    const link = window.document.createElement("a")
+    link.href = url
+    link.download = "circuit.cir"
+    window.document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setOpenMenu(null)
+  }, [nodes, edges])
+
+  const saveSchematic = useCallback(() => {
+    const document = {
+      format: "criticalpath",
+      version: 1,
+      savedAt: new Date().toISOString(),
+      nodes,
+      edges,
+    }
+
+    const blob = new Blob([JSON.stringify(document, null, 2)], {
+      type: "application/json",
+    })
+    const url = URL.createObjectURL(blob)
+    const link = window.document.createElement("a")
+    link.href = url
+    link.download = "circuit.criticalpath.json"
+    window.document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    setOpenMenu(null)
+  }, [nodes, edges])
+
+  const openSchematic = useCallback(() => {
+    const input = window.document.createElement("input")
+    input.type = "file"
+    input.accept = ".json,.criticalpath.json,application/json"
+
+    input.onchange = async () => {
+      const file = input.files?.[0]
+      if (!file) return
+
+      try {
+        const parsed: unknown = JSON.parse(await file.text())
+
+        if (!parsed || typeof parsed !== "object") {
+          throw new Error("The file does not contain a circuit document.")
+        }
+
+        const doc = parsed as {
+          format?: unknown
+          version?: unknown
+          nodes?: unknown
+          edges?: unknown
+        }
+
+        if (
+          doc.format !== "criticalpath" ||
+          doc.version !== 1 ||
+          !Array.isArray(doc.nodes) ||
+          !Array.isArray(doc.edges)
+        ) {
+          throw new Error(
+            "Unsupported file format. Choose a CriticalPath circuit JSON file saved by this version."
+          )
+        }
+
+        const validNodes = doc.nodes.every((node: any) =>
+          node &&
+          typeof node.id === "string" &&
+          typeof node.type === "string" &&
+          node.position &&
+          Number.isFinite(node.position.x) &&
+          Number.isFinite(node.position.y) &&
+          node.data &&
+          typeof node.data === "object"
+        )
+
+        const nodeIds = new Set(doc.nodes.map((node: any) => node.id))
+        const validEdges = doc.edges.every((edge: any) =>
+          edge &&
+          typeof edge.id === "string" &&
+          typeof edge.source === "string" &&
+          typeof edge.target === "string" &&
+          nodeIds.has(edge.source) &&
+          nodeIds.has(edge.target) &&
+          (edge.sourceHandle == null || typeof edge.sourceHandle === "string") &&
+          (edge.targetHandle == null || typeof edge.targetHandle === "string")
+        )
+
+        if (!validNodes || !validEdges) {
+          throw new Error(
+            "The circuit file contains invalid components or wire connections."
+          )
+        }
+
+        // Snapshot the current circuit so the user can undo the load.
+        pushSnapshot(nodes, edges)
+
+        setNodes(doc.nodes as Node<SchematicNodeData>[])
+        setEdges(doc.edges as Edge[])
+        setSelectedNodeId(null)
+        setSelectedEdgeId(null)
+        setWireDraft({
+          isDrawing: false,
+          points: [],
+          bendOrientation: "h",
+        })
+        setActiveTool("select")
+        setContextMenu({ visible: false, x: 0, y: 0 })
+        setOpenMenu(null)
+      } catch (error) {
+        window.alert(
+          error instanceof Error
+            ? `Could not open circuit: ${error.message}`
+            : "Could not open circuit file."
+        )
+      }
+    }
+
+    input.click()
+    setOpenMenu(null)
+  }, [nodes, edges, pushSnapshot])
+
   const clearCanvas = useCallback(() => {
     if (nodes.length === 0 && edges.length === 0) return
     pushSnapshot(nodes, edges)
@@ -1427,6 +1638,21 @@ function SchematicEditor() {
       const target = event.target as HTMLElement | null
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
         return
+      }
+
+      // Save / Open circuit documents
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
+        const key = event.key.toLowerCase()
+        if (key === "s") {
+          event.preventDefault()
+          saveSchematic()
+          return
+        }
+        if (key === "o") {
+          event.preventDefault()
+          openSchematic()
+          return
+        }
       }
 
       // Undo: Ctrl+Z / Cmd+Z
@@ -1526,6 +1752,8 @@ function SchematicEditor() {
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [
+    saveSchematic,
+    openSchematic,
     undo,
     redo,
     deleteSelected,
@@ -1580,15 +1808,18 @@ function SchematicEditor() {
                   <button className="dropdown-item" onClick={() => { clearCanvas(); setOpenMenu(null) }}>
                     <span>New Schematic</span> <span className="shortcut">Ctrl+N</span>
                   </button>
-                  <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
+                  <button className="dropdown-item" onClick={openSchematic}>
                     <span>Open Circuit...</span> <span className="shortcut">Ctrl+O</span>
                   </button>
-                  <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
+                  <button className="dropdown-item" onClick={saveSchematic}>
                     <span>Save Schematic</span> <span className="shortcut">Ctrl+S</span>
                   </button>
                   <div className="dropdown-separator" />
-                  <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
+                  <button className="dropdown-item" onClick={exportNetlist}>
                     <span>Export Netlist</span>
+                  </button>
+                  <button className="dropdown-item" onClick={simulateCircuit}>
+                    <span>Simulate with ngspice</span>
                   </button>
                 </div>
               )}
