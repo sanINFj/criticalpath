@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import type { SimulationRunResult } from "../../../shared/simulation"
 import {
   calculateAutomaticMeasurements,
@@ -22,6 +23,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
   initialSignal,
   embedded = false,
 }) => {
+  const { t } = useTranslation()
   // Extract all available signal names from simulation result
   const availableSignals = useMemo(() => {
     if (!simulationResult || !simulationResult.variables) return []
@@ -102,7 +104,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
               <path d="M3 11 L6 6 L9 9 L13 4" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          <span className="measure-win-title">Automatic Measurements</span>
+          <span className="measure-win-title">{t('measurementsPanel.title')}</span>
 
           <span className="measure-win-analysis-badge">
             .{report.analysisType.toUpperCase()}
@@ -110,7 +112,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
 
           {/* Plotted Trace Quick Selectors */}
           <div className="measure-win-signal-chips">
-            <span className="measure-win-signal-label">Plotted:</span>
+            <span className="measure-win-signal-label">{t('measurementsPanel.plotted')}</span>
             {activePlottedTraces.map((tr) => (
               <button
                 key={tr}
@@ -128,7 +130,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
         {/* Signal Dropdown Selector & Header Actions */}
         <div className="measure-win-header-right">
           <label className="measure-win-dropdown-label" htmlFor="measure-signal-select">
-            Signal:
+            {t('measurementsPanel.signal')}
           </label>
           <select
             id="measure-signal-select"
@@ -141,7 +143,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
                 {sig.toUpperCase()}
               </option>
             ))}
-            {availableSignals.length === 0 && <option value="">No signals</option>}
+            {availableSignals.length === 0 && <option value="">{t('measurementsPanel.noSignals')}</option>}
           </select>
 
           {/* Category Filter Tabs */}
@@ -151,21 +153,21 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
               className={`measure-win-tab-btn ${filterCategory === "all" ? "active" : ""}`}
               onClick={() => setFilterCategory("all")}
             >
-              All
+              {t('measurementsPanel.tabAll')}
             </button>
             <button
               type="button"
               className={`measure-win-tab-btn ${filterCategory === "primary" ? "active" : ""}`}
               onClick={() => setFilterCategory("primary")}
             >
-              Primary
+              {t('measurementsPanel.tabPrimary')}
             </button>
             <button
               type="button"
               className={`measure-win-tab-btn ${filterCategory === "timing" ? "active" : ""}`}
               onClick={() => setFilterCategory("timing")}
             >
-              Dynamic / Timing
+              {t('measurementsPanel.tabTiming')}
             </button>
           </div>
 
@@ -175,7 +177,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
             onClick={handleCopyClipboard}
             title="Copy measurements table to clipboard"
           >
-            {copiedNotice ? "✓ Copied" : "📋 Copy"}
+            {copiedNotice ? t('measurementsPanel.copied') : t('measurementsPanel.copy')}
           </button>
 
           {onClose && (
@@ -184,7 +186,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
               className="measure-win-close-btn"
               onClick={onClose}
               title="Close Measurements Panel"
-              aria-label="Close"
+              aria-label={t('actions.close')}
             >
               ✕
             </button>
@@ -199,12 +201,12 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
             <table className="measure-win-table">
               <thead>
                 <tr>
-                  <th style={{ width: "18%" }}>Measurement</th>
-                  <th style={{ width: "12%" }}>Symbol</th>
-                  <th style={{ width: "20%" }}>Calculated Value</th>
-                  <th style={{ width: "8%" }}>Unit</th>
-                  <th style={{ width: "12%" }}>Status</th>
-                  <th style={{ width: "30%" }}>Measurement Definition</th>
+                  <th style={{ width: "18%" }}>{t('measurementsPanel.thMeasurement')}</th>
+                  <th style={{ width: "12%" }}>{t('measurementsPanel.thSymbol')}</th>
+                  <th style={{ width: "20%" }}>{t('measurementsPanel.thCalculatedValue')}</th>
+                  <th style={{ width: "8%" }}>{t('measurementsPanel.thUnit')}</th>
+                  <th style={{ width: "12%" }}>{t('measurementsPanel.thStatus')}</th>
+                  <th style={{ width: "30%" }}>{t('measurementsPanel.thDefinition')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -224,7 +226,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
                     <td className="measure-cell-unit">{m.unit || "—"}</td>
                     <td className="measure-cell-status">
                       <span className={`measure-status-tag ${m.status}`}>
-                        {m.status === "valid" ? "✓ Valid" : m.status === "insufficient_data" ? "⚠ Insufficient" : "N/A"}
+                        {m.status === "valid" ? t('measurementsPanel.statusValid') : m.status === "insufficient_data" ? t('measurementsPanel.statusInsufficient') : "N/A"}
                       </span>
                     </td>
                     <td className="measure-cell-def">
@@ -241,13 +243,13 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
             <span className="measure-win-empty-icon">📊</span>
             <div className="measure-win-empty-title">
               {availableSignals.length === 0
-                ? "No Simulation Data Available"
-                : "No Signal Selected for Measurement"}
+                ? t('measurementsPanel.noData')
+                : t('measurementsPanel.noSignalSelected')}
             </div>
             <div className="measure-win-empty-desc">
               {availableSignals.length === 0
-                ? "Run a simulation (F9) to compute genuine circuit data points and calculate measurements."
-                : "Select an active signal from the dropdown above to view its automatic measurements."}
+                ? t('measurementsPanel.noDataDesc')
+                : t('measurementsPanel.noSignalSelectedDesc')}
             </div>
           </div>
         )}

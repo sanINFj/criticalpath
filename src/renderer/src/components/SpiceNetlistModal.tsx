@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import type { NetlistGenerationResult } from "../utils/spiceNetlist"
 
 interface SpiceNetlistModalProps {
@@ -20,6 +21,7 @@ export default function SpiceNetlistModal({
   onHighlightNet,
   onLocateComponent,
 }: SpiceNetlistModalProps) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<"netlist" | "validation">("netlist")
   const [copied, setCopied] = useState(false)
   const [selectedNet, setSelectedNet] = useState<string | null>(null)
@@ -83,9 +85,9 @@ export default function SpiceNetlistModal({
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 18, color: "var(--accent)" }}>⚡</span>
             <div>
-              <div className="analysis-modal-title">SPICE Netlist & Connectivity</div>
+              <div className="analysis-modal-title">{t('netlistModal.title')}</div>
               <div className="analysis-modal-subtitle">
-                LTspice compatible circuit netlist and electrical design rule validation
+                {t('netlistModal.subtitle')}
               </div>
             </div>
           </div>
@@ -93,19 +95,19 @@ export default function SpiceNetlistModal({
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {result.success ? (
               <span className="netlist-status-badge netlist-badge-success">
-                ✓ Valid Netlist
+                {t('netlistModal.validNetlist')}
               </span>
             ) : (
               <span className="netlist-status-badge netlist-badge-error">
-                ✕ {result.errors.length} Error{result.errors.length > 1 ? "s" : ""}
+                {t('netlistModal.errorsCount', { count: result.errors.length })}
               </span>
             )}
             {result.warnings.length > 0 && (
               <span className="netlist-status-badge netlist-badge-warning">
-                ⚠ {result.warnings.length} Warning{result.warnings.length > 1 ? "s" : ""}
+                {t('netlistModal.warningsCount', { count: result.warnings.length })}
               </span>
             )}
-            <button className="analysis-modal-close" onClick={onClose} aria-label="Close">
+            <button className="analysis-modal-close" onClick={onClose} aria-label={t('actions.close')}>
               ✕
             </button>
           </div>
@@ -117,13 +119,13 @@ export default function SpiceNetlistModal({
             className={`analysis-tab-btn ${activeTab === "netlist" ? "active" : ""}`}
             onClick={() => setActiveTab("netlist")}
           >
-            SPICE Netlist (.cir)
+            {t('netlistModal.tabNetlist')}
           </button>
           <button
             className={`analysis-tab-btn ${activeTab === "validation" ? "active" : ""}`}
             onClick={() => setActiveTab("validation")}
           >
-            Connectivity & Validation
+            {t('netlistModal.tabValidation')}
             {(result.errors.length > 0 || result.warnings.length > 0) && (
               <span
                 style={{
@@ -159,11 +161,11 @@ export default function SpiceNetlistModal({
                 }}
               >
                 <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                  <span>{result.stats.componentCount} components</span>
+                  <span>{t('netlistModal.componentCount', { count: result.stats.componentCount })}</span>
                   <span style={{ margin: "0 8px" }}>·</span>
-                  <span>{result.stats.netCount} electrical nets</span>
+                  <span>{t('netlistModal.electricalNets', { count: result.stats.netCount })}</span>
                   <span style={{ margin: "0 8px" }}>·</span>
-                  <span>{lines.length} lines</span>
+                  <span>{t('netlistModal.linesCount', { count: lines.length })}</span>
                 </div>
 
                 <div style={{ display: "flex", gap: 8 }}>
@@ -172,14 +174,14 @@ export default function SpiceNetlistModal({
                     onClick={handleCopy}
                     title="Copy Netlist to Clipboard"
                   >
-                    {copied ? "✓ Copied!" : "📋 Copy Netlist"}
+                    {copied ? t('netlistModal.copied') : t('netlistModal.copyNetlist')}
                   </button>
                   <button
                     className="netlist-action-btn"
                     onClick={handleDownload}
                     title="Save circuit.cir"
                   >
-                    💾 Download .cir
+                    {t('netlistModal.downloadCir')}
                   </button>
                 </div>
               </div>
@@ -223,15 +225,15 @@ export default function SpiceNetlistModal({
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
                 <div className="validation-stat-card">
                   <div className="validation-stat-value">{result.stats.componentCount}</div>
-                  <div className="validation-stat-label">Components</div>
+                  <div className="validation-stat-label">{t('netlistModal.components')}</div>
                 </div>
                 <div className="validation-stat-card">
                   <div className="validation-stat-value">{result.stats.netCount}</div>
-                  <div className="validation-stat-label">Active Nets</div>
+                  <div className="validation-stat-label">{t('netlistModal.activeNets')}</div>
                 </div>
                 <div className="validation-stat-card">
                   <div className="validation-stat-value">{result.stats.wireCount}</div>
-                  <div className="validation-stat-label">Wire Segments</div>
+                  <div className="validation-stat-label">{t('netlistModal.wireSegments')}</div>
                 </div>
                 <div className="validation-stat-card">
                   <div
@@ -240,9 +242,9 @@ export default function SpiceNetlistModal({
                       color: result.stats.groundConnected ? "#10b981" : "#ef4444",
                     }}
                   >
-                    {result.stats.groundConnected ? "✓ Connected" : "✕ Missing"}
+                    {result.stats.groundConnected ? t('netlistModal.connected') : t('netlistModal.missing')}
                   </div>
-                  <div className="validation-stat-label">Ground (Node 0)</div>
+                  <div className="validation-stat-label">{t('netlistModal.ground')}</div>
                 </div>
               </div>
 
@@ -250,7 +252,7 @@ export default function SpiceNetlistModal({
               {result.errors.length > 0 && (
                 <div>
                   <div className="validation-section-title" style={{ color: "#ef4444" }}>
-                    ✕ Connectivity Errors ({result.errors.length})
+                    {t('netlistModal.connectivityErrors', { count: result.errors.length })}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {result.errors.map((err, idx) => (
@@ -263,7 +265,7 @@ export default function SpiceNetlistModal({
                             </div>
                             {err.suggestion && (
                               <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
-                                💡 <strong>Fix:</strong> {err.suggestion}
+                                💡 <strong>{t('netlistModal.fix')}</strong> {err.suggestion}
                               </div>
                             )}
                           </div>
@@ -279,7 +281,7 @@ export default function SpiceNetlistModal({
                                 }}
                                 title="Zoom to component on canvas"
                               >
-                                🎯 Locate
+                                {t('netlistModal.locate')}
                               </button>
                             )}
                           </div>
@@ -294,7 +296,7 @@ export default function SpiceNetlistModal({
               {result.warnings.length > 0 && (
                 <div>
                   <div className="validation-section-title" style={{ color: "#f59e0b" }}>
-                    ⚠ Connectivity Warnings ({result.warnings.length})
+                    {t('netlistModal.connectivityWarnings', { count: result.warnings.length })}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {result.warnings.map((warn, idx) => (
@@ -307,7 +309,7 @@ export default function SpiceNetlistModal({
                             </div>
                             {warn.suggestion && (
                               <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>
-                                💡 <strong>Tip:</strong> {warn.suggestion}
+                                💡 <strong>{t('netlistModal.tip')}</strong> {warn.suggestion}
                               </div>
                             )}
                           </div>
@@ -323,7 +325,7 @@ export default function SpiceNetlistModal({
                                 }}
                                 title="Zoom to component on canvas"
                               >
-                                🎯 Locate
+                                {t('netlistModal.locate')}
                               </button>
                             )}
                           </div>
@@ -341,10 +343,10 @@ export default function SpiceNetlistModal({
                     <span style={{ fontSize: 20 }}>✅</span>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 13.5, color: "#10b981" }}>
-                        All Connectivity Rules Passed
+                        {t('netlistModal.rulesPassed')}
                       </div>
                       <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
-                        Circuit topology is valid, reference ground (0V) is properly wired, and all device terminals are resolved.
+                        {t('netlistModal.rulesPassedDesc')}
                       </div>
                     </div>
                   </div>
@@ -354,14 +356,14 @@ export default function SpiceNetlistModal({
               {/* Net Connectivity Matrix Table */}
               <div>
                 <div className="validation-section-title">
-                  Electrical Net Connectivity ({Object.keys(result.nets).length} Nets)
+                  {t('netlistModal.netConnectivity', { count: Object.keys(result.nets).length })}
                 </div>
                 <div className="netlist-table-container">
                   <table className="netlist-table">
                     <thead>
                       <tr>
-                        <th style={{ width: 120 }}>SPICE Net</th>
-                        <th>Connected Component Terminals</th>
+                        <th style={{ width: 120 }}>{t('netlistModal.spiceNet')}</th>
+                        <th>{t('netlistModal.connectedTerminals')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -413,7 +415,7 @@ export default function SpiceNetlistModal({
                                     }}
                                     title="Highlight this net on the schematic canvas"
                                   >
-                                    👁 Highlight on Canvas
+                                    {t('netlistModal.highlightCanvas')}
                                   </button>
                                 )}
                               </div>
@@ -432,12 +434,12 @@ export default function SpiceNetlistModal({
         {/* Modal Footer */}
         <div className="analysis-modal-footer">
           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-            Press <kbd style={{ padding: "1px 5px", background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", borderRadius: 3 }}>Esc</kbd> to dismiss
+            {t('netlistModal.pressEsc')}
           </div>
 
           <div style={{ display: "flex", gap: 8 }}>
             <button className="analysis-cancel-btn" onClick={onClose}>
-              Close
+              {t('actions.close')}
             </button>
             {result.success && onRunSimulation && (
               <button
@@ -447,7 +449,7 @@ export default function SpiceNetlistModal({
                   onRunSimulation()
                 }}
               >
-                ▶ Run Simulation
+                {t('netlistModal.runSimulation')}
               </button>
             )}
           </div>

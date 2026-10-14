@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import {
   renderSymbol,
   getComponentPins,
@@ -42,6 +43,7 @@ export default function ComponentLibraryModal({
   onSelectJunction,
   catalog,
 }: ComponentLibraryModalProps) {
+  const { t } = useTranslation('common')
   const [selectedCategory, setSelectedCategory] = useState<string>("All")
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedItemType, setSelectedItemType] = useState<string>("resistor")
@@ -150,12 +152,12 @@ export default function ComponentLibraryModal({
                 <line x1="20" y1="12" x2="23" y2="12" strokeWidth="2.5" />
               </svg>
             </span>
-            <span className="comp-lib-title">Select Component Symbol ({catalog.length} Available Symbols)</span>
+            <span className="comp-lib-title">{t('componentLib.title')} ({catalog.length} {t('componentLib.available')})</span>
           </div>
           <button
             className="comp-lib-close-btn"
             onClick={onClose}
-            title="Close (Esc)"
+            title={`${t('actions.close')} (Esc)`}
             aria-label="Close"
           >
             ✕
@@ -170,7 +172,7 @@ export default function ComponentLibraryModal({
               ref={searchInputRef}
               type="text"
               className="comp-lib-search-input"
-              placeholder="Search by component name, type, SPICE model or hotkey..."
+              placeholder={t('componentLib.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -203,7 +205,7 @@ export default function ComponentLibraryModal({
                 className={`comp-lib-cat-pill ${selectedCategory === cat ? "active" : ""}`}
                 onClick={() => setSelectedCategory(cat)}
               >
-                {cat} <span className="cat-count">{count}</span>
+                {t(`componentLib.categories.${cat}`, cat)} <span className="cat-count">{count}</span>
               </button>
             )
           })}
@@ -216,7 +218,7 @@ export default function ComponentLibraryModal({
             {filteredItems.length === 0 ? (
               <div className="comp-lib-empty">
                 <span className="comp-lib-empty-icon">🔍</span>
-                <p>No matching component symbols found</p>
+                <p>{t('componentLib.noMatches')}</p>
                 <button
                   className="comp-lib-empty-btn"
                   onClick={() => {
@@ -224,7 +226,7 @@ export default function ComponentLibraryModal({
                     setSelectedCategory("All")
                   }}
                 >
-                  Reset filters
+                  {t('componentLib.clearFilter')}
                 </button>
               </div>
             ) : (
@@ -347,18 +349,18 @@ export default function ComponentLibraryModal({
         {/* Footer */}
         <div className="comp-lib-footer">
           <div className="comp-lib-footer-hint">
-            Tip: Double-click any item or press <kbd>Enter</kbd> to place · Press <kbd>Esc</kbd> to cancel
+            {t('componentLib.footerHint')}
           </div>
           <div className="comp-lib-footer-actions">
             <button className="comp-lib-cancel-btn" onClick={onClose}>
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button
               className="comp-lib-place-btn"
               onClick={handleConfirmPlacement}
               disabled={!currentItem}
             >
-              Place Component
+              {t('componentLib.placeComponent')}
             </button>
           </div>
         </div>

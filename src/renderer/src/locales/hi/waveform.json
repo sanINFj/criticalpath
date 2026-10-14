@@ -1,0 +1,79 @@
+{
+  "modalTitle": "तरंगरूप व्यूअर सेटिंग्स",
+  "tabs": {
+    "traces": "ट्रेस और रंग",
+    "axes": "अक्ष और सीमाएं",
+    "appearance": "दृश्य और पेन",
+    "math": "गणित (Math)",
+    "annotations": "टिप्पणियाँ (Annotations)",
+    "measurements": "माप (Measurements)",
+    "export": "निर्यात और प्रोफ़ाइल"
+  },
+  "traces": {
+    "availableSignals": "उपलब्ध सिग्नल",
+    "all": "सभी",
+    "none": "कोई नहीं",
+    "traceConfig": "ट्रेस कॉन्फ़िगरेशन",
+    "selectToConfigure": "रूप-रंग कॉन्फ़िगर करने के लिए बाईं सूची से एक ट्रेस चुनें।",
+    "color": "रंग",
+    "style": "रेखा शैली",
+    "width": "रेखा की मोटाई",
+    "axisSide": "Y-अक्ष संरेखण",
+    "leftAxis": "बायां Y-अक्ष",
+    "rightAxis": "दायां Y-अक्ष",
+    "assignedPane": "निर्दिष्ट पेन (Pane)",
+    "showHide": "प्लॉट पर दिखाएं"
+  },
+  "axes": {
+    "xAxis": "X-अक्ष (समय / आवृत्ति)",
+    "yLeftAxis": "बायां Y-अक्ष",
+    "yRightAxis": "दायां Y-अक्ष",
+    "autoScale": "स्वतः-स्केल",
+    "min": "न्यूनतम",
+    "max": "अधिकतम",
+    "logScale": "लॉगरिदमिक स्केल",
+    "applyLimits": "सीमाएं लागू करें",
+    "resetAuto": "स्वतः पर रीसेट करें"
+  },
+  "appearance": {
+    "theme": "थीम",
+    "darkTheme": "डार्क (ऑसिलोस्कोप)",
+    "lightTheme": "लाइट (EDA पेपर)",
+    "highContrast": "हाई कंट्रास्ट",
+    "grid": "ग्रिड शैली",
+    "fullGrid": "पूर्ण ग्रिड",
+    "majorGrid": "केवल मुख्य रेखाएं",
+    "dotsGrid": "बिंदु ग्रिड",
+    "noGrid": "कोई नहीं",
+    "panesCount": "पेन की संख्या",
+    "showLegend": "लेजेंड दिखाएं",
+    "showCursors": "कर्सर दिखाएं",
+    "cursorMode": "कर्सर मोड"
+  },
+  "math": {
+    "title": "गणितीय व्यंजक ट्रेस जोड़ें",
+    "expression": "व्यंजक (उदा. V(out)-V(in))",
+    "traceName": "ट्रेस का नाम",
+    "preview": "सूत्र पूर्वावलोकन",
+    "addTrace": "मैथ ट्रेस जोड़ें",
+    "valid": "मान्य व्यंजक",
+    "invalid": "वाक्यविन्यास त्रुटि या अज्ञात चर"
+  },
+  "annotations": {
+    "title": "प्लॉट टिप्पणियाँ और मार्कर",
+    "type": "प्रकार",
+    "text": "टेक्स्ट लेबल",
+    "refLineH": "क्षैतिज संदर्भ रेखा",
+    "refLineV": "लंबवत संदर्भ रेखा",
+    "arrow": "तीर सूचक",
+    "add": "टिप्पणी जोड़ें",
+    "clearAll": "सभी टिप्पणियाँ साफ़ करें"
+  },
+  "export": {
+    "title": "निर्यात और प्रोफ़ाइल",
+    "exportCsv": "CSV के रूप में डेटा निर्यात करें",
+    "exportPng": "उच्च रिज़ॉल्यूशन PNG निर्यात करें",
+    "saveProfile": "सेटिंग्स प्रोफ़ाइल सहेजें",
+    "loadProfile": "सेटिंग्स प्रोफ़ाइल लोड करें"
+  }
+}

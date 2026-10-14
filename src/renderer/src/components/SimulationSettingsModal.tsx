@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 
 export interface SolverSettings {
   integrationMethod: "trap" | "gear" | "modified-trap"
@@ -31,6 +32,7 @@ export default function SimulationSettingsModal({
   currentSettings,
   onApplySettings,
 }: SimulationSettingsModalProps) {
+  const { t } = useTranslation('common')
   const [settings, setSettings] = useState<SolverSettings>(currentSettings)
 
   useEffect(() => {
@@ -198,14 +200,14 @@ export default function SimulationSettingsModal({
             type="button"
             style={{ marginRight: "auto" }}
           >
-            Reset Defaults
+            {t('actions.reset')}
           </button>
           <div className="analysis-modal-actions">
             <button className="analysis-cancel-btn" onClick={onClose} type="button">
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button className="analysis-apply-btn" onClick={handleSave} type="button">
-              Save Settings
+              {t('actions.save')}
             </button>
           </div>
         </div>

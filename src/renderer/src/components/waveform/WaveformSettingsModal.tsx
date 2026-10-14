@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import type { SimulationRunResult } from "../../../../shared/simulation"
 import AutomaticMeasurementsPanel from "../AutomaticMeasurementsPanel"
 import type {
@@ -89,6 +90,7 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
   onExportSettings,
   onImportSettingsClick,
 }) => {
+  const { t } = useTranslation(['waveform', 'common'])
   const [activeTab, setActiveTab] = useState<WaveformSettingsTab>(initialTab)
 
   // --- Traces Tab State ---
@@ -242,9 +244,9 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
         <div className="wf-modal-header">
           <div className="wf-modal-title">
             <span style={{ marginRight: "6px" }}>⚙️</span>
-            Waveform Plot Settings & Tools
+            {t('waveform:modalTitle')}
           </div>
-          <button className="wf-modal-close" onClick={onClose} title="Close">✕</button>
+          <button className="wf-modal-close" onClick={onClose} title={t('common:actions.close')}>✕</button>
         </div>
 
         {/* Tab Navigation Strip */}
@@ -254,49 +256,49 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
             className={`cfg-analysis-win-tab ${activeTab === "traces" ? "active" : ""}`}
             onClick={() => setActiveTab("traces")}
           >
-            🎨 Traces & Colors
+            🎨 {t('waveform:tabs.traces')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "axes" ? "active" : ""}`}
             onClick={() => setActiveTab("axes")}
           >
-            📐 Axes & Scale
+            📐 {t('waveform:tabs.axes')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "appearance" ? "active" : ""}`}
             onClick={() => setActiveTab("appearance")}
           >
-            🖼️ View & Panes
+            🖼️ {t('waveform:tabs.appearance')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "math" ? "active" : ""}`}
             onClick={() => setActiveTab("math")}
           >
-            𝑓(𝑥) Math
+            𝑓(𝑥) {t('waveform:tabs.math')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "annotations" ? "active" : ""}`}
             onClick={() => setActiveTab("annotations")}
           >
-            🏷️ Annotations
+            🏷️ {t('waveform:tabs.annotations')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "measurements" ? "active" : ""}`}
             onClick={() => setActiveTab("measurements")}
           >
-            📊 Measurements
+            📊 {t('waveform:tabs.measurements')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "export" ? "active" : ""}`}
             onClick={() => setActiveTab("export")}
           >
-            💾 Export & CFG
+            💾 {t('waveform:tabs.export')}
           </button>
         </div>
 
@@ -309,11 +311,11 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
               <div style={{ width: "230px", display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>
-                    Available Signals
+                    {t('waveform:traces.availableSignals')}
                   </span>
                   <div style={{ display: "flex", gap: "4px" }}>
-                    <button type="button" className="wf-mini-btn" onClick={onSelectAllTraces}>All</button>
-                    <button type="button" className="wf-mini-btn" onClick={onClearTraces}>None</button>
+                    <button type="button" className="wf-mini-btn" onClick={onSelectAllTraces}>{t('waveform:traces.all')}</button>
+                    <button type="button" className="wf-mini-btn" onClick={onClearTraces}>{t('waveform:traces.none')}</button>
                   </div>
                 </div>
 
@@ -377,7 +379,7 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
 
                   {/* Color Picker */}
                   <div className="wf-field-group">
-                    <label className="wf-field-label">Trace Color:</label>
+                    <label className="wf-field-label">{t('waveform:traces.color')}:</label>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px" }}>
                       {PALETTE_COLORS.map((c) => (
                         <button
@@ -409,7 +411,7 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
 
                   {/* Line Thickness */}
                   <div className="wf-field-group">
-                    <label className="wf-field-label">Line Thickness:</label>
+                    <label className="wf-field-label">{t('waveform:traces.width')}:</label>
                     <div style={{ display: "flex", gap: "6px" }}>
                       {[1, 2, 3, 4].map((w) => (
                         <button
@@ -426,7 +428,7 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
 
                   {/* Line Style */}
                   <div className="wf-field-group">
-                    <label className="wf-field-label">Line Style:</label>
+                    <label className="wf-field-label">{t('waveform:traces.style')}:</label>
                     <div style={{ display: "flex", gap: "6px" }}>
                       {(["solid", "dashed", "dotted"] as const).map((st) => (
                         <button
@@ -445,7 +447,7 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                   {/* Pane Assignment */}
                   {plotSettings.panesCount > 1 && (
                     <div className="wf-field-group">
-                      <label className="wf-field-label">Assigned Plot Pane:</label>
+                      <label className="wf-field-label">{t('waveform:traces.assignedPane')}:</label>
                       <div style={{ display: "flex", gap: "6px" }}>
                         {Array.from({ length: plotSettings.panesCount }).map((_, idx) => (
                           <button
@@ -463,9 +465,10 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                 </div>
               ) : (
                 <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8" }}>
-                  Select a signal from the left list to customize.
+                  {t('waveform:traces.selectToConfigure')}
                 </div>
               )}
+
             </div>
           )}
 
@@ -1153,7 +1156,7 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
         {/* Modal Footer */}
         <div className="wf-modal-footer">
           <button type="button" className="wf-primary-btn" onClick={onClose}>
-            Done
+            {t('common:actions.close', 'Done')}
           </button>
         </div>
       </div>

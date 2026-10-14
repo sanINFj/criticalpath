@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import type { NetlistValidationError } from "../utils/spiceNetlist"
 import type { SimulationRunResult, NgspiceEngineStatus } from "../../../shared/simulation"
 
@@ -40,6 +41,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   height = 240,
   onHeightChange,
 }) => {
+  const { t } = useTranslation('common')
   const [filterTab, setFilterTab] = useState<"all" | "errors" | "warnings" | "info">("all")
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
@@ -110,7 +112,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             type="button"
             className="diag-win-collapse-btn"
             onClick={() => setIsCollapsed(!isCollapsed)}
-            title={isCollapsed ? "Expand Diagnostics" : "Collapse Diagnostics"}
+            title={isCollapsed ? t('diagnostics.expand') : t('diagnostics.collapse')}
           >
             {isCollapsed ? "▲" : "▼"}
           </button>
@@ -122,16 +124,16 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 <path d="M4 6h8M4 9h6M4 12h4" stroke="#ffffff" strokeWidth="1.2" />
               </svg>
             </span>
-            <span className="diag-win-title">Simulation Diagnostics</span>
+            <span className="diag-win-title">{t('diagnostics.title')}</span>
 
             {simStatus === "running" ? (
-              <span className="diag-win-status-badge running">Running SPICE...</span>
+              <span className="diag-win-status-badge running">{t('diagnostics.running')}</span>
             ) : isSimSuccess ? (
-              <span className="diag-win-status-badge success">✓ Success</span>
+              <span className="diag-win-status-badge success">✓ {t('diagnostics.success')}</span>
             ) : isSimFailed || hasValidationErrors ? (
               <span className="diag-win-status-badge error">✕ {errorCount} Error{errorCount !== 1 ? "s" : ""}</span>
             ) : (
-              <span className="diag-win-status-badge ready">Ready</span>
+              <span className="diag-win-status-badge ready">{t('diagnostics.ready')}</span>
             )}
           </div>
 
@@ -144,7 +146,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 className={`diag-win-tab-btn ${filterTab === "all" ? "active" : ""}`}
                 onClick={() => setFilterTab("all")}
               >
-                All
+                {t('diagnostics.tabs.all')}
               </button>
               <button
                 type="button"
@@ -153,7 +155,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 className={`diag-win-tab-btn ${filterTab === "errors" ? "active" : ""}`}
                 onClick={() => setFilterTab("errors")}
               >
-                Errors ({errorCount})
+                {t('diagnostics.tabs.errors')} ({errorCount})
               </button>
               <button
                 type="button"
@@ -162,7 +164,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 className={`diag-win-tab-btn ${filterTab === "warnings" ? "active" : ""}`}
                 onClick={() => setFilterTab("warnings")}
               >
-                Warnings ({warningCount})
+                {t('diagnostics.tabs.warnings')} ({warningCount})
               </button>
               <button
                 type="button"
@@ -171,7 +173,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                 className={`diag-win-tab-btn ${filterTab === "info" ? "active" : ""}`}
                 onClick={() => setFilterTab("info")}
               >
-                Run Info
+                {t('diagnostics.tabs.info')}
               </button>
             </div>
           )}
@@ -186,7 +188,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               onClick={onOpenWaveforms}
               title="Open Waveform Viewer to plot results"
             >
-              📈 View Waveforms
+              📈 {t('diagnostics.viewWaveforms')}
             </button>
           )}
 
@@ -196,8 +198,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             onClick={onClear}
             title="Clear diagnostics and simulation results"
           >
-            Clear
+            {t('actions.clear')}
           </button>
+
 
           <button
             type="button"

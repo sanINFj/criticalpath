@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { useTranslation } from "react-i18next"
 import type { SimulationRunResult } from "../../../shared/simulation"
 import { formatEngineering } from "../utils/engineeringFormat"
 import {
@@ -68,6 +69,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   height = 360,
   onHeightChange,
 }) => {
+  const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -559,7 +561,16 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     canvas.height = heightPx * dpr
     ctx.scale(dpr, dpr)
 
-    const palette = THEME_PALETTES[plotSettings.theme] || THEME_PALETTES["ltspice-black"]
+    // Classic LTspice-style palette: white background, grey grid
+    const palette = {
+      appBg: "#ffffff",
+      plotBg: "#ffffff",
+      grid: "#cccccc",
+      zeroLine: "#888888",
+      axisText: "#000000",
+      border: "#888888",
+      crosshair: "rgba(0,0,0,0.5)",
+    }
 
     // Outer viewer canvas background
     ctx.fillStyle = palette.appBg
@@ -629,7 +640,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
       // 2. Horizontal Grid Lines & Y Tick Labels
       const numYDivs = 5
-      ctx.font = "10px 'JetBrains Mono', Consolas, monospace"
+      ctx.font = "10px 'Segoe UI', Tahoma, Arial, sans-serif"
 
       for (let i = 0; i <= numYDivs; i++) {
         const frac = i / numYDivs
@@ -682,8 +693,8 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
       // 3. Pane Label (if multi-pane)
       if (panesCount > 1) {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.25)"
-        ctx.font = "bold 9.5px 'Segoe UI', sans-serif"
+        ctx.fillStyle = "rgba(0,0,0,0.35)"
+        ctx.font = "bold 9px 'Segoe UI', Tahoma, Arial, sans-serif"
         ctx.textAlign = "right"
         ctx.textBaseline = "top"
         ctx.fillText(`PANE ${paneIdx + 1}`, marginLeft + plotW - 6, paneTop + 6)
@@ -1278,7 +1289,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={() => setActiveTool("zoom")}
             title="Box Zoom Tool (Click and drag box to zoom)"
           >
-            <span>🔍 Zoom</span>
+            <span>🔍 {t('waveformToolbar.zoom')}</span>
           </button>
 
           <button
@@ -1286,7 +1297,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={() => setActiveTool("pan")}
             title="Pan Tool (Click and drag canvas to move viewport)"
           >
-            <span>✋ Pan</span>
+            <span>✋ {t('waveformToolbar.pan')}</span>
           </button>
 
           {/* Autoscale / Fit */}
@@ -1295,7 +1306,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={resetZoom}
             title="Autoscale / Fit all waveforms to view (Home)"
           >
-            <span>⛶ Fit</span>
+            <span>⛶ {t('waveformToolbar.fit')}</span>
           </button>
 
           <div className="waveform-header-divider" />
@@ -1306,7 +1317,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={() => setCursorsEnabled(!cursorsEnabled)}
             title="Toggle Dual Cursors with Delta Measurements (ΔX, ΔY, 1/ΔX, Slope)"
           >
-            <span>☩ Cursors</span>
+            <span>☩ {t('waveformToolbar.cursors')}</span>
           </button>
 
           {/* FFT Spectrum Toggle */}
@@ -1315,7 +1326,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={() => setFftMode(!fftMode)}
             title="Toggle Fast Fourier Transform (FFT) Power Spectrum View (dB vs Hz)"
           >
-            <span>⚡ FFT</span>
+            <span>⚡ {t('waveformToolbar.fft')}</span>
           </button>
 
           <div className="waveform-header-divider" />
@@ -1330,7 +1341,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             }}
             title="Open Waveform Plot Settings (Traces, Axes, Appearance, Math Expressions, Annotations, Export)"
           >
-            <span>⚙️ Plot Settings...</span>
+            <span>⚙️ {t('waveformToolbar.plotSettings')}</span>
           </button>
 
           {/* Clear Plot */}
@@ -1342,7 +1353,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             }}
             title="Clear all waveforms"
           >
-            <span>Clear</span>
+            <span>{t('waveformToolbar.clear')}</span>
           </button>
 
           <div className="waveform-header-divider" />
@@ -1398,20 +1409,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         {/* Left / Top: Interactive Trace Selectors */}
         <div className="waveform-trace-bar">
           <div className="trace-bar-header">
-            <span className="trace-bar-title">Active Signals</span>
+            <span className="trace-bar-title">{t('waveformToolbar.activeSignals')}</span>
             <div className="trace-quick-actions">
-              <button onClick={selectAllTraces} className="trace-text-btn">All</button>
-              <button onClick={clearSelectedTraces} className="trace-text-btn">None</button>
-              <button
-                onClick={() => {
-                  setSettingsModalTab("traces")
-                  setSettingsModalOpen(true)
-                }}
-                className="trace-text-btn"
-                title="Edit per-trace color, width, style, pane assignment"
-              >
-                ⚙️ Settings...
-              </button>
+              <button onClick={selectAllTraces} className="trace-text-btn">{t('waveformToolbar.all')}</button>
+              <button onClick={clearSelectedTraces} className="trace-text-btn">{t('waveformToolbar.none')}</button>
             </div>
           </div>
 
@@ -1426,16 +1427,12 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
                   key={trace.name}
                   className={`trace-chip ${isSelected ? "selected" : ""}`}
                   onClick={() => toggleTrace(trace.name)}
-                  style={{
-                    borderColor: isSelected ? color : "rgba(255, 255, 255, 0.1)",
-                  }}
                   title={`Toggle trace ${trace.name} (${trace.type || "trace"}). Click 'Traces...' to customize.`}
                 >
                   <span
                     className="trace-color-dot"
                     style={{
                       background: color,
-                      boxShadow: isSelected ? `0 0 6px ${color}` : "none",
                     }}
                   />
                   <span className="trace-chip-name">{trace.name.toUpperCase()}</span>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import type { Node } from "reactflow"
 import {
   type SchematicComponentType,
@@ -581,6 +582,7 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
   onApply,
   pinNetMap = {},
 }) => {
+  const { t } = useTranslation()
   const compType = (node?.data?.type || (node?.type === "junction" ? "junction" : "generic")) as
     | SchematicComponentType
     | "junction"
@@ -707,7 +709,7 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
               </svg>
             </span>
             <span id="comp-prop-dialog-title">
-              {label || node.id} - {friendlyName} Properties
+              {label || node.id} - {friendlyName} {t('componentProperties.propertiesTitle')}
             </span>
           </div>
 
@@ -715,7 +717,7 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
             type="button"
             className="comp-prop-win-close-btn"
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={t('actions.close')}
             title="Cancel (Esc)"
           >
             ✕
@@ -726,10 +728,10 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
         <div className="comp-prop-win-body">
           {/* Section 1: Identification */}
           <fieldset className="comp-prop-win-fieldset">
-            <legend className="comp-prop-win-legend">Component Identification</legend>
+            <legend className="comp-prop-win-legend">{t('componentProperties.identification')}</legend>
             <div className="comp-prop-win-form-grid">
               <label className="comp-prop-win-label" htmlFor="prop-ref-input">
-                Reference Designator:
+                {t('componentProperties.refDesignator')}
               </label>
               <div className="comp-prop-win-control-col">
                 <input
@@ -746,12 +748,12 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
                 />
               </div>
 
-              <span className="comp-prop-win-label">Component Type:</span>
+              <span className="comp-prop-win-label">{t('componentProperties.compType')}</span>
               <div className="comp-prop-win-control-col">
                 <span className="comp-prop-win-static-text">{friendlyName}</span>
               </div>
 
-              <span className="comp-prop-win-label">Category:</span>
+              <span className="comp-prop-win-label">{t('componentProperties.category')}</span>
               <div className="comp-prop-win-control-col">
                 <span className="comp-prop-win-static-text">{categoryName}</span>
               </div>
@@ -887,11 +889,11 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
                   }}
                   title="Rotate 90 degrees clockwise (R)"
                 >
-                  ↻ Rotate +90°
+                  {t('componentProperties.rotateBtn')}
                 </button>
               </div>
 
-              <span className="comp-prop-win-label">Schematic Position:</span>
+              <span className="comp-prop-win-label">{t('componentProperties.schematicPos')}</span>
               <div className="comp-prop-win-control-col">
                 <span className="comp-prop-win-static-text">
                   X: {Math.round(node.position.x)} px, Y: {Math.round(node.position.y)} px
@@ -904,15 +906,15 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
           {pins.length > 0 && (
             <fieldset className="comp-prop-win-fieldset">
               <legend className="comp-prop-win-legend">
-                Terminals & Net Connectivity ({pins.length} {pins.length === 1 ? "Pin" : "Pins"})
+                {t('componentProperties.terminalsTitle', { count: pins.length })}
               </legend>
               <div className="comp-prop-win-terminals-wrapper">
                 <table className="comp-prop-win-table">
                   <thead>
                     <tr>
-                      <th style={{ width: "70px" }}>Pin ID</th>
-                      <th style={{ width: "90px" }}>Terminal</th>
-                      <th>Connected Net</th>
+                      <th style={{ width: "70px" }}>{t('componentProperties.pinId')}</th>
+                      <th style={{ width: "90px" }}>{t('componentProperties.terminal')}</th>
+                      <th>{t('componentProperties.connectedNet')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -930,7 +932,7 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
                               </span>
                             ) : (
                               <span className="comp-prop-win-net-unconnected">
-                                Floating / Unconnected
+                                {t('componentProperties.floating')}
                               </span>
                             )}
                           </td>
@@ -948,7 +950,7 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
         <div className="comp-prop-win-footer">
           <div className="comp-prop-win-footer-info">
             {isDirty && (
-              <span className="comp-prop-win-unsaved-hint">● Unsaved edits</span>
+              <span className="comp-prop-win-unsaved-hint">{t('componentProperties.unsavedEdits')}</span>
             )}
           </div>
           <div className="comp-prop-win-footer-btns">
@@ -957,14 +959,14 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
               className="comp-prop-win-btn comp-prop-win-btn-default"
               onClick={() => handleSave(true)}
             >
-              OK
+              {t('actions.ok')}
             </button>
             <button
               type="button"
               className="comp-prop-win-btn"
               onClick={onClose}
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
             <button
               type="button"
@@ -972,7 +974,7 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
               onClick={() => handleSave(false)}
               disabled={!isDirty}
             >
-              Apply
+              {t('actions.apply')}
             </button>
           </div>
         </div>

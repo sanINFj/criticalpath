@@ -7,6 +7,7 @@ import {
   type PinDef,
 } from "../components/schematic/SchematicNode"
 import { getOrthogonalWirePath } from "../components/schematic/SchematicEdge"
+import { computeAvoidanceWaypoints, getComponentObstacles } from "./wireRouter"
 import type { AnalysisConfig } from "../components/ConfigureAnalysisModal"
 import type { SolverSettings } from "../components/SimulationSettingsModal"
 
@@ -501,6 +502,15 @@ export function generateSpiceNetlist(
       ds.union(resolvedSrc.key, resolvedTgt.key)
     }
 
+    const effectiveWaypoints =
+      edge.data?.waypoints && edge.data.waypoints.length > 0
+        ? edge.data.waypoints
+        : computeAvoidanceWaypoints(
+            srcCoord,
+            tgtCoord,
+            getComponentObstacles(compNodes, [edge.source, edge.target]),
+          )
+
     // Compute exact orthogonal segments of the wire
     const [, , , , segments] = getOrthogonalWirePath(
       srcCoord.x,
@@ -511,7 +521,7 @@ export function generateSpiceNetlist(
       undefined,
       edge.data?.bendMode ?? "auto",
       edge.data?.offset,
-      edge.data?.waypoints,
+      effectiveWaypoints.length > 0 ? effectiveWaypoints : undefined,
     )
 
     // Check if any junction dots (solder dots) lie along this wire's segments (within 6px)

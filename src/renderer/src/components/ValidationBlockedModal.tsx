@@ -1,4 +1,5 @@
 import React, { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import type { NetlistValidationError } from "../utils/spiceNetlist"
 
 export interface ValidationBlockedModalProps {
@@ -16,6 +17,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
   onLocateError,
   onViewDiagnostics,
 }) => {
+  const { t } = useTranslation('common')
   // Close on Escape or Enter keyboard shortcuts
   useEffect(() => {
     if (!isOpen) return
@@ -70,7 +72,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
                 <path d="M5 5L11 11M11 5L5 11" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
             </span>
-            <span id="sim-error-modal-title">Simulation Failed</span>
+            <span id="sim-error-modal-title">{t('validation.title')}</span>
           </div>
 
           <button
@@ -78,7 +80,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
             className="sim-error-win-close-btn"
             onClick={onClose}
             aria-label="Close dialog"
-            title="Close (Esc)"
+            title={`${t('actions.close')} (Esc)`}
           >
             ✕
           </button>
@@ -97,10 +99,10 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
 
             <div className="sim-error-win-header-text">
               <h2 className="sim-error-win-heading">
-                Simulation Failed ({errors.length} {errors.length === 1 ? "Error" : "Errors"})
+                {t('validation.heading')} ({errors.length} {errors.length === 1 ? "Error" : "Errors"})
               </h2>
               <p className="sim-error-win-subtext">
-                Circuit validation detected blocking issues preventing SPICE netlist generation.
+                {t('validation.subtext')}
               </p>
             </div>
           </div>
@@ -109,11 +111,11 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
           <div className="sim-error-win-description-frame">
             <div className="sim-error-win-meta-table">
               <div className="sim-error-win-meta-row">
-                <span className="sim-error-win-meta-label">Error Code:</span>
+                <span className="sim-error-win-meta-label">{t('validation.errorCode')}</span>
                 <span className="sim-error-win-meta-value">{primaryError.code}</span>
               </div>
               <div className="sim-error-win-meta-row">
-                <span className="sim-error-win-meta-label">Affected Area:</span>
+                <span className="sim-error-win-meta-label">{t('validation.affectedArea')}</span>
                 <span className="sim-error-win-meta-value">{affectedLabel}</span>
               </div>
             </div>
@@ -124,7 +126,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
 
             {primaryError.suggestion && (
               <div className="sim-error-win-suggestion">
-                <strong>Suggestion:</strong> {primaryError.suggestion}
+                <strong>{t('validation.suggestion')}</strong> {primaryError.suggestion}
               </div>
             )}
 
@@ -149,7 +151,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
                 : "No specific schematic component or net to locate"
             }
           >
-            Locate Error
+            {t('validation.locateError')}
           </button>
 
           <button
@@ -158,7 +160,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
             onClick={onViewDiagnostics}
             title="Open simulation diagnostics panel"
           >
-            View Diagnostics
+            {t('validation.viewDiagnostics')}
           </button>
 
           <button
@@ -166,9 +168,10 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
             className="sim-error-win-btn"
             onClick={onClose}
           >
-            Close
+            {t('actions.close')}
           </button>
         </div>
+
       </div>
     </div>
   )

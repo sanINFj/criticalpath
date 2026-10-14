@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import LanguageSwitcher from "./components/LanguageSwitcher"
 import {
   addEdge,
   applyEdgeChanges,
@@ -38,6 +40,11 @@ import CadCrosshairLayer, {
   type WireDraft,
   type PlacingComponent,
 } from "./components/schematic/CadCrosshairLayer"
+import {
+  computeAvoidanceWaypoints,
+  getComponentObstacles,
+  getRoutedEdgeWaypoints,
+} from "./utils/wireRouter"
 import ComponentLibraryModal, {
   type ComponentItem,
 } from "./components/ComponentLibraryModal"
@@ -169,7 +176,10 @@ function getEdgeSegmentsAndPoints(
   const p2 = getPinCoord(tgtNode, edge.targetHandle)
   const bendMode: WireBendMode = edge.data?.bendMode ?? "auto"
   const offset = edge.data?.offset
-  const waypoints = edge.data?.waypoints
+  const waypoints =
+    edge.data?.waypoints && edge.data.waypoints.length > 0
+      ? edge.data.waypoints
+      : getRoutedEdgeWaypoints(edge, nodes, getPinCoord)
 
   const [, , , , segments, points] = getOrthogonalWirePath(
     p1.x,
@@ -762,6 +772,7 @@ interface ContextMenuState {
    ============================================================ */
 
 function SchematicEditor() {
+  const { t } = useTranslation('common')
   const { screenToFlowPosition, project, zoomIn, zoomOut, fitView, getZoom, setCenter } =
     useReactFlow()
 
@@ -1170,10 +1181,13 @@ function SchematicEditor() {
             : undefined
         : undefined
 
+      const routedWaypoints = getRoutedEdgeWaypoints(edge, nodes, getPinCoord)
+
       return {
         ...edge,
         data: {
           ...edge.data,
+          waypoints: routedWaypoints ?? edge.data?.waypoints,
           onOffsetChange: updateEdgeOffset,
           onWaypointsChange: updateEdgeWaypoints,
           isHighlighted,
@@ -1182,7 +1196,7 @@ function SchematicEditor() {
         },
       }
     })
-  }, [edges, liveConnectivity, highlightedNet, updateEdgeOffset, updateEdgeWaypoints])
+  }, [edges, nodes, liveConnectivity, highlightedNet, updateEdgeOffset, updateEdgeWaypoints])
 
   const flipEdgeBend = useCallback(
     (edgeId: string, specificMode?: WireBendMode) => {
@@ -1209,13 +1223,24 @@ function SchematicEditor() {
       connectingStartRef.current = null
       pushSnapshot(nodes, edges)
 
+      const srcNode = nodes.find((n) => n.id === connection.source)
+      const tgtNode = nodes.find((n) => n.id === connection.target)
+      let waypoints: { x: number; y: number }[] | undefined
+      if (srcNode && tgtNode) {
+        const p1 = getPinCoord(srcNode, connection.sourceHandle)
+        const p2 = getPinCoord(tgtNode, connection.targetHandle)
+        const obstacles = getComponentObstacles(nodes, [srcNode.id, tgtNode.id])
+        const computed = computeAvoidanceWaypoints(p1, p2, obstacles)
+        if (computed.length > 0) waypoints = computed
+      }
+
       setEdges((curr) =>
         addEdge(
           {
             ...connection,
             type: "step",
             animated: false,
-            data: { bendMode: "auto" },
+            data: { bendMode: "auto", waypoints },
           },
           curr,
         ),
@@ -1268,6 +1293,18 @@ function SchematicEditor() {
       }
 
       const { edge1, edge2 } = splitEdgeAtPoint(hitEdge.edge, nodes, junctionId, { x: snapX, y: snapY })
+      let waypoints: { x: number; y: number }[] | undefined
+      if (startParam.nodeId) {
+        const srcNode = nodes.find((n) => n.id === startParam.nodeId)
+        if (srcNode) {
+          const p1 = getPinCoord(srcNode, startParam.handleId)
+          const p2 = { x: snapX, y: snapY }
+          const obstacles = getComponentObstacles(nodes, [srcNode.id, junctionId])
+          const computed = computeAvoidanceWaypoints(p1, p2, obstacles)
+          if (computed.length > 0) waypoints = computed
+        }
+      }
+
       const edge3: Edge = {
         id: `e-${startParam.nodeId}-${junctionId}-${Date.now().toString().slice(-4)}c`,
         source: startParam.nodeId!,
@@ -1275,7 +1312,7 @@ function SchematicEditor() {
         target: junctionId,
         targetHandle: "top",
         type: "step",
-        data: { bendMode: "auto" },
+        data: { bendMode: "auto", waypoints },
       }
 
       setNodes((curr) => [...curr, newJunctionNode])
@@ -1295,6 +1332,10 @@ function SchematicEditor() {
     bendOrientation: "h",
   })
   const [isHoveringCanvas, setIsHoveringCanvas] = useState(false)
+
+  const componentObstacles = useMemo(() => {
+    return getComponentObstacles(nodes, [wireDraft.startPin?.nodeId])
+  }, [nodes, wireDraft.startPin])
 
   // Reset wire draft or placement if tool changes
   useEffect(() => {
@@ -1412,7 +1453,7 @@ function SchematicEditor() {
             }
           }
 
-          const intermediateWaypoints = cleanPts.slice(1, -1)
+          let finalWaypoints = cleanPts.slice(1, -1)
           let currentSourceId = wireDraft.startPin?.nodeId
           let currentSourceHandle = wireDraft.startPin?.handleId
 
@@ -1430,6 +1471,14 @@ function SchematicEditor() {
             currentSourceHandle = "right"
           }
 
+          if (finalWaypoints.length === 0 && currentSourceId && targetNodeId) {
+            const obstacles = getComponentObstacles(updatedNodes, [currentSourceId, targetNodeId])
+            const avoidance = computeAvoidanceWaypoints(cleanPts[0], cleanPts[cleanPts.length - 1], obstacles)
+            if (avoidance.length > 0) {
+              finalWaypoints = avoidance
+            }
+          }
+
           // Single continuous edge connecting source to target with waypoints for all bends
           if (targetNodeId && currentSourceId) {
             const finalEdge: Edge = {
@@ -1441,7 +1490,7 @@ function SchematicEditor() {
               type: "step",
               data: {
                 waypoints:
-                  intermediateWaypoints.length > 0 ? intermediateWaypoints : undefined,
+                  finalWaypoints.length > 0 ? finalWaypoints : undefined,
                 bendMode: "auto",
               },
             }
@@ -1644,6 +1693,8 @@ function SchematicEditor() {
     [activeTool, placingComponent, placeComponentAt, handleWireCanvasClick, screenToFlowPosition, project, liveConnectivity],
   )
 
+  const wireClickTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
       const getFlowCoord = screenToFlowPosition || project
@@ -1656,7 +1707,14 @@ function SchematicEditor() {
       }
 
       if (activeTool === "wire") {
-        handleWireCanvasClick(flowPos)
+        if (wireClickTimeoutRef.current) {
+          clearTimeout(wireClickTimeoutRef.current)
+          wireClickTimeoutRef.current = null
+        }
+        wireClickTimeoutRef.current = setTimeout(() => {
+          wireClickTimeoutRef.current = null
+          handleWireCanvasClick(flowPos)
+        }, 220)
         return
       }
       setSelectedNodeId(null)
@@ -1670,12 +1728,17 @@ function SchematicEditor() {
 
   const onPaneDoubleClick = useCallback(
     (_event: React.MouseEvent) => {
+      if (wireClickTimeoutRef.current) {
+        clearTimeout(wireClickTimeoutRef.current)
+        wireClickTimeoutRef.current = null
+      }
+
       if (activeTool === "wire" && wireDraft.isDrawing && wireDraft.points.length > 0) {
         // Double-click to commit wire chain in free space
         pushSnapshot(nodes, edges)
         const pts = wireDraft.points
         const lastPt = pts[pts.length - 1]
-        const intermediateWaypoints = pts.slice(1, -1)
+        let intermediateWaypoints = pts.slice(1, -1)
         const updatedNodes = [...nodes]
         const updatedEdges = [...edges]
 
@@ -1704,6 +1767,14 @@ function SchematicEditor() {
         }
         updatedNodes.push(endNode)
 
+        if (intermediateWaypoints.length === 0 && currentSourceId) {
+          const obstacles = getComponentObstacles(updatedNodes, [currentSourceId, endJunctionId])
+          const avoidance = computeAvoidanceWaypoints(pts[0], lastPt, obstacles)
+          if (avoidance.length > 0) {
+            intermediateWaypoints = avoidance
+          }
+        }
+
         const finalEdge: Edge = {
           id: `e-${currentSourceId}-${endJunctionId}-${Date.now()}`,
           source: currentSourceId,
@@ -1722,6 +1793,7 @@ function SchematicEditor() {
         setNodes(updatedNodes)
         setEdges(updatedEdges)
         setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+        setActiveTool("select")
       }
     },
     [activeTool, wireDraft, nodes, edges, pushSnapshot],
@@ -2160,18 +2232,18 @@ function SchematicEditor() {
                   setOpenMenu(openMenu === "file" ? null : "file")
                 }}
               >
-                File
+                {t('menu.file')}
               </button>
               {openMenu === "file" && (
                 <div className="dropdown-menu">
                   <button className="dropdown-item" onClick={() => { clearCanvas(); setOpenMenu(null) }}>
-                    <span>New Schematic</span> <span className="shortcut">Ctrl+N</span>
+                    <span>{t('menu.newSchematic')}</span> <span className="shortcut">Ctrl+N</span>
                   </button>
                   <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
-                    <span>Open Circuit...</span> <span className="shortcut">Ctrl+O</span>
+                    <span>{t('menu.openCircuit')}</span> <span className="shortcut">Ctrl+O</span>
                   </button>
                   <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
-                    <span>Save Schematic</span> <span className="shortcut">Ctrl+S</span>
+                    <span>{t('menu.saveSchematic')}</span> <span className="shortcut">Ctrl+S</span>
                   </button>
                   <div className="dropdown-separator" />
                   <button
@@ -2181,7 +2253,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Export Netlist...</span>
+                    <span>{t('menu.exportNetlist')}</span>
                   </button>
                 </div>
               )}
@@ -2196,22 +2268,22 @@ function SchematicEditor() {
                   setOpenMenu(openMenu === "edit" ? null : "edit")
                 }}
               >
-                Edit
+                {t('menu.edit')}
               </button>
               {openMenu === "edit" && (
                 <div className="dropdown-menu">
                   <button className="dropdown-item" onClick={() => { undo(); setOpenMenu(null) }}>
-                    <span>Undo</span> <span className="shortcut">Ctrl+Z</span>
+                    <span>{t('menu.undo')}</span> <span className="shortcut">Ctrl+Z</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { redo(); setOpenMenu(null) }}>
-                    <span>Redo</span> <span className="shortcut">Ctrl+Y</span>
+                    <span>{t('menu.redo')}</span> <span className="shortcut">Ctrl+Y</span>
                   </button>
                   <div className="dropdown-separator" />
                   <button className="dropdown-item" onClick={() => { rotateSelected(); setOpenMenu(null) }}>
-                    <span>Rotate 90°</span> <span className="shortcut">R</span>
+                    <span>{t('menu.rotate')}</span> <span className="shortcut">R</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { deleteSelected(); setOpenMenu(null) }}>
-                    <span>Delete</span> <span className="shortcut">Del</span>
+                    <span>{t('menu.delete')}</span> <span className="shortcut">Del</span>
                   </button>
                 </div>
               )}
@@ -2226,22 +2298,22 @@ function SchematicEditor() {
                   setOpenMenu(openMenu === "view" ? null : "view")
                 }}
               >
-                View
+                {t('menu.view')}
               </button>
               {openMenu === "view" && (
                 <div className="dropdown-menu">
                   <button className="dropdown-item" onClick={() => { zoomIn(); setOpenMenu(null) }}>
-                    <span>Zoom In</span> <span className="shortcut">+</span>
+                    <span>{t('menu.zoomIn')}</span> <span className="shortcut">+</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { zoomOut(); setOpenMenu(null) }}>
-                    <span>Zoom Out</span> <span className="shortcut">-</span>
+                    <span>{t('menu.zoomOut')}</span> <span className="shortcut">-</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { fitView({ padding: 0.2, maxZoom: 1 }); setOpenMenu(null) }}>
-                    <span>Fit to Canvas</span> <span className="shortcut">F</span>
+                    <span>{t('menu.fitCanvas')}</span> <span className="shortcut">F</span>
                   </button>
                   <div className="dropdown-separator" />
                   <button className="dropdown-item" onClick={() => { setIsLibraryOpen(true); setOpenMenu(null) }}>
-                    <span>Component Library...</span> <span className="shortcut">F2</span>
+                    <span>{t('menu.componentLibrary')}</span> <span className="shortcut">F2</span>
                   </button>
                   <button
                     className="dropdown-item"
@@ -2254,16 +2326,16 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Component Properties...</span>
+                    <span>{t('menu.componentProperties')}</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { setIsDiagnosticsOpen(!isDiagnosticsOpen); setBottomPanelTab("diagnostics"); setOpenMenu(null) }}>
-                    <span>{isDiagnosticsOpen ? "Hide Diagnostics" : "Simulation Diagnostics"}</span> <span className="shortcut">F7</span>
+                    <span>{isDiagnosticsOpen ? "Hide Diagnostics" : t('menu.diagnostics')}</span> <span className="shortcut">F7</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { setIsWaveformOpen(!isWaveformOpen); setBottomPanelTab("waveforms"); setOpenMenu(null) }}>
-                    <span>{isWaveformOpen ? "Hide Waveform Viewer" : "Waveform Viewer"}</span> <span className="shortcut">F10</span>
+                    <span>{isWaveformOpen ? "Hide Waveform Viewer" : t('menu.waveformViewer')}</span> <span className="shortcut">F10</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { setIsMeasurementsOpen(!isMeasurementsOpen); setBottomPanelTab("measurements"); setOpenMenu(null) }}>
-                    <span>{isMeasurementsOpen ? "Hide Measurements" : "Automatic Measurements"}</span> <span className="shortcut">F11</span>
+                    <span>{isMeasurementsOpen ? "Hide Measurements" : t('menu.measurements')}</span> <span className="shortcut">F11</span>
                   </button>
                 </div>
               )}
@@ -2278,7 +2350,7 @@ function SchematicEditor() {
                   setOpenMenu(openMenu === "simulate" ? null : "simulate")
                 }}
               >
-                Simulate
+                {t('menu.simulate')}
               </button>
               {openMenu === "simulate" && (
                 <div className="dropdown-menu">
@@ -2289,7 +2361,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>{simStatus === "running" ? "Pause" : "Run / Pause"}</span>
+                    <span>{simStatus === "running" ? t('menu.pause') : t('menu.runPause')}</span>
                     <span className="shortcut">F9</span>
                   </button>
                   <button
@@ -2300,7 +2372,7 @@ function SchematicEditor() {
                     }}
                     disabled={simStatus === "idle"}
                   >
-                    <span>Stop</span>
+                    <span>{t('menu.stop')}</span>
                     <span className="shortcut">Esc</span>
                   </button>
                   <button
@@ -2353,7 +2425,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Settings</span>
+                    <span>{t('menu.settings')}</span>
                   </button>
                   <button
                     className="dropdown-item"
@@ -2362,7 +2434,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Configure Analysis...</span>
+                    <span>{t('menu.configureAnalysis')}</span>
                   </button>
                   <div className="dropdown-separator" />
                   <button
@@ -2372,7 +2444,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>View SPICE Netlist...</span>
+                    <span>{t('menu.viewNetlist')}</span>
                     <span className="shortcut">F8</span>
                   </button>
                 </div>
@@ -2388,30 +2460,30 @@ function SchematicEditor() {
                   setOpenMenu(openMenu === "tools" ? null : "tools")
                 }}
               >
-                Tools
+                {t('menu.tools')}
               </button>
               {openMenu === "tools" && (
                 <div className="dropdown-menu">
                   <button className="dropdown-item" onClick={() => { addComponent("resistor"); setOpenMenu(null) }}>
-                    <span>Place Resistor</span> <span className="shortcut">R</span>
+                    <span>{t('toolsMenu.placeResistor')}</span> <span className="shortcut">R</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { addComponent("capacitor"); setOpenMenu(null) }}>
-                    <span>Place Capacitor</span> <span className="shortcut">C</span>
+                    <span>{t('toolsMenu.placeCapacitor')}</span> <span className="shortcut">C</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { addComponent("inductor"); setOpenMenu(null) }}>
-                    <span>Place Inductor</span> <span className="shortcut">L</span>
+                    <span>{t('toolsMenu.placeInductor')}</span> <span className="shortcut">L</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { addComponent("diode"); setOpenMenu(null) }}>
-                    <span>Place Diode</span> <span className="shortcut">D</span>
+                    <span>{t('toolsMenu.placeDiode')}</span> <span className="shortcut">D</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { addComponent("voltage-source"); setOpenMenu(null) }}>
-                    <span>Place Voltage Source</span> <span className="shortcut">V</span>
+                    <span>{t('toolsMenu.placeVoltageSource')}</span> <span className="shortcut">V</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { addComponent("net-label"); setOpenMenu(null) }}>
-                    <span>Place Net Label</span> <span className="shortcut">F4</span>
+                    <span>{t('toolsMenu.placeNetLabel')}</span> <span className="shortcut">F4</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { addJunction(); setOpenMenu(null) }}>
-                    <span>Place Solder Dot</span> <span className="shortcut">J</span>
+                    <span>{t('toolsMenu.placeSolderDot')}</span> <span className="shortcut">J</span>
                   </button>
                   <div className="dropdown-separator" />
                   <button
@@ -2423,7 +2495,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Electrical Rule Check (ERC)...</span>
+                    <span>{t('toolsMenu.ercCheck')}</span>
                   </button>
                   <button
                     className="dropdown-item"
@@ -2432,7 +2504,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Component Library...</span> <span className="shortcut">F2</span>
+                    <span>{t('menu.componentLibrary')}</span> <span className="shortcut">F2</span>
                   </button>
                 </div>
               )}
@@ -2447,7 +2519,7 @@ function SchematicEditor() {
                   setOpenMenu(openMenu === "help" ? null : "help")
                 }}
               >
-                Help
+                {t('menu.help')}
               </button>
               {openMenu === "help" && (
                 <div className="dropdown-menu">
@@ -2463,7 +2535,11 @@ function SchematicEditor() {
           </div>
         </div>
 
+        <div className="header-right">
+          <LanguageSwitcher />
+        </div>
       </header>
+
 
       {/* =====================================================
           2. LTSPICE TOP SCHEMATIC TOOLBAR
@@ -2916,6 +2992,7 @@ function SchematicEditor() {
                 isHoveringCanvas={isHoveringCanvas}
                 wireDraft={wireDraft}
                 placingComponent={placingComponent}
+                obstacles={componentObstacles}
               />
 
               {/* Fine Dotted CAD Grid */}
@@ -2973,7 +3050,7 @@ function SchematicEditor() {
                       gap: 5,
                     }}
                   >
-                    <span>⚡ Diagnostics</span>
+                    <span>⚡ {t('dockTabs.diagnostics')}</span>
                     {liveConnectivity.errors.length > 0 ? (
                       <span style={{ color: "#ef4444", fontSize: 10 }}>({liveConnectivity.errors.length})</span>
                     ) : liveConnectivity.warnings.length > 0 ? (
@@ -3001,7 +3078,7 @@ function SchematicEditor() {
                       gap: 5,
                     }}
                   >
-                    <span>📈 Waveforms</span>
+                    <span>📈 {t('dockTabs.waveforms')}</span>
                     {lastSimResult?.pointCount ? (
                       <span style={{ color: "#38bdf8", fontSize: 10 }}>({lastSimResult.pointCount} pts)</span>
                     ) : null}
@@ -3027,7 +3104,7 @@ function SchematicEditor() {
                       gap: 5,
                     }}
                   >
-                    <span>📊 Measurements</span>
+                    <span>📊 {t('dockTabs.measurements')}</span>
                     {lastSimResult?.variables?.length ? (
                       <span style={{ color: "#10b981", fontSize: 10 }}>
                         ({lastSimResult.variables.filter((v) => !["time", "frequency"].includes(v.name.toLowerCase())).length})
@@ -3136,15 +3213,15 @@ function SchematicEditor() {
         </div>
 
         <div className="status-segment">
-          <span>Grid 20mil</span>
+          <span>{t('statusBar.grid')} 20mil</span>
         </div>
 
         <div className="status-segment">
-          <span>Snap ON</span>
+          <span>{t('statusBar.snap')} ON</span>
         </div>
 
         <div className="status-segment">
-          <span>Zoom {zoomLevel}%</span>
+          <span>{t('statusBar.zoom')} {zoomLevel}%</span>
         </div>
 
         <div className="status-segment">
@@ -3164,7 +3241,7 @@ function SchematicEditor() {
                 borderColor: "var(--accent-border)",
               }}
             >
-              Placing: {placingComponent.type} · Click canvas to place · R: Rotate · Esc: Cancel
+              {t('statusBar.placing', { type: placingComponent.type })}
             </span>
           </div>
         )}
@@ -3177,7 +3254,7 @@ function SchematicEditor() {
                 <circle cx="2.5" cy="13.5" r="1.5" fill="currentColor" />
                 <circle cx="13.5" cy="2.5" r="1.5" fill="currentColor" />
               </svg>
-              Wire Mode
+              {t('statusBar.wireMode')}
             </span>
           </div>
         )}
@@ -3212,21 +3289,21 @@ function SchematicEditor() {
         >
           {liveConnectivity.errors.length > 0 ? (
             <span style={{ color: "#ef4444", fontWeight: 600 }}>
-              ● ERC: {liveConnectivity.errors.length} {liveConnectivity.errors.length === 1 ? "Error" : "Errors"}
+              {t('statusBar.ercErrors', { count: liveConnectivity.errors.length })}
             </span>
           ) : liveConnectivity.warnings.length > 0 ? (
             <span style={{ color: "#f59e0b", fontWeight: 600 }}>
-              ▲ ERC: {liveConnectivity.warnings.length} {liveConnectivity.warnings.length === 1 ? "Warning" : "Warnings"}
+              {t('statusBar.ercWarnings', { count: liveConnectivity.warnings.length })}
             </span>
           ) : (
             <span style={{ color: "#10b981", fontWeight: 500 }}>
-              ✓ ERC: 0 Errors
+              {t('statusBar.ercZeroErrors')}
             </span>
           )}
         </div>
 
         <div className="status-segment">
-          <span>{nodes.length} comps · {edges.length} wires</span>
+          <span>{nodes.length} {t('statusBar.comps')} · {edges.length} {t('statusBar.wires')}</span>
         </div>
 
         {/* Captured simulation numerical points indicator & Waveform Viewer toggle */}
@@ -3241,7 +3318,7 @@ function SchematicEditor() {
               title={`Analysis: ${lastSimResult.analysisType} | Variables: ${lastSimResult.variables.map((v) => v.name).join(", ")}\nClick to view Waveform Viewer`}
             >
               <span style={{ color: "#38bdf8", fontSize: "11px", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                📈 {lastSimResult.pointCount} pts ({lastSimResult.elapsedMs}ms) · View Plot
+                📈 {lastSimResult.pointCount} pts ({lastSimResult.elapsedMs}ms) · {t('statusBar.viewPlot')}
               </span>
             </div>
             <div
@@ -3253,7 +3330,7 @@ function SchematicEditor() {
               title="Click to view Automatic Measurements panel"
             >
               <span style={{ color: "#10b981", fontSize: "11px", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                📊 Auto Measurements
+                📊 {t('statusBar.autoMeasurements')}
               </span>
             </div>
           </>

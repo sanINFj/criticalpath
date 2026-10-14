@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 
 export type AnalysisType = "tran" | "ac" | "dc" | "op"
 
@@ -109,6 +110,7 @@ export default function ConfigureAnalysisModal({
   currentConfig,
   onApplyConfig,
 }: ConfigureAnalysisModalProps) {
+  const { t } = useTranslation('common')
   const [config, setConfig] = useState<AnalysisConfig>(currentConfig)
   const [activeTab, setActiveTab] = useState<AnalysisType>(currentConfig.type)
 
@@ -177,14 +179,14 @@ export default function ConfigureAnalysisModal({
                 <path d="M3 8 L6 11 L10 5 L13 8" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
-            <span id="cfg-analysis-dialog-title">Edit Simulation Command</span>
+            <span id="cfg-analysis-dialog-title">{t('analysis.title')}</span>
           </div>
           <button
             type="button"
             className="cfg-analysis-win-close-btn"
             onClick={onClose}
             aria-label="Close dialog"
-            title="Cancel (Esc)"
+            title={`${t('actions.cancel')} (Esc)`}
           >
             ✕
           </button>
@@ -201,7 +203,7 @@ export default function ConfigureAnalysisModal({
               className={`cfg-analysis-win-tab ${activeTab === "tran" ? "active" : ""}`}
               onClick={() => setActiveTab("tran")}
             >
-              Transient (.tran)
+              {t('analysis.tabs.tran')}
             </button>
             <button
               type="button"
@@ -210,7 +212,7 @@ export default function ConfigureAnalysisModal({
               className={`cfg-analysis-win-tab ${activeTab === "ac" ? "active" : ""}`}
               onClick={() => setActiveTab("ac")}
             >
-              AC Analysis (.ac)
+              {t('analysis.tabs.ac')}
             </button>
             <button
               type="button"
@@ -219,7 +221,7 @@ export default function ConfigureAnalysisModal({
               className={`cfg-analysis-win-tab ${activeTab === "dc" ? "active" : ""}`}
               onClick={() => setActiveTab("dc")}
             >
-              DC Sweep (.dc)
+              {t('analysis.tabs.dc')}
             </button>
             <button
               type="button"
@@ -228,7 +230,7 @@ export default function ConfigureAnalysisModal({
               className={`cfg-analysis-win-tab ${activeTab === "op" ? "active" : ""}`}
               onClick={() => setActiveTab("op")}
             >
-              DC op pnt (.op)
+              {t('analysis.tabs.op')}
             </button>
           </div>
 
@@ -581,7 +583,7 @@ export default function ConfigureAnalysisModal({
 
           {/* SPICE Command Box */}
           <div className="cfg-analysis-cmd-container">
-            <span className="cfg-analysis-cmd-label">SPICE Directive:</span>
+            <span className="cfg-analysis-cmd-label">{t('analysis.directive')}</span>
             <input
               type="text"
               readOnly
@@ -595,7 +597,7 @@ export default function ConfigureAnalysisModal({
         {/* Dialog Footer Actions */}
         <div className="cfg-analysis-win-footer">
           <div className="cfg-analysis-win-hint">
-            Press <kbd>Enter</kbd> to apply · <kbd>Esc</kbd> to cancel
+            {t('analysis.hintKeys')}
           </div>
           <div className="cfg-analysis-win-actions">
             <button
@@ -603,14 +605,14 @@ export default function ConfigureAnalysisModal({
               className="cfg-analysis-win-btn cfg-analysis-win-btn-primary"
               onClick={handleOk}
             >
-              OK
+              {t('actions.ok')}
             </button>
             <button
               type="button"
               className="cfg-analysis-win-btn"
               onClick={onClose}
             >
-              Cancel
+              {t('actions.cancel')}
             </button>
           </div>
         </div>

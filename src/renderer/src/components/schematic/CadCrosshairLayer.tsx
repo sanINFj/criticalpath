@@ -4,6 +4,11 @@ import {
   getComponentPins,
   type SchematicComponentType,
 } from "./SchematicNode"
+import {
+  type BoundingBox,
+  computeAvoidanceWaypoints,
+  doesPathIntersectObstacles,
+} from "../../utils/wireRouter"
 
 export interface WireDraft {
   isDrawing: boolean
@@ -23,6 +28,7 @@ interface CadCrosshairLayerProps {
   isHoveringCanvas: boolean
   wireDraft: WireDraft
   placingComponent?: PlacingComponent | null
+  obstacles?: BoundingBox[]
 }
 
 export default function CadCrosshairLayer({
@@ -31,6 +37,7 @@ export default function CadCrosshairLayer({
   isHoveringCanvas,
   wireDraft,
   placingComponent,
+  obstacles = [],
 }: CadCrosshairLayerProps) {
   const { x: vpX, y: vpY, zoom } = useViewport()
 
@@ -81,8 +88,18 @@ export default function CadCrosshairLayer({
       }
     }
 
-    for (let i = 0; i < cleanPts.length; i++) {
-      const p = toScreen(cleanPts[i].x, cleanPts[i].y)
+    let displayPts = cleanPts
+    if (obstacles.length > 0 && doesPathIntersectObstacles(cleanPts, obstacles)) {
+      if (wireDraft.points.length === 1) {
+        const waypoints = computeAvoidanceWaypoints(wireDraft.points[0], cursorGridPos, obstacles)
+        if (waypoints.length > 0) {
+          displayPts = [wireDraft.points[0], ...waypoints, cursorGridPos]
+        }
+      }
+    }
+
+    for (let i = 0; i < displayPts.length; i++) {
+      const p = toScreen(displayPts[i].x, displayPts[i].y)
       committedPointsScreen.push(p)
       if (i === 0) {
         draftSvgPath += `M ${p.sx} ${p.sy}`
