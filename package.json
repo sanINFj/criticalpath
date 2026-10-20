@@ -25,6 +25,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "openai": "^7.34.0",
     "plotly.js": "^4.1.1",
     "react-plotly.js": "^4.1.0",
     "reactflow": "^11.11.4"

@@ -635,3 +635,34 @@ html, body, #root {
 
 .cad-crosshair-overlay { pointer-events: none; user-select: none; }
 .react-flow__handle { border-radius: 50% !important; }
+
+/* ── Conversational Assistant Panel ── */
+.workspace-body:has(.assistant-panel) {
+  grid-template-columns: 220px minmax(240px, 1fr) 256px 340px;
+}
+
+.workspace-body.left-collapsed:has(.assistant-panel) {
+  grid-template-columns: 0px minmax(240px, 1fr) 256px 340px;
+}
+
+.workspace-body.right-collapsed:has(.assistant-panel) {
+  grid-template-columns: 220px minmax(240px, 1fr) 0px 340px;
+}
+
+.workspace-body.both-collapsed:has(.assistant-panel) {
+  grid-template-columns: 0px minmax(240px, 1fr) 0px 340px;
+}
+
+.assistant-panel {
+  min-width: 0;
+  min-height: 0;
+  padding: 10px;
+  overflow: hidden;
+  background: var(--bg-app);
+  border-left: 1px solid var(--border-subtle);
+}
+
+.assistant-panel .assistant {
+  min-width: 0;
+  height: 100%;
+}

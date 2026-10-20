@@ -1,3 +1,4 @@
+import Assistant from "./components/Assistant/Assistant"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   addEdge,
@@ -683,6 +684,7 @@ function SchematicEditor() {
     useReactFlow()
 
   const [nodes, setNodes] = useState<Node<SchematicNodeData>[]>(initialNodes)
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [edges, setEdges] = useState<Edge[]>(initialEdges)
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -1969,6 +1971,17 @@ function SchematicEditor() {
           </button>
           <div className="header-divider" />
           <button
+            className={`top-action-btn ${isAssistantOpen ? "primary" : ""}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              setIsAssistantOpen((open) => !open)
+            }}
+            aria-pressed={isAssistantOpen}
+            title="Toggle CriticalPath Assistant"
+          >
+            ✦ Assistant
+          </button>
+          <button
             className="top-action-btn primary"
             onClick={() => alert("Ready to simulate circuit in SPICE.")}
           >
@@ -2370,6 +2383,12 @@ function SchematicEditor() {
                 </div>
               </div>
             )}
+          </aside>
+        )}
+
+        {isAssistantOpen && (
+          <aside className="assistant-panel">
+            <Assistant />
           </aside>
         )}
       </div>

@@ -7,8 +7,15 @@ const api = {
     import('electron').then(({ ipcRenderer }) =>
       ipcRenderer.invoke('criticalpath:run-ngspice', netlist),
     ),
-}
 
+  sendAssistantMessage: (
+  message: string,
+  language: string = 'auto',
+): Promise<string> =>
+  import('electron').then(({ ipcRenderer }) =>
+    ipcRenderer.invoke('criticalpath:assistant-message', message, language),
+  ),
+}
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
 // just add to the DOM global.

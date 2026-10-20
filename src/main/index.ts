@@ -8,6 +8,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
 
+
 async function runNgspice(netlist: unknown): Promise<{
   ok: boolean
   stdout: string
@@ -170,6 +171,95 @@ app.whenReady().then(() => {
 
   // Narrow simulation API: the renderer can submit a netlist, not a command or path.
   ipcMain.handle('criticalpath:run-ngspice', (_event, netlist: unknown) => runNgspice(netlist))
+
+    
+ipcMain.handle(
+  'criticalpath:assistant-message',
+  async (_event, message: unknown, language: unknown = 'auto') => {
+    if (
+      typeof message !== 'string' ||
+      message.trim().length === 0 ||
+      message.length > 10_000
+    ) {
+      throw new Error('Please provide a valid message under 10,000 characters.')
+    }
+
+    const supportedLanguages = [
+      'auto',
+      'en',
+      'hi',
+      'ta',
+      'bn',
+      'mr',
+      'te',
+      'gu',
+    ] as const
+
+    if (
+      typeof language !== 'string' ||
+      !supportedLanguages.includes(language as (typeof supportedLanguages)[number])
+    ) {
+      throw new Error('Please select a supported language.')
+    }
+
+    const languageNames: Record<
+      Exclude<(typeof supportedLanguages)[number], 'auto'>,
+      string
+    > = {
+      en: 'English',
+      hi: 'Hindi',
+      ta: 'Tamil',
+      bn: 'Bengali',
+      mr: 'Marathi',
+      te: 'Telugu',
+      gu: 'Gujarati',
+    }
+
+    const languageInstruction =
+      language === 'auto'
+        ? 'Detect the language of the user’s message and respond in that same language. Support English, Hindi, Tamil, Bengali, Marathi, Telugu, and Gujarati. Preserve standard English technical terms when useful.'
+        : `Respond in ${languageNames[language as Exclude<(typeof supportedLanguages)[number], 'auto'>]}. Use this language unless the user explicitly requests a translation or another language. Preserve standard English technical terms when useful.`
+
+    const response = await fetch('http://172.18.48.1:11434/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'qwen2.5:1.5b',
+        messages: [
+          {
+            role: 'system',
+            content: `You are CriticalPath Assistant, an electronics and circuit-design assistant. Explain concepts clearly and help users understand circuits, semiconductor devices, and simulation results. Never claim to have inspected circuit data that was not provided. Be honest when you are uncertain. ${languageInstruction}`,
+          },
+          {
+            role: 'user',
+            content: message.trim(),
+          },
+        ],
+        stream: false,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(
+        `Ollama returned HTTP ${response.status}. Make sure Ollama is running and the model is installed.`,
+      )
+    }
+
+    const data = (await response.json()) as {
+      message?: { content?: string }
+    }
+
+    const answer = data.message?.content?.trim()
+
+    if (!answer) {
+      throw new Error('The local AI returned an empty response.')
+    }
+
+    return answer
+  },
+)
 
   // Existing IPC test
   ipcMain.on('ping', () => console.log('pong'))
