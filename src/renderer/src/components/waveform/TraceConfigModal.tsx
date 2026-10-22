@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { Palette, X, Eye, EyeOff, Crosshair } from "lucide-react"
 import type { TraceConfig } from "../../utils/waveformSettings"
 
 export const PALETTE_COLORS = [
@@ -56,11 +57,13 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
       <div className="wf-modal-window" onClick={(e) => e.stopPropagation()} style={{ width: "560px" }}>
         {/* Title bar */}
         <div className="wf-modal-header">
-          <div className="wf-modal-title">
-            <span style={{ marginRight: "6px" }}>🎨</span>
+          <div className="wf-modal-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Palette size={15} />
             Trace Properties & Visibility
           </div>
-          <button className="wf-modal-close" onClick={onClose} title="Close">✕</button>
+          <button className="wf-modal-close" onClick={onClose} title="Close" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={14} />
+          </button>
         </div>
 
         {/* Modal body */}
@@ -120,16 +123,29 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
                     className={`wf-action-btn ${isSelected ? "active" : ""}`}
                     onClick={() => onToggleTrace(activeTrace.name)}
                     title={isSelected ? "Hide trace from plot" : "Show trace on plot"}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
                   >
-                    {isSelected ? "👁 Visible" : "Hidden"}
+                    {isSelected ? (
+                      <>
+                        <Eye size={13} />
+                        <span>Visible</span>
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff size={13} />
+                        <span>Hidden</span>
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
                     className="wf-action-btn"
                     onClick={() => onSoloTrace(activeTrace.name)}
                     title="Isolate this trace (solo)"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
                   >
-                    🎯 Solo
+                    <Crosshair size={13} />
+                    <span>Solo</span>
                   </button>
                 </div>
               </div>

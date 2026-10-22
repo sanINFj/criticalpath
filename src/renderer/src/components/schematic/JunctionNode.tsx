@@ -4,20 +4,24 @@ import {
   type NodeProps,
 } from "reactflow"
 
-export default function JunctionNode({ selected, isConnectable }: NodeProps) {
+export default function JunctionNode({ data, selected, isConnectable }: NodeProps<{ showDot?: boolean }>) {
+  const showDot = Boolean(data?.showDot)
+
   return (
     <div
+      className="schematic-node-junction"
+      data-comp-type="junction"
       style={{
         width: 8,
         height: 8,
         borderRadius: "50%",
-        background: selected ? "#2563eb" : "#1f2937",
+        background: showDot ? (selected ? "#2563eb" : "#1f2937") : "transparent",
         boxShadow: selected
           ? "0 0 0 2px #93c5fd"
           : "none",
         position: "relative",
         boxSizing: "border-box",
-        pointerEvents: "all",
+        pointerEvents: showDot || selected ? "all" : "none",
       }}
     >
       {/* 4 Handles centered on the solder dot */}

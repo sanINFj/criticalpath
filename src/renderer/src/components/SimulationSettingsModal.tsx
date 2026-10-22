@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { Settings, X } from "lucide-react"
 
 export interface SolverSettings {
   integrationMethod: "trap" | "gear" | "modified-trap"
@@ -75,18 +76,20 @@ export default function SimulationSettingsModal({
       >
         <div className="analysis-modal-header">
           <div className="analysis-modal-title-wrap">
-            <span className="analysis-modal-icon">⚙</span>
+            <span className="analysis-modal-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Settings size={18} />
+            </span>
             <div>
               <h2 id="sim-settings-title" className="analysis-modal-title">
-                Simulation Settings
+                {t('simSettings.title')}
               </h2>
               <span className="analysis-modal-subtitle">
-                SPICE Solver Tolerances & Convergence Parameters
+                {t('simSettings.subtitle')}
               </span>
             </div>
           </div>
-          <button className="analysis-modal-close-btn" onClick={onClose} aria-label="Close">
-            ✕
+          <button className="analysis-modal-close-btn" onClick={onClose} aria-label={t('actions.close')} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={15} />
           </button>
         </div>
 
@@ -94,7 +97,7 @@ export default function SimulationSettingsModal({
           <div className="analysis-field-grid">
             <div className="analysis-field-row">
               <label htmlFor="sim-method" className="analysis-field-label">
-                Integration Method:
+                {t('simSettings.integrationMethod')}
               </label>
               <div className="analysis-input-wrap">
                 <select
@@ -108,16 +111,16 @@ export default function SimulationSettingsModal({
                     }))
                   }
                 >
-                  <option value="trap">Trapezoidal (Standard LTspice default)</option>
-                  <option value="modified-trap">Modified Trapezoidal</option>
-                  <option value="gear">Gear (Stiff circuit stability)</option>
+                  <option value="trap">{t('simSettings.trapOption')}</option>
+                  <option value="modified-trap">{t('simSettings.modifiedTrapOption')}</option>
+                  <option value="gear">{t('simSettings.gearOption')}</option>
                 </select>
               </div>
             </div>
 
             <div className="analysis-field-row">
               <label htmlFor="sim-reltol" className="analysis-field-label">
-                Relative Error (reltol):
+                {t('simSettings.reltol')}
               </label>
               <div className="analysis-input-wrap">
                 <input
@@ -130,13 +133,13 @@ export default function SimulationSettingsModal({
                   }
                   placeholder="0.001"
                 />
-                <span className="analysis-input-hint">Default: 0.001 (0.1%)</span>
+                <span className="analysis-input-hint">{t('simSettings.reltolHint')}</span>
               </div>
             </div>
 
             <div className="analysis-field-row">
               <label htmlFor="sim-vntol" className="analysis-field-label">
-                Voltage Tolerance (vntol):
+                {t('simSettings.vntol')}
               </label>
               <div className="analysis-input-wrap">
                 <input
@@ -149,13 +152,13 @@ export default function SimulationSettingsModal({
                   }
                   placeholder="1e-6"
                 />
-                <span className="analysis-input-hint">Volts (default: 1µV)</span>
+                <span className="analysis-input-hint">{t('simSettings.vntolHint')}</span>
               </div>
             </div>
 
             <div className="analysis-field-row">
               <label htmlFor="sim-abstol" className="analysis-field-label">
-                Current Tolerance (abstol):
+                {t('simSettings.abstol')}
               </label>
               <div className="analysis-input-wrap">
                 <input
@@ -168,13 +171,13 @@ export default function SimulationSettingsModal({
                   }
                   placeholder="1e-12"
                 />
-                <span className="analysis-input-hint">Amperes (default: 1pA)</span>
+                <span className="analysis-input-hint">{t('simSettings.abstolHint')}</span>
               </div>
             </div>
 
             <div className="analysis-field-row">
               <label htmlFor="sim-temp" className="analysis-field-label">
-                Nominal Temp (temp):
+                {t('simSettings.temp')}
               </label>
               <div className="analysis-input-wrap">
                 <input
@@ -187,7 +190,7 @@ export default function SimulationSettingsModal({
                   }
                   placeholder="27"
                 />
-                <span className="analysis-input-hint">Degrees Celsius (°C)</span>
+                <span className="analysis-input-hint">{t('simSettings.tempHint')}</span>
               </div>
             </div>
           </div>

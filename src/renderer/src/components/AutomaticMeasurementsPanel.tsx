@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { BarChart2, X, Copy, Info } from "lucide-react"
 import type { SimulationRunResult } from "../../../shared/simulation"
 import {
   calculateAutomaticMeasurements,
@@ -176,8 +177,10 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
             className="measure-win-btn"
             onClick={handleCopyClipboard}
             title="Copy measurements table to clipboard"
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
           >
-            {copiedNotice ? t('measurementsPanel.copied') : t('measurementsPanel.copy')}
+            <Copy size={12} />
+            <span>{copiedNotice ? t('measurementsPanel.copied') : t('measurementsPanel.copy')}</span>
           </button>
 
           {onClose && (
@@ -187,8 +190,9 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
               onClick={onClose}
               title="Close Measurements Panel"
               aria-label={t('actions.close')}
+              style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
             >
-              ✕
+              <X size={14} />
             </button>
           )}
         </div>
@@ -231,7 +235,12 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
                     </td>
                     <td className="measure-cell-def">
                       <div className="measure-def-text">{m.definition}</div>
-                      {m.note && <div className="measure-note-text">ℹ {m.note}</div>}
+                      {m.note && (
+                        <div className="measure-note-text" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <Info size={11} style={{ flexShrink: 0 }} />
+                          <span>{m.note}</span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -240,7 +249,9 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
           </div>
         ) : (
           <div className="measure-win-empty">
-            <span className="measure-win-empty-icon">📊</span>
+            <span className="measure-win-empty-icon" style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <BarChart2 size={36} strokeWidth={1.5} color="var(--accent, #38bdf8)" />
+            </span>
             <div className="measure-win-empty-title">
               {availableSignals.length === 0
                 ? t('measurementsPanel.noData')

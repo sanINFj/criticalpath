@@ -1,8 +1,5 @@
-import type { Node, Edge, Position } from "reactflow"
+import type { Node, Edge } from "reactflow"
 import {
-  getComponentPins,
-  getRotatedPinPos,
-  type SchematicComponentType,
   type SchematicNodeData,
 } from "../components/schematic/SchematicNode"
 
@@ -29,22 +26,25 @@ export function getNodeBoundingBox(node: Node<SchematicNodeData>): BoundingBox {
   const nx = Math.round(node.position.x / 20) * 20
   const ny = Math.round(node.position.y / 20) * 20
 
+  // 120x80 component box. Pins are at extremities (0,40) and (120,40) horizontally,
+  // or (60,0) and (60,80) vertically.
+  // The obstacle box protects only the core component body interior, ensuring
+  // that terminal pins are outside and never falsely flagged as colliding.
   if (isVertical) {
     return {
-      minX: nx + 20,
-      maxX: nx + 100,
-      minY: ny - 20,
-      maxY: ny + 100,
+      minX: nx + 30,
+      maxX: nx + 90,
+      minY: ny + 20,
+      maxY: ny + 60,
       nodeId: node.id,
     }
   }
 
   return {
-    minX: nx,
-    maxX: nx + 120,
-    minY: ny,
-    // Add margin for parameter/designator labels below component
-    maxY: ny + 100,
+    minX: nx + 25,
+    maxX: nx + 95,
+    minY: ny + 15,
+    maxY: ny + 65,
     nodeId: node.id,
   }
 }
@@ -379,27 +379,67 @@ export function computeAvoidanceWaypoints(
   const ex = Math.round(end.x / 20) * 20
   const ey = Math.round(end.y / 20) * 20
 
-  // Quick check: does the direct standard orthogonal route collide with any obstacle?
-  let testPath: Point[]
+  // 1. Direct straight line if on the same axis
   if (sx === ex || sy === ey) {
-    testPath = [{ x: sx, y: sy }, { x: ex, y: ey }]
-  } else {
-    // Standard horizontal-step
-    const midX = Math.round(((sx + ex) / 2) / 20) * 20
-    testPath = [
-      { x: sx, y: sy },
-      { x: midX, y: sy },
-      { x: midX, y: ey },
-      { x: ex, y: ey },
-    ]
+    const directStraight = [{ x: sx, y: sy }, { x: ex, y: ey }]
+    if (!doesPathIntersectObstacles(directStraight, obstacles)) {
+      return []
+    }
+
+    // Collinear endpoints with obstacles in between: test clean orthogonal bypass
+    if (sy === ey) {
+      for (const offset of [40, -40, 60, -60, 80, -80, 100, -100]) {
+        const bypassY = sy + offset
+        const bypassPath = [
+          { x: sx, y: sy },
+          { x: sx, y: bypassY },
+          { x: ex, y: bypassY },
+          { x: ex, y: ey },
+        ]
+        if (!doesPathIntersectObstacles(bypassPath, obstacles)) {
+          return [{ x: sx, y: bypassY }, { x: ex, y: bypassY }]
+        }
+      }
+    } else {
+      for (const offset of [40, -40, 60, -60, 80, -80, 100, -100]) {
+        const bypassX = sx + offset
+        const bypassPath = [
+          { x: sx, y: sy },
+          { x: bypassX, y: sy },
+          { x: bypassX, y: ey },
+          { x: ex, y: ey },
+        ]
+        if (!doesPathIntersectObstacles(bypassPath, obstacles)) {
+          return [{ x: bypassX, y: sy }, { x: bypassX, y: ey }]
+        }
+      }
+    }
   }
 
-  const hasCollision = doesPathIntersectObstacles(testPath, obstacles)
-  if (!hasCollision) {
+  // 2. Test standard midpoint Z-step
+  const midX = Math.round(((sx + ex) / 2) / 20) * 20
+  const pathStep = [
+    { x: sx, y: sy },
+    { x: midX, y: sy },
+    { x: midX, y: ey },
+    { x: ex, y: ey },
+  ]
+  if (!doesPathIntersectObstacles(pathStep, obstacles)) {
     return []
   }
 
-  // Path collides with an obstacle -> run A* maze router
+  // 3. Test clean 1-bend L-paths (Corner-HV and Corner-VH)
+  const pathHV = [{ x: sx, y: sy }, { x: ex, y: sy }, { x: ex, y: ey }]
+  if (!doesPathIntersectObstacles(pathHV, obstacles)) {
+    return [{ x: ex, y: sy }]
+  }
+
+  const pathVH = [{ x: sx, y: sy }, { x: sx, y: ey }, { x: ex, y: ey }]
+  if (!doesPathIntersectObstacles(pathVH, obstacles)) {
+    return [{ x: sx, y: ey }]
+  }
+
+  // 4. Path collides with an obstacle -> run A* maze router
   const fullRouted = routeOrthogonalAvoidance({ x: sx, y: sy }, { x: ex, y: ey }, obstacles)
   if (fullRouted.length <= 2) {
     return []
@@ -416,21 +456,72 @@ export function getRoutedEdgeWaypoints(
   nodes: Node<SchematicNodeData>[],
   getPinCoordFn: (node: Node, handleId?: string | null) => Point,
 ): Point[] | undefined {
-  // If the user has manually edited custom waypoints and marked them or stored them,
-  // we check if they already exist and have no collision
-  if (edge.data?.waypoints && edge.data.waypoints.length > 0) {
-    return edge.data.waypoints
-  }
-
   const srcNode = nodes.find((n) => n.id === edge.source)
   const tgtNode = nodes.find((n) => n.id === edge.target)
   if (!srcNode || !tgtNode) return undefined
 
   const p1 = getPinCoordFn(srcNode, edge.sourceHandle)
   const p2 = getPinCoordFn(tgtNode, edge.targetHandle)
-
   const obstacles = getComponentObstacles(nodes, [srcNode.id, tgtNode.id])
-  const waypoints = computeAvoidanceWaypoints(p1, p2, obstacles)
 
+  // If edge has existing waypoints, verify that they still form a valid obstacle-free path
+  if (edge.data?.waypoints && edge.data.waypoints.length > 0) {
+    const fullPath = [p1, ...edge.data.waypoints, p2]
+    if (!doesPathIntersectObstacles(fullPath, obstacles)) {
+      return edge.data.waypoints
+    }
+  }
+
+  const waypoints = computeAvoidanceWaypoints(p1, p2, obstacles)
   return waypoints.length > 0 ? waypoints : undefined
+}
+
+/**
+ * Constructs clean, 100% strictly orthogonal (90-degree) draft waypoints from
+ * committed draft points up to the current target point, adhering to bendOrientation
+ * and avoiding component obstacles if necessary.
+ */
+export function buildOrthogonalDraftPoints(
+  draftPoints: Point[],
+  targetPoint: Point,
+  bendOrientation: "h" | "v" = "h",
+  obstacles: BoundingBox[] = [],
+): Point[] {
+  if (draftPoints.length === 0) return [targetPoint]
+
+  const rawPts = [...draftPoints, targetPoint]
+  const cleanPts: Point[] = [rawPts[0]]
+  let curOri = bendOrientation
+
+  for (let i = 1; i < rawPts.length; i++) {
+    const prev = cleanPts[cleanPts.length - 1]
+    const cur = rawPts[i]
+
+    if (prev.x === cur.x && prev.y === cur.y) continue
+
+    if (prev.x === cur.x || prev.y === cur.y) {
+      cleanPts.push(cur)
+      curOri = prev.x === cur.x ? "v" : "h"
+    } else {
+      if (curOri === "h") {
+        cleanPts.push({ x: cur.x, y: prev.y })
+        cleanPts.push(cur)
+        curOri = "v"
+      } else {
+        cleanPts.push({ x: prev.x, y: cur.y })
+        cleanPts.push(cur)
+        curOri = "h"
+      }
+    }
+  }
+
+  if (obstacles.length > 0 && doesPathIntersectObstacles(cleanPts, obstacles)) {
+    const lastCommitted = draftPoints[draftPoints.length - 1]
+    const waypoints = computeAvoidanceWaypoints(lastCommitted, targetPoint, obstacles)
+    if (waypoints.length > 0) {
+      return [...draftPoints.slice(0, -1), lastCommitted, ...waypoints, targetPoint]
+    }
+  }
+
+  return cleanPts
 }

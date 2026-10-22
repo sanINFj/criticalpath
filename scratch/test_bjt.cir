@@ -1,0 +1,11 @@
+* Test OP BJT
+Vcc vc 0 10
+Vin vb 0 1.2
+Rc vc c 1k
+Rb vb b 10k
+Q1 c b 0 2N2222
+.model 2N2222 NPN(Is=14.34f Xti=3 Eg=1.11 Vaf=74.03 Bf=255.9 Ne=1.307)
+.options savecurrents
+.save all @q1[ib] @q1[ic] @q1[vbe] @q1[vce] @q1[gm]
+.op
+.end

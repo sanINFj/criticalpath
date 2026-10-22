@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { Sliders, X } from "lucide-react"
 import { formatEngineering } from "../../utils/engineeringFormat"
 
 export interface AxisLimitsModalProps {
@@ -96,11 +97,13 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
       <div className="wf-modal-window" onClick={(e) => e.stopPropagation()} style={{ width: "480px" }}>
         {/* Header */}
         <div className="wf-modal-header">
-          <div className="wf-modal-title">
-            <span style={{ marginRight: "6px" }}>📐</span>
+          <div className="wf-modal-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Sliders size={15} />
             Manual Axis Limits & Scale
           </div>
-          <button className="wf-modal-close" onClick={onClose} title="Close">✕</button>
+          <button className="wf-modal-close" onClick={onClose} title="Close" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={14} />
+          </button>
         </div>
 
         {/* Body */}

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react"
+import { X, Check, AlertTriangle } from "lucide-react"
 import {
   evaluateWaveformExpression,
   type MathTraceDefinition,
@@ -78,7 +79,9 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
             <span style={{ marginRight: "6px" }}>𝑓(𝑥)</span>
             Waveform Math Expression Builder
           </div>
-          <button className="wf-modal-close" onClick={onClose} title="Close">✕</button>
+          <button className="wf-modal-close" onClick={onClose} title="Close" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={14} />
+          </button>
         </div>
 
         {/* Body */}
@@ -156,9 +159,19 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
                 border: `1px solid ${evalResult?.success ? "#10b981" : "#ef4444"}`,
               }}
             >
-              {evalResult?.success
-                ? `✓ Valid expression (${evalResult.data?.length || 0} points, unit: ${evalResult.unit})`
-                : `⚠ ${evalResult?.error || "Invalid expression"}`}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {evalResult?.success ? (
+                  <>
+                    <Check size={14} style={{ flexShrink: 0 }} />
+                    <span>Valid expression ({evalResult.data?.length || 0} points, unit: {evalResult.unit})</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                    <span>{evalResult?.error || "Invalid expression"}</span>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -237,8 +250,9 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
                       className="wf-mini-btn danger"
                       onClick={() => onRemoveMathTrace(mt.id)}
                       title="Remove math trace"
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                     >
-                      ✕
+                      <X size={11} />
                     </button>
                   </div>
                 ))}

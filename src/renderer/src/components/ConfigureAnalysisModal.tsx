@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { X } from "lucide-react"
 
 export type AnalysisType = "tran" | "ac" | "dc" | "op"
 
@@ -50,17 +51,16 @@ export const DEFAULT_ANALYSIS_CONFIG: AnalysisConfig = {
   dcStart2: "0",
   dcStop2: "5",
   dcStep2: "1",
-  command: ".tran 10m",
+  command: ".tran 10u 10m",
 }
 
 export function computeSpiceCommand(config: AnalysisConfig): string {
   switch (config.type) {
     case "tran": {
       const parts = [".tran"]
-      if (config.tranMaxStep && config.tranMaxStep.trim()) {
-        parts.push(config.tranMaxStep.trim())
-      }
-      parts.push(config.tranStopTime.trim() || "10m")
+      const step = config.tranMaxStep?.trim() || "10u"
+      const stop = config.tranStopTime?.trim() || "10m"
+      parts.push(step, stop)
       if (config.tranStartTime && config.tranStartTime.trim() && config.tranStartTime.trim() !== "0") {
         parts.push(config.tranStartTime.trim())
       }
@@ -187,8 +187,9 @@ export default function ConfigureAnalysisModal({
             onClick={onClose}
             aria-label="Close dialog"
             title={`${t('actions.cancel')} (Esc)`}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
 
@@ -240,15 +241,15 @@ export default function ConfigureAnalysisModal({
             {activeTab === "tran" && (
               <div className="cfg-analysis-pane-content">
                 <div className="cfg-analysis-pane-hint">
-                  Compute circuit voltages and currents as a function of time.
+                  {t('analysis.tran.hint')}
                 </div>
 
                 <fieldset className="cfg-analysis-fieldset">
-                  <legend className="cfg-analysis-legend">Timing Parameters</legend>
+                  <legend className="cfg-analysis-legend">{t('analysis.tran.timingParams')}</legend>
 
                   <div className="cfg-analysis-form-grid">
                     <label className="cfg-analysis-label" htmlFor="tran-stop-time">
-                      Stop time: <span className="cfg-req">*</span>
+                      {t('analysis.tran.stopTime')} <span className="cfg-req">*</span>
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -262,11 +263,11 @@ export default function ConfigureAnalysisModal({
                         placeholder="e.g. 10m, 1s, 100u"
                         autoFocus
                       />
-                      <span className="cfg-analysis-hint">Seconds (e.g. 10m, 500u)</span>
+                      <span className="cfg-analysis-hint">{t('analysis.tran.stopTimeHint')}</span>
                     </div>
 
                     <label className="cfg-analysis-label" htmlFor="tran-start-time">
-                      Time to start saving:
+                      {t('analysis.tran.startTime')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -279,11 +280,11 @@ export default function ConfigureAnalysisModal({
                         }
                         placeholder="0 (default)"
                       />
-                      <span className="cfg-analysis-hint">Optional (default: 0)</span>
+                      <span className="cfg-analysis-hint">{t('analysis.tran.startTimeHint')}</span>
                     </div>
 
                     <label className="cfg-analysis-label" htmlFor="tran-max-step">
-                      Maximum Timestep:
+                      {t('analysis.tran.maxStep')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -296,7 +297,7 @@ export default function ConfigureAnalysisModal({
                         }
                         placeholder="e.g. 10u, 1n"
                       />
-                      <span className="cfg-analysis-hint">Optional step ceiling</span>
+                      <span className="cfg-analysis-hint">{t('analysis.tran.maxStepHint')}</span>
                     </div>
                   </div>
                 </fieldset>
@@ -310,7 +311,7 @@ export default function ConfigureAnalysisModal({
                         setConfig((prev) => ({ ...prev, tranUic: e.target.checked }))
                       }
                     />
-                    <span>Skip initial operating point solution (UIC)</span>
+                    <span>{t('analysis.tran.uic')}</span>
                   </label>
                 </div>
               </div>
@@ -320,15 +321,15 @@ export default function ConfigureAnalysisModal({
             {activeTab === "ac" && (
               <div className="cfg-analysis-pane-content">
                 <div className="cfg-analysis-pane-hint">
-                  Compute small-signal AC frequency response (amplitude and phase).
+                  {t('analysis.ac.hint')}
                 </div>
 
                 <fieldset className="cfg-analysis-fieldset">
-                  <legend className="cfg-analysis-legend">Frequency Sweep Parameters</legend>
+                  <legend className="cfg-analysis-legend">{t('analysis.ac.sweepParams')}</legend>
 
                   <div className="cfg-analysis-form-grid">
                     <label className="cfg-analysis-label" htmlFor="ac-sweep-type">
-                      Type of Sweep:
+                      {t('analysis.ac.sweepType')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <select
@@ -342,14 +343,14 @@ export default function ConfigureAnalysisModal({
                           }))
                         }
                       >
-                        <option value="dec">Decade (.ac dec)</option>
-                        <option value="oct">Octave (.ac oct)</option>
-                        <option value="lin">Linear (.ac lin)</option>
+                        <option value="dec">{t('analysis.ac.decade')}</option>
+                        <option value="oct">{t('analysis.ac.octave')}</option>
+                        <option value="lin">{t('analysis.ac.linear')}</option>
                       </select>
                     </div>
 
                     <label className="cfg-analysis-label" htmlFor="ac-points">
-                      Number of points:
+                      {t('analysis.ac.numPoints')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -363,11 +364,11 @@ export default function ConfigureAnalysisModal({
                         placeholder="e.g. 100"
                         autoFocus
                       />
-                      <span className="cfg-analysis-hint">Points per decade/octave or total</span>
+                      <span className="cfg-analysis-hint">{t('analysis.ac.numPointsHint')}</span>
                     </div>
 
                     <label className="cfg-analysis-label" htmlFor="ac-start-freq">
-                      Start Frequency:
+                      {t('analysis.ac.startFreq')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -380,11 +381,11 @@ export default function ConfigureAnalysisModal({
                         }
                         placeholder="e.g. 10, 1Hz"
                       />
-                      <span className="cfg-analysis-hint">Hertz (e.g. 10, 1k, 1Meg)</span>
+                      <span className="cfg-analysis-hint">{t('analysis.ac.startFreqHint')}</span>
                     </div>
 
                     <label className="cfg-analysis-label" htmlFor="ac-stop-freq">
-                      Stop Frequency:
+                      {t('analysis.ac.stopFreq')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -397,7 +398,7 @@ export default function ConfigureAnalysisModal({
                         }
                         placeholder="e.g. 1Meg, 100k"
                       />
-                      <span className="cfg-analysis-hint">Hertz (e.g. 100k, 1Meg, 10G)</span>
+                      <span className="cfg-analysis-hint">{t('analysis.ac.stopFreqHint')}</span>
                     </div>
                   </div>
                 </fieldset>
@@ -408,15 +409,15 @@ export default function ConfigureAnalysisModal({
             {activeTab === "dc" && (
               <div className="cfg-analysis-pane-content">
                 <div className="cfg-analysis-pane-hint">
-                  Sweep independent DC voltage or current sources across ranges.
+                  {t('analysis.dc.hint')}
                 </div>
 
                 <fieldset className="cfg-analysis-fieldset">
-                  <legend className="cfg-analysis-legend">1st Source Parameters</legend>
+                  <legend className="cfg-analysis-legend">{t('analysis.dc.source1Params')}</legend>
 
                   <div className="cfg-analysis-form-grid">
                     <label className="cfg-analysis-label" htmlFor="dc-source1">
-                      1st Source Name:
+                      {t('analysis.dc.source1Name')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -430,11 +431,11 @@ export default function ConfigureAnalysisModal({
                         placeholder="e.g. V1, I1"
                         autoFocus
                       />
-                      <span className="cfg-analysis-hint">DC voltage or current source name</span>
+                      <span className="cfg-analysis-hint">{t('analysis.dc.source1NameHint')}</span>
                     </div>
 
                     <label className="cfg-analysis-label" htmlFor="dc-start1">
-                      Start Value:
+                      {t('analysis.dc.startVal')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -450,7 +451,7 @@ export default function ConfigureAnalysisModal({
                     </div>
 
                     <label className="cfg-analysis-label" htmlFor="dc-stop1">
-                      Stop Value:
+                      {t('analysis.dc.stopVal')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -466,7 +467,7 @@ export default function ConfigureAnalysisModal({
                     </div>
 
                     <label className="cfg-analysis-label" htmlFor="dc-step1">
-                      Increment:
+                      {t('analysis.dc.incrVal')}
                     </label>
                     <div className="cfg-analysis-input-wrap">
                       <input
@@ -495,16 +496,16 @@ export default function ConfigureAnalysisModal({
                         }))
                       }
                     />
-                    <span>Enable 2nd source sweep (nested parameter curves)</span>
+                    <span>{t('analysis.dc.enableSource2')}</span>
                   </label>
                 </div>
 
                 {config.dcEnableSource2 && (
                   <fieldset className="cfg-analysis-fieldset" style={{ marginTop: 8 }}>
-                    <legend className="cfg-analysis-legend">2nd Source Parameters</legend>
+                    <legend className="cfg-analysis-legend">{t('analysis.dc.source2Params')}</legend>
                     <div className="cfg-analysis-form-grid">
                       <label className="cfg-analysis-label" htmlFor="dc-source2">
-                        2nd Source Name:
+                        {t('analysis.dc.source2Name')}
                       </label>
                       <div className="cfg-analysis-input-wrap">
                         <input
@@ -520,7 +521,7 @@ export default function ConfigureAnalysisModal({
                       </div>
 
                       <label className="cfg-analysis-label">
-                        Start / Stop / Step:
+                        {t('analysis.dc.startStopStep')}
                       </label>
                       <div className="cfg-analysis-input-row">
                         <input
@@ -565,16 +566,16 @@ export default function ConfigureAnalysisModal({
             {activeTab === "op" && (
               <div className="cfg-analysis-pane-content">
                 <div className="cfg-analysis-pane-hint">
-                  Compute DC operating point voltages and currents.
+                  {t('analysis.op.hint')}
                 </div>
 
                 <fieldset className="cfg-analysis-fieldset">
-                  <legend className="cfg-analysis-legend">Operating Point Analysis (.op)</legend>
+                  <legend className="cfg-analysis-legend">{t('analysis.op.title')}</legend>
                   <p className="cfg-analysis-op-text">
-                    Operating Point analysis evaluates the steady-state DC bias voltages at all circuit nodes and operating currents across components with all capacitors open-circuited and all inductors short-circuited.
+                    {t('analysis.op.desc1')}
                   </p>
                   <p className="cfg-analysis-op-text" style={{ marginTop: 6 }}>
-                    No time, frequency, or sweep parameters are required.
+                    {t('analysis.op.desc2')}
                   </p>
                 </fieldset>
               </div>

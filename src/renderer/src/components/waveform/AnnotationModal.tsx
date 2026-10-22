@@ -1,4 +1,5 @@
 import React, { useState } from "react"
+import { Tag, FileText, X } from "lucide-react"
 import type { PlotAnnotation } from "../../utils/waveformSettings"
 import { PALETTE_COLORS } from "./TraceConfigModal"
 
@@ -69,11 +70,13 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
       <div className="wf-modal-window" onClick={(e) => e.stopPropagation()} style={{ width: "520px" }}>
         {/* Header */}
         <div className="wf-modal-header">
-          <div className="wf-modal-title">
-            <span style={{ marginRight: "6px" }}>🏷️</span>
+          <div className="wf-modal-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Tag size={15} />
             Plot Annotations & Reference Lines
           </div>
-          <button className="wf-modal-close" onClick={onClose} title="Close">✕</button>
+          <button className="wf-modal-close" onClick={onClose} title="Close" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={14} />
+          </button>
         </div>
 
         {/* Body */}
@@ -86,8 +89,10 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
                 type="button"
                 className={`wf-option-btn ${type === "text" ? "active" : ""}`}
                 onClick={() => setType("text")}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
               >
-                📝 Text Note
+                <FileText size={13} />
+                Text Note
               </button>
               <button
                 type="button"
@@ -269,8 +274,9 @@ export const AnnotationModal: React.FC<AnnotationModalProps> = ({
                       className="wf-mini-btn danger"
                       onClick={() => onRemoveAnnotation(annot.id)}
                       title="Delete"
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                     >
-                      ✕
+                      <X size={11} />
                     </button>
                   </div>
                 ))}

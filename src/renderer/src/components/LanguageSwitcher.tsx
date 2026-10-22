@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Globe, ChevronDown } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, SupportedLanguageCode } from '../i18n'
 
 export const LanguageSwitcher: React.FC = () => {
@@ -51,9 +52,9 @@ export const LanguageSwitcher: React.FC = () => {
           cursor: 'pointer'
         }}
       >
-        <span style={{ fontSize: '12px' }}>🌐</span>
+        <Globe size={13} />
         <span style={{ fontWeight: 500 }}>{currentLang.nativeName}</span>
-        <span style={{ fontSize: '9px', opacity: 0.7 }}>▼</span>
+        <ChevronDown size={11} style={{ opacity: 0.7 }} />
       </button>
 
       {isOpen && (

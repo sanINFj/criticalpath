@@ -59,6 +59,11 @@ export type SchematicComponentType =
   | "vcc"
   | "generic"
   | "net-label"
+  | "port-in"
+  | "port-out"
+  | "port-bi"
+  | "spice-directive"
+  | "schematic-text"
 
 export interface SchematicNodeData {
   label: string
@@ -68,6 +73,8 @@ export interface SchematicNodeData {
   highlightedPins?: string[]
   ercIssues?: Record<string, { severity: "error" | "warning"; message: string; code: string; suggestion?: string }>
   onErcClick?: (issue: { severity: "error" | "warning"; message: string; code: string; suggestion?: string }) => void
+  portType?: "none" | "input" | "output" | "bidirectional"
+  directiveType?: "spice" | "comment"
 }
 
 export interface PinDef {
@@ -89,14 +96,14 @@ export function getRotatedPinPos(
     rx = pin.x
     ry = pin.y
   } else if (normRot === 90) {
-    rx = 60 + Math.round(pin.y - 40)
-    ry = 40 + Math.round((pin.x - 60) * (40 / 60))
+    rx = 100 - pin.y
+    ry = pin.x - 20
   } else if (normRot === 180) {
     rx = 120 - pin.x
     ry = 80 - pin.y
   } else if (normRot === 270) {
-    rx = 60 - Math.round(pin.y - 40)
-    ry = 40 - Math.round((pin.x - 60) * (40 / 60))
+    rx = pin.y + 20
+    ry = 100 - pin.x
   }
 
   let handlePos = Position.Left
@@ -110,6 +117,129 @@ export function getRotatedPinPos(
   return { x: rx, y: ry, handlePos }
 }
 
+/**
+ * Calculates label container position and alignment styles so that labels (designator & value)
+ * remain clearly visible and never collide with terminal pins or connecting wires when the component rotates.
+ */
+export function getLabelLayout(
+  type: SchematicComponentType,
+  rotation: number = 0,
+): { containerStyle: React.CSSProperties } {
+  const normRot = ((rotation % 360) + 360) % 360
+
+  // Vertical orientation (90° or 270°)
+  if (normRot === 90 || normRot === 270) {
+    // If potentiometer at 90°, wiper pin is on the right (x=100, y=40), so place labels on the left
+    if (type === "potentiometer" && normRot === 90) {
+      return {
+        containerStyle: {
+          position: "absolute",
+          top: "50%",
+          right: "calc(50% + 22px)",
+          transform: "translateY(-50%)",
+          whiteSpace: "nowrap",
+          textAlign: "right",
+          pointerEvents: "none",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 1,
+        },
+      }
+    }
+
+    // Default vertical: Place to the right of the vertical component body, centered vertically
+    return {
+      containerStyle: {
+        position: "absolute",
+        top: "50%",
+        left: "calc(50% + 22px)",
+        transform: "translateY(-50%)",
+        whiteSpace: "nowrap",
+        textAlign: "left",
+        pointerEvents: "none",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        gap: 1,
+      },
+    }
+  }
+
+  // Upside-down horizontal orientation (180°)
+  if (normRot === 180) {
+    // If potentiometer at 180°, wiper pin is at bottom (x=60, y=80), so place labels on top
+    if (type === "potentiometer") {
+      return {
+        containerStyle: {
+          position: "absolute",
+          top: -18,
+          left: "50%",
+          transform: "translateX(-50%)",
+          whiteSpace: "nowrap",
+          textAlign: "center",
+          pointerEvents: "none",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 1,
+        },
+      }
+    }
+    return {
+      containerStyle: {
+        position: "absolute",
+        bottom: -18,
+        left: "50%",
+        transform: "translateX(-50%)",
+        whiteSpace: "nowrap",
+        textAlign: "center",
+        pointerEvents: "none",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 1,
+      },
+    }
+  }
+
+  // Normal horizontal orientation (0°)
+  if (type === "vcc") {
+    // VCC has terminal pin at bottom (60, 80), so place label above
+    return {
+      containerStyle: {
+        position: "absolute",
+        top: -18,
+        left: "50%",
+        transform: "translateX(-50%)",
+        whiteSpace: "nowrap",
+        textAlign: "center",
+        pointerEvents: "none",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 1,
+      },
+    }
+  }
+
+  return {
+    containerStyle: {
+      position: "absolute",
+      bottom: -18,
+      left: "50%",
+      transform: "translateX(-50%)",
+      whiteSpace: "nowrap",
+      textAlign: "center",
+      pointerEvents: "none",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 1,
+    },
+  }
+}
+
 export function getComponentPins(type: SchematicComponentType): PinDef[] {
   switch (type) {
     case "ground":
@@ -118,6 +248,15 @@ export function getComponentPins(type: SchematicComponentType): PinDef[] {
       return [{ id: "pin1", name: "VCC", x: 60, y: 80 }]
     case "net-label":
       return [{ id: "pin1", name: "NET", x: 0, y: 40 }]
+    case "port-in":
+      return [{ id: "pin1", name: "IN", x: 120, y: 40 }]
+    case "port-out":
+      return [{ id: "pin1", name: "OUT", x: 0, y: 40 }]
+    case "port-bi":
+      return [{ id: "pin1", name: "IO", x: 0, y: 40 }]
+    case "spice-directive":
+    case "schematic-text":
+      return []
 
     case "potentiometer":
       return [
@@ -920,12 +1059,112 @@ function VCCSymbol() {
   )
 }
 
-function NetLabelSymbol() {
+function NetLabelSymbol({ name }: { name?: string }) {
+  const text = name || "NET"
+  return (
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block", overflow: "visible" }}>
+      {/* Anchor connection point touching the wire at (0, 40) */}
+      <line x1="0" y1="40" x2="6" y2="40" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="0" cy="40" r="2.5" fill="#0284c7" />
+      {/* Plain text net name rendered directly above wire (LTspice style) */}
+      <text
+        x="6"
+        y="35"
+        fontSize="13"
+        fontWeight="700"
+        textAnchor="start"
+        fill="#0369a1"
+        fontFamily="sans-serif"
+      >
+        {text}
+      </text>
+    </svg>
+  )
+}
+
+function PortInSymbol({ name }: { name?: string }) {
+  const text = (name || "IN").slice(0, 10)
+  const fontSize = text.length > 7 ? "9.5" : text.length > 5 ? "10.5" : "11.5"
   return (
     <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="36" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <polygon points="36,22 84,22 100,40 84,58 36,58" fill="#eff6ff" stroke="#2563eb" strokeWidth="1.8" strokeLinejoin="round" />
-      <text x="63" y="44" fontSize="11" fontWeight="700" textAnchor="middle" fill="#1e40af" fontFamily="monospace">NET</text>
+      <polygon
+        points="18,24 76,24 94,40 76,56 18,56"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <line x1="94" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <text
+        x="50"
+        y="44"
+        fontSize={fontSize}
+        fontWeight="700"
+        textAnchor="middle"
+        fill="#1f2937"
+        fontFamily='"JetBrains Mono", Consolas, monospace'
+        letterSpacing="0.02em"
+      >
+        {text}
+      </text>
+    </svg>
+  )
+}
+
+function PortOutSymbol({ name }: { name?: string }) {
+  const text = (name || "OUT").slice(0, 10)
+  const fontSize = text.length > 7 ? "9.5" : text.length > 5 ? "10.5" : "11.5"
+  return (
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="0" y1="40" x2="26" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <polygon
+        points="26,24 84,24 102,40 84,56 26,56"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <text
+        x="58"
+        y="44"
+        fontSize={fontSize}
+        fontWeight="700"
+        textAnchor="middle"
+        fill="#1f2937"
+        fontFamily='"JetBrains Mono", Consolas, monospace'
+        letterSpacing="0.02em"
+      >
+        {text}
+      </text>
+    </svg>
+  )
+}
+
+function PortBiSymbol({ name }: { name?: string }) {
+  const text = (name || "IO").slice(0, 10)
+  const fontSize = text.length > 7 ? "9.5" : text.length > 5 ? "10.5" : "11.5"
+  return (
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+      <line x1="0" y1="40" x2="20" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <polygon
+        points="20,40 34,24 84,24 98,40 84,56 34,56"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <text
+        x="59"
+        y="44"
+        fontSize={fontSize}
+        fontWeight="700"
+        textAnchor="middle"
+        fill="#1f2937"
+        fontFamily='"JetBrains Mono", Consolas, monospace'
+        letterSpacing="0.02em"
+      >
+        {text}
+      </text>
     </svg>
   )
 }
@@ -941,10 +1180,16 @@ function GenericSymbol() {
   )
 }
 
-export function renderSymbol(type: SchematicComponentType) {
+export function renderSymbol(type: SchematicComponentType, labelName?: string) {
   switch (type) {
     case "net-label":
-      return <NetLabelSymbol />
+      return <NetLabelSymbol name={labelName} />
+    case "port-in":
+      return <PortInSymbol name={labelName} />
+    case "port-out":
+      return <PortOutSymbol name={labelName} />
+    case "port-bi":
+      return <PortBiSymbol name={labelName} />
     case "resistor":
       return <ResistorSymbol />
     case "capacitor":
@@ -1039,6 +1284,20 @@ export function renderSymbol(type: SchematicComponentType) {
       return <GroundSymbol />
     case "vcc":
       return <VCCSymbol />
+    case "spice-directive":
+      return (
+        <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+          <rect x="8" y="14" width="104" height="52" rx="4" fill="#f8fafc" stroke="#0284c7" strokeWidth="1.8" strokeDasharray="4 2" />
+          <text x="60" y="44" fontSize="12" fontWeight="700" textAnchor="middle" fill="#0369a1" fontFamily="monospace">.tran / .op</text>
+        </svg>
+      )
+    case "schematic-text":
+      return (
+        <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+          <rect x="8" y="14" width="104" height="52" rx="4" fill="#fafafa" stroke="#6b7280" strokeWidth="1.5" strokeDasharray="3 3" />
+          <text x="60" y="44" fontSize="12" fontWeight="600" textAnchor="middle" fill="#374151" fontFamily="sans-serif">Text Note</text>
+        </svg>
+      )
     case "generic":
     default:
       return <GenericSymbol />
@@ -1050,11 +1309,94 @@ export default function SchematicNode({
   selected,
   isConnectable,
 }: NodeProps<SchematicNodeData>) {
+  if (data.type === "spice-directive") {
+    const rawVal = data.value || data.label || ".op"
+    const isComment =
+      data.directiveType === "comment" || rawVal.startsWith("*") || rawVal.startsWith(";")
+    return (
+      <div
+        style={{
+          position: "relative",
+          minWidth: 120,
+          maxWidth: 340,
+          padding: "5px 9px",
+          background: isComment ? "#f0fdf4" : "#eff6ff",
+          border: selected ? "1.5px dashed #2563eb" : isComment ? "1px solid #86efac" : "1px solid #93c5fd",
+          borderRadius: 3,
+          fontFamily: 'Consolas, "JetBrains Mono", monospace',
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          userSelect: "none",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 800,
+              padding: "1px 4px",
+              borderRadius: 2,
+              background: isComment ? "#bbf7d0" : "#bfdbfe",
+              color: isComment ? "#166534" : "#1d4ed8",
+              letterSpacing: "0.03em",
+            }}
+          >
+            {isComment ? "; COMMENT" : ".SPICE"}
+          </span>
+          <span style={{ fontSize: 10, color: "#64748b" }}>
+            {data.label}
+          </span>
+        </div>
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: isComment ? "#15803d" : "#1e40af",
+            whiteSpace: "pre-wrap",
+            lineHeight: 1.3,
+          }}
+        >
+          {rawVal}
+        </div>
+      </div>
+    )
+  }
+
+  if (data.type === "schematic-text") {
+    return (
+      <div
+        style={{
+          position: "relative",
+          minWidth: 70,
+          maxWidth: 320,
+          padding: "3px 6px",
+          background: "transparent",
+          border: selected ? "1.5px dashed #2563eb" : "1px dashed transparent",
+          borderRadius: 2,
+          fontFamily: '"Segoe UI", -apple-system, sans-serif',
+          fontSize: 12.5,
+          color: "#0f172a",
+          whiteSpace: "pre-wrap",
+          lineHeight: 1.35,
+          userSelect: "none",
+        }}
+      >
+        {data.value || data.label || "Annotation text"}
+      </div>
+    )
+  }
+
   const rotation = data.rotation ?? 0
   const pins = getComponentPins(data.type)
+  const isNetOrPort =
+    data.type === "net-label" ||
+    data.type === "port-in" ||
+    data.type === "port-out" ||
+    data.type === "port-bi"
 
   return (
     <div
+      className={`schematic-node-component comp-type-${data.type}`}
+      data-comp-type={data.type}
       style={{
         position: "relative",
         width: 120,
@@ -1090,8 +1432,8 @@ export default function SchematicNode({
                 background: isPinHighlighted
                   ? "#0284c7"
                   : selected
-                  ? "#2563eb"
-                  : "#1f2937",
+                    ? "#2563eb"
+                    : "#1f2937",
                 border: isPinHighlighted
                   ? "2px solid #38bdf8"
                   : "1.5px solid #ffffff",
@@ -1117,50 +1459,49 @@ export default function SchematicNode({
           pointerEvents: "none",
         }}
       >
-        {renderSymbol(data.type)}
+        {renderSymbol(data.type, data.value || data.label)}
       </div>
 
       {/* Engineering Designator & Parameter Labels */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: -18,
-          left: "50%",
-          transform: "translateX(-50%)",
-          whiteSpace: "nowrap",
-          textAlign: "center",
-          pointerEvents: "none",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 1,
-        }}
-      >
-        <span
+      {!isNetOrPort && (
+        <div
           style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: "#1f2937",
-            fontFamily: '"JetBrains Mono", monospace',
-            lineHeight: 1.2,
+            ...getLabelLayout(data.type, rotation).containerStyle,
+            zIndex: 6,
           }}
         >
-          {data.label}
-        </span>
-        {data.value && (
           <span
             style={{
               fontSize: 11,
-              fontWeight: 600,
-              color: "#2563eb",
+              fontWeight: 700,
+              color: "#1f2937",
               fontFamily: '"JetBrains Mono", monospace',
               lineHeight: 1.2,
+              backgroundColor: "rgba(255, 255, 255, 0.85)",
+              padding: "0 2px",
+              borderRadius: 2,
             }}
           >
-            {data.value}
+            {data.label}
           </span>
-        )}
-      </div>
+          {data.value && (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#2563eb",
+                fontFamily: '"JetBrains Mono", monospace',
+                lineHeight: 1.2,
+                backgroundColor: "rgba(255, 255, 255, 0.85)",
+                padding: "0 2px",
+                borderRadius: 2,
+              }}
+            >
+              {data.value}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }

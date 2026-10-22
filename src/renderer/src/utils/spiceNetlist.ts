@@ -25,6 +25,7 @@ export type ValidationErrorCode =
   | "DANGLING_NET"
   | "INVALID_VALUE"
   | "EMPTY_CIRCUIT"
+  | "NO_AC_SOURCE"
 
 export interface NetlistValidationError {
   severity: ValidationErrorSeverity
@@ -262,8 +263,10 @@ export function formatSpiceValue(val?: string, compType?: SchematicComponentType
     clean = clean.replace(/f$/i, "") // 10uF -> 10u
   } else if (compType === "inductor") {
     clean = clean.replace(/h$/i, "") // 10mH -> 10m
-  } else if (compType === "voltage-source" || compType === "current-source") {
-    clean = clean.replace(/v$/i, "") // 5V -> 5
+  } else if (compType === "voltage-source") {
+    clean = clean.replace(/v(\s+ac\b)/i, "$1").replace(/v$/i, "") // 5V -> 5, 5V AC 1 -> 5 AC 1
+  } else if (compType === "current-source") {
+    clean = clean.replace(/a(\s+ac\b)/i, "$1").replace(/a$/i, "") // 1A -> 1, 1A AC 1 -> 1 AC 1
   }
 
   // Handle Meg vs M
@@ -459,6 +462,17 @@ export function generateSpiceNetlist(
       const coord = getExactPinCoord(node, pin.id)
       allPoints.push({ key: pKey, x: coord.x, y: coord.y, node, pin })
     })
+
+    // Internally tie both terminals of a port together so wiring to either side connects to the same net
+    if (
+      type === "port-in" ||
+      type === "port-out" ||
+      type === "port-bi"
+    ) {
+      if (pins.some((p) => p.id === "pin1") && pins.some((p) => p.id === "pin2")) {
+        ds.union(`${node.id}:pin1`, `${node.id}:pin2`)
+      }
+    }
   })
 
   // Register all junction nodes
@@ -506,10 +520,10 @@ export function generateSpiceNetlist(
       edge.data?.waypoints && edge.data.waypoints.length > 0
         ? edge.data.waypoints
         : computeAvoidanceWaypoints(
-            srcCoord,
-            tgtCoord,
-            getComponentObstacles(compNodes, [edge.source, edge.target]),
-          )
+          srcCoord,
+          tgtCoord,
+          getComponentObstacles(compNodes, [edge.source, edge.target]),
+        )
 
     // Compute exact orthogonal segments of the wire
     const [, , , , segments] = getOrthogonalWirePath(
@@ -524,7 +538,7 @@ export function generateSpiceNetlist(
       effectiveWaypoints.length > 0 ? effectiveWaypoints : undefined,
     )
 
-    // Check if any junction dots (solder dots) lie along this wire's segments (within 6px)
+    // Check if any junction dots or unattached port/net-label pins lie along this wire's segments (within 6px)
     allPoints.forEach((pt) => {
       if (pt.key.startsWith("junc:")) {
         for (const seg of segments) {
@@ -532,6 +546,28 @@ export function generateSpiceNetlist(
           if (d <= 6) {
             if (resolvedSrc) {
               ds.union(resolvedSrc.key, pt.key)
+            } else if (resolvedTgt) {
+              ds.union(resolvedTgt.key, pt.key)
+            }
+            break
+          }
+        }
+      } else if (
+        (pt.node?.data?.type === "net-label" ||
+          pt.node?.data?.type === "port-in" ||
+          pt.node?.data?.type === "port-out" ||
+          pt.node?.data?.type === "port-bi") &&
+        !connectedPinKeys.has(pt.key)
+      ) {
+        for (const seg of segments) {
+          const d = distToSegment(pt.x, pt.y, seg.x1, seg.y1, seg.x2, seg.y2)
+          if (d <= 6) {
+            if (resolvedSrc) {
+              ds.union(resolvedSrc.key, pt.key)
+              connectedPinKeys.add(pt.key)
+            } else if (resolvedTgt) {
+              ds.union(resolvedTgt.key, pt.key)
+              connectedPinKeys.add(pt.key)
             }
             break
           }
@@ -540,10 +576,16 @@ export function generateSpiceNetlist(
     })
   })
 
-  // 4. Connect net-labels sharing the identical label string (case-insensitive)
+  // 4. Connect net-labels and ports sharing the identical label string (case-insensitive)
   const netLabelsByText = new Map<string, string[]>()
   compNodes
-    .filter((n) => n.data.type === "net-label")
+    .filter(
+      (n) =>
+        n.data.type === "net-label" ||
+        n.data.type === "port-in" ||
+        n.data.type === "port-out" ||
+        n.data.type === "port-bi",
+    )
     .forEach((n) => {
       const rawText = (n.data.value || n.data.label || "").trim()
       const normalized = rawText.toUpperCase()
@@ -568,7 +610,21 @@ export function generateSpiceNetlist(
   const rootNetNameMap = new Map<string, string>()
 
   // 1. Identify Ground Nets (Node 0)
-  const groundNodes = compNodes.filter((n) => n.data.type === "ground")
+  const isGroundTypeOrLabel = (n: Node<SchematicNodeData>): boolean => {
+    if (n.data.type === "ground") return true
+    if (
+      n.data.type === "net-label" ||
+      n.data.type === "port-in" ||
+      n.data.type === "port-out" ||
+      n.data.type === "port-bi"
+    ) {
+      const clean = (n.data.value || n.data.label || "").trim().toUpperCase()
+      return clean === "0" || clean === "GND" || clean === "GROUND"
+    }
+    return false
+  }
+
+  const groundNodes = compNodes.filter(isGroundTypeOrLabel)
   const groundRoots = new Set<string>()
 
   groundNodes.forEach((gNode) => {
@@ -596,9 +652,15 @@ export function generateSpiceNetlist(
     }
   })
 
-  // 3. Identify Net Labels
+  // 3. Identify Net Labels & Ports
   compNodes
-    .filter((n) => n.data.type === "net-label")
+    .filter(
+      (n) =>
+        n.data.type === "net-label" ||
+        n.data.type === "port-in" ||
+        n.data.type === "port-out" ||
+        n.data.type === "port-bi",
+    )
     .forEach((n) => {
       const root = ds.find(`${n.id}:pin1`)
       if (!rootNetNameMap.has(root)) {
@@ -636,7 +698,8 @@ export function generateSpiceNetlist(
     if (
       node.data.type === "ground" ||
       node.data.type === "vcc" ||
-      node.data.type === "net-label"
+      node.data.type === "spice-directive" ||
+      node.data.type === "schematic-text"
     ) {
       return
     }
@@ -691,6 +754,13 @@ export function generateSpiceNetlist(
     })
   })
 
+  // Register junction nodes in nodePinNetMap
+  junctionNodes.forEach((jNode) => {
+    const root = ds.find(`junc:${jNode.id}`)
+    const netName = rootNetNameMap.get(root) || "0"
+    nodePinNetMap[jNode.id] = { pin1: netName }
+  })
+
   // ------------------------------------------------------------
   // STEP 3: CONNECTIVITY VALIDATION RULES (ERRORS VS WARNINGS)
   // ------------------------------------------------------------
@@ -699,7 +769,7 @@ export function generateSpiceNetlist(
   const isGroundConnected =
     groundNodes.length > 0 &&
     Array.from(pinKeyMap.entries()).some(([pKey, { node }]) => {
-      if (node.data.type === "ground") return false
+      if (isGroundTypeOrLabel(node)) return false
       return ds.find(pKey) === ds.find(`${groundNodes[0].id}:pin1`)
     })
 
@@ -738,7 +808,18 @@ export function generateSpiceNetlist(
   const isolatedNodeIds = new Set<string>()
   compNodes.forEach((node) => {
     const type = node.data.type as SchematicComponentType
-    if (type === "ground" || type === "vcc" || type === "net-label") return
+    if (
+      type === "ground" ||
+      type === "vcc" ||
+      type === "net-label" ||
+      type === "port-in" ||
+      type === "port-out" ||
+      type === "port-bi" ||
+      type === "spice-directive" ||
+      type === "schematic-text"
+    ) {
+      return
+    }
 
     const pins = getComponentPins(type)
     const disconnectedPins: PinDef[] = []
@@ -836,13 +917,39 @@ export function generateSpiceNetlist(
   })
 
   // Check 6: Dangling Nets (WARNING only)
+  // Identify nets that have external ports or net labels attached
+  const netsWithPortOrLabel = new Set<string>()
+  compNodes
+    .filter(
+      (n) =>
+        n.data.type === "net-label" ||
+        n.data.type === "port-in" ||
+        n.data.type === "port-out" ||
+        n.data.type === "port-bi",
+    )
+    .forEach((n) => {
+      const netName = getPinNet(n.id, "pin1")
+      if (netName) netsWithPortOrLabel.add(netName)
+    })
+
   Object.entries(netMap).forEach(([netName, pins]) => {
-    if (pins.length === 1 && netName !== "0" && netName !== "VCC") {
+    // If net has an external port or net label attached, it is an intentional port/named terminal, not dangling!
+    if (netsWithPortOrLabel.has(netName)) return
+
+    const nonPortPins = pins.filter(
+      (p) =>
+        p.componentType !== "port-in" &&
+        p.componentType !== "port-out" &&
+        p.componentType !== "port-bi" &&
+        p.componentType !== "net-label",
+    )
+
+    if (nonPortPins.length === 1 && netName !== "0" && netName !== "VCC") {
       warnings.push({
         severity: "warning",
         code: "DANGLING_NET",
         netName,
-        message: `Dangling Net: Net '${netName}' is connected to only 1 component pin (${pins[0].componentLabel}:${pins[0].pinName}).`,
+        message: `Dangling Net: Net '${netName}' is connected to only 1 component pin (${nonPortPins[0].componentLabel}:${nonPortPins[0].pinName}).`,
         suggestion: "Complete the circuit branch or remove the dangling wire.",
       })
     }
@@ -871,6 +978,35 @@ export function generateSpiceNetlist(
       }
     }
   })
+
+  // Check 8: Missing AC Excitation in AC Analysis
+  const hasSchematicAcDirective = compNodes.some((n) => {
+    if (n.data.type !== "spice-directive") return false
+    const text = (n.data.value || n.data.label || "").trim()
+    return /^\s*\.ac\b/im.test(text)
+  })
+  const isAc =
+    analysisConfig?.type === "ac" ||
+    (analysisConfig?.command !== undefined && /^\s*\.ac\b/i.test(analysisConfig.command)) ||
+    hasSchematicAcDirective
+
+  const sourceNodes = compNodes.filter(
+    (n) =>
+      n.data.type === "voltage-source" ||
+      n.data.type === "current-source" ||
+      n.data.type === "ac-source" ||
+      n.data.type === "pulse-source" ||
+      n.data.type === "behavioral-source",
+  )
+
+  if (isAc && sourceNodes.length === 0) {
+    errors.push({
+      severity: "error",
+      code: "NO_AC_SOURCE",
+      message: "Missing AC Excitation: AC Frequency Analysis (.ac) requires a source (AC Voltage Source or Voltage Source) to excite the circuit.",
+      suggestion: "Add an AC Voltage Source (shortcut: A) or a Voltage Source connected to your circuit input.",
+    })
+  }
 
   // Build node-to-ERC-issues index for visual markers on canvas
   const nodeErcIssues: Record<string, Record<string, NetlistValidationError>> = {}
@@ -904,23 +1040,40 @@ export function generateSpiceNetlist(
   netlistLines.push(``)
 
   // Section 1: Power & Sources
-  const sourceNodes = compNodes.filter(
-    (n) =>
-      n.data.type === "voltage-source" ||
-      n.data.type === "current-source" ||
-      n.data.type === "ac-source" ||
-      n.data.type === "pulse-source" ||
-      n.data.type === "behavioral-source",
-  )
-
   if (sourceNodes.length > 0) {
     netlistLines.push(`* --- Power Sources ---`)
-    sourceNodes.forEach((node) => {
+
+    const hasExplicitAc = sourceNodes.some((n) => {
+      const v = (n.data.value || "").trim()
+      return /\bac\b/i.test(v) || n.data.type === "ac-source"
+    })
+
+    sourceNodes.forEach((node, idx) => {
       const type = node.data.type as SchematicComponentType
       const label = node.data.label || node.id
       const nPos = getPinNet(node.id, "pin1")
       const nNeg = getPinNet(node.id, "pin2")
-      const val = formatSpiceValue(node.data.value, type) || "5"
+      let val = formatSpiceValue(node.data.value, type) || "5"
+
+      // Handle AC excitation for AC analysis or ac-source component
+      if (type === "ac-source") {
+        if (!/\bac\b/i.test(val)) {
+          let acMag = "1"
+          const sineMatch = val.match(/sine\s*\(\s*([^\s,]+)\s+([^\s,]+)/i)
+          if (sineMatch) {
+            acMag = sineMatch[2]
+          } else if (/^[\d.]+[a-zA-Z]*$/.test(val)) {
+            acMag = val
+          }
+          val = `${val} AC ${acMag}`
+        }
+      } else if (isAc && !hasExplicitAc && idx === 0 && (type === "voltage-source" || type === "current-source")) {
+        // If AC analysis is active and user provided standard voltage/current source without explicit AC stimulus,
+        // automatically inject AC 1 so the small-signal frequency response can be computed across all circuit nodes
+        if (!/\bac\b/i.test(val)) {
+          val = `${val} AC 1`
+        }
+      }
 
       if (type === "voltage-source") {
         const prefix = label.startsWith("V") ? label : `V${label}`
@@ -1166,12 +1319,90 @@ export function generateSpiceNetlist(
     netlistLines.push(``)
   }
 
+  // Section 6.5: Schematic SPICE Directives (.tran, .ac, .dc, .op, .param, .include, etc.)
+  const schematicDirectives = compNodes.filter((n) => n.data.type === "spice-directive")
+  let schematicAnalysisOverride: string | null = null
+
+  if (schematicDirectives.length > 0) {
+    netlistLines.push(`* --- Schematic SPICE Directives ---`)
+    schematicDirectives.forEach((dNode) => {
+      const text = (dNode.data.value || dNode.data.label || "").trim()
+      if (!text) return
+      const lines = text.split("\n")
+      lines.forEach((line) => {
+        const trimmed = line.trim()
+        if (!trimmed) return
+        if (trimmed.startsWith("*") || trimmed.startsWith(";")) {
+          netlistLines.push(`* ${trimmed.replace(/^[;*]\s*/, "")}`)
+          return
+        }
+        const lower = trimmed.toLowerCase()
+        if (
+          lower.startsWith(".tran ") ||
+          lower.startsWith(".ac ") ||
+          lower.startsWith(".dc ") ||
+          lower === ".op" ||
+          lower.startsWith(".op ")
+        ) {
+          schematicAnalysisOverride = trimmed
+        } else {
+          netlistLines.push(trimmed)
+        }
+      })
+    })
+    netlistLines.push(``)
+  }
+
+  // Section 6.8: Output Vector Directives (Save currents for LTspice-like probing)
+  netlistLines.push(`* --- Output Vector Directives ---`)
+  netlistLines.push(`.options savecurrents`)
+  const saveVectors: string[] = ["all"]
+  if (!isAc) {
+    compNodes.forEach((node) => {
+      const type = node.data.type as SchematicComponentType
+      const label = node.data.label || node.id
+      if (isolatedNodeIds.has(node.id)) return
+      if (type === "resistor") {
+        const p = (label.startsWith("R") || label.startsWith("r") ? label : `R${label}`).toLowerCase()
+        saveVectors.push(`@${p}[i]`, `@${p}[p]`)
+      } else if (type === "capacitor") {
+        const p = (label.startsWith("C") || label.startsWith("c") ? label : `C${label}`).toLowerCase()
+        saveVectors.push(`@${p}[i]`)
+      } else if (type === "inductor") {
+        const p = (label.startsWith("L") || label.startsWith("l") ? label : `L${label}`).toLowerCase()
+        saveVectors.push(`@${p}[i]`)
+      } else if (type === "diode" || type === "zener-diode" || type === "schottky-diode" || type === "led") {
+        const p = (label.startsWith("D") || label.startsWith("d") ? label : `D${label}`).toLowerCase()
+        saveVectors.push(`@${p}[id]`, `@${p}[vd]`)
+      } else if (type === "npn-bjt" || type === "pnp-bjt") {
+        const p = (label.startsWith("Q") || label.startsWith("q") ? label : `Q${label}`).toLowerCase()
+        saveVectors.push(`@${p}[ib]`, `@${p}[ic]`, `@${p}[ie]`, `@${p}[vbe]`, `@${p}[vce]`, `@${p}[gm]`)
+      } else if (type === "nmos" || type === "pmos") {
+        const p = (label.startsWith("M") || label.startsWith("m") ? label : `M${label}`).toLowerCase()
+        saveVectors.push(`@${p}[id]`, `@${p}[vgs]`, `@${p}[vds]`, `@${p}[gm]`, `@${p}[gds]`)
+      }
+    })
+  }
+  netlistLines.push(`.save ${saveVectors.join(" ")}`)
+  netlistLines.push(``)
+
   // Section 7: Simulation Directive (.tran, .ac, .dc, .op)
   netlistLines.push(`* --- Simulation Analysis Command ---`)
-  if (analysisConfig?.command) {
-    netlistLines.push(analysisConfig.command)
+  const normalizeAnalysisCmd = (rawCmd: string): string => {
+    const trimmed = rawCmd.trim()
+    const tranMatch = trimmed.match(/^\.tran\s+([^\s]+)$/i)
+    if (tranMatch) {
+      return `.tran 10u ${tranMatch[1]}`
+    }
+    return trimmed
+  }
+
+  if (schematicAnalysisOverride) {
+    netlistLines.push(normalizeAnalysisCmd(schematicAnalysisOverride))
+  } else if (analysisConfig?.command) {
+    netlistLines.push(normalizeAnalysisCmd(analysisConfig.command))
   } else {
-    netlistLines.push(`.tran 10m`)
+    netlistLines.push(`.tran 10u 10m`)
   }
   netlistLines.push(``)
 
@@ -1187,7 +1418,15 @@ export function generateSpiceNetlist(
     warnings,
     stats: {
       componentCount: compNodes.filter(
-        (n) => n.data.type !== "ground" && n.data.type !== "vcc" && n.data.type !== "net-label",
+        (n) =>
+          n.data.type !== "ground" &&
+          n.data.type !== "vcc" &&
+          n.data.type !== "net-label" &&
+          n.data.type !== "port-in" &&
+          n.data.type !== "port-out" &&
+          n.data.type !== "port-bi" &&
+          n.data.type !== "spice-directive" &&
+          n.data.type !== "schematic-text",
       ).length,
       netCount: Object.keys(netMap).length,
       wireCount: edges.length,

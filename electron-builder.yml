@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: .
+appId: com.asap.app
+productName: ASAP
 directories:
   buildResources: build
 files:
@@ -15,7 +15,7 @@ extraResources:
   - from: simulation/ngspice
     to: simulation/ngspice
 win:
-  executableName: .
+  executableName: ASAP
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

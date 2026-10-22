@@ -2,12 +2,12 @@ import { useViewport } from "reactflow"
 import {
   renderSymbol,
   getComponentPins,
+  getRotatedPinPos,
   type SchematicComponentType,
 } from "./SchematicNode"
 import {
   type BoundingBox,
-  computeAvoidanceWaypoints,
-  doesPathIntersectObstacles,
+  buildOrthogonalDraftPoints,
 } from "../../utils/wireRouter"
 
 export interface WireDraft {
@@ -20,10 +20,11 @@ export interface WireDraft {
 export interface PlacingComponent {
   type: SchematicComponentType | "junction"
   rotation: number
+  customValue?: string
 }
 
 interface CadCrosshairLayerProps {
-  activeTool: "select" | "wire" | "junction"
+  activeTool: "select" | "wire" | "junction" | "delete" | "probe"
   cursorGridPos: { x: number; y: number }
   isHoveringCanvas: boolean
   wireDraft: WireDraft
@@ -42,7 +43,9 @@ export default function CadCrosshairLayer({
   const { x: vpX, y: vpY, zoom } = useViewport()
 
   const isPlacing = Boolean(placingComponent)
-  if ((activeTool !== "wire" && !isPlacing) || !isHoveringCanvas) {
+  const isDeleteMode = activeTool === "delete"
+  const isProbeMode = activeTool === "probe"
+  if ((!isDeleteMode && activeTool !== "wire" && !isPlacing) || !isHoveringCanvas || isProbeMode) {
     return null
   }
 
@@ -62,41 +65,12 @@ export default function CadCrosshairLayer({
   const committedPointsScreen: { sx: number; sy: number }[] = []
 
   if (wireDraft.isDrawing && wireDraft.points.length > 0) {
-    const rawPts = [...wireDraft.points, cursorGridPos]
-    const cleanPts: { x: number; y: number }[] = [rawPts[0]]
-    let curOri = wireDraft.bendOrientation
-
-    for (let i = 1; i < rawPts.length; i++) {
-      const prev = cleanPts[cleanPts.length - 1]
-      const cur = rawPts[i]
-
-      if (prev.x === cur.x && prev.y === cur.y) continue
-
-      if (prev.x === cur.x || prev.y === cur.y) {
-        cleanPts.push(cur)
-        curOri = prev.x === cur.x ? "v" : "h"
-      } else {
-        if (curOri === "h") {
-          cleanPts.push({ x: cur.x, y: prev.y })
-          cleanPts.push(cur)
-          curOri = "v"
-        } else {
-          cleanPts.push({ x: prev.x, y: cur.y })
-          cleanPts.push(cur)
-          curOri = "h"
-        }
-      }
-    }
-
-    let displayPts = cleanPts
-    if (obstacles.length > 0 && doesPathIntersectObstacles(cleanPts, obstacles)) {
-      if (wireDraft.points.length === 1) {
-        const waypoints = computeAvoidanceWaypoints(wireDraft.points[0], cursorGridPos, obstacles)
-        if (waypoints.length > 0) {
-          displayPts = [wireDraft.points[0], ...waypoints, cursorGridPos]
-        }
-      }
-    }
+    const displayPts = buildOrthogonalDraftPoints(
+      wireDraft.points,
+      cursorGridPos,
+      wireDraft.bendOrientation,
+      obstacles,
+    )
 
     for (let i = 0; i < displayPts.length; i++) {
       const p = toScreen(displayPts[i].x, displayPts[i].y)
@@ -123,42 +97,93 @@ export default function CadCrosshairLayer({
         overflow: "visible",
       }}
     >
-      {/* 1. Full Canvas Crosshair Guides (Subtle LTspice Style) */}
-      <line
-        x1={0}
-        y1={curScreenY}
-        x2="100%"
-        y2={curScreenY}
-        stroke="rgba(100, 116, 139, 0.45)"
-        strokeWidth={1}
-        strokeDasharray="4 4"
-      />
-      <line
-        x1={curScreenX}
-        y1={0}
-        x2={curScreenX}
-        y2="100%"
-        stroke="rgba(100, 116, 139, 0.45)"
-        strokeWidth={1}
-        strokeDasharray="4 4"
-      />
+      {/* 1. Full Canvas Crosshair Guides (Subtle LTspice Style) - hidden in delete mode */}
+      {!isDeleteMode && (
+        <>
+          <line
+            x1={0}
+            y1={curScreenY}
+            x2="100%"
+            y2={curScreenY}
+            stroke="rgba(100, 116, 139, 0.45)"
+            strokeWidth={1}
+            strokeDasharray="4 4"
+          />
+          <line
+            x1={curScreenX}
+            y1={0}
+            x2={curScreenX}
+            y2="100%"
+            stroke="rgba(100, 116, 139, 0.45)"
+            strokeWidth={1}
+            strokeDasharray="4 4"
+          />
+        </>
+      )}
 
-      {/* 2. Grid Snapped Target Marker */}
-      <circle
-        cx={curScreenX}
-        cy={curScreenY}
-        r={5}
-        fill="none"
-        stroke="#2563eb"
-        strokeWidth={1.5}
-        opacity={0.8}
-      />
-      <circle
-        cx={curScreenX}
-        cy={curScreenY}
-        r={1.8}
-        fill="#2563eb"
-      />
+      {/* 2. Grid Snapped Target Marker / Delete Cross */}
+      {isDeleteMode ? (
+        <g transform={`translate(${curScreenX}, ${curScreenY})`}>
+          {/* Subtle outline for visibility against dark backgrounds */}
+          <line
+            x1={-7}
+            y1={-7}
+            x2={7}
+            y2={7}
+            stroke="#ffffff"
+            strokeWidth={4}
+            strokeLinecap="round"
+            opacity={0.8}
+          />
+          <line
+            x1={-7}
+            y1={7}
+            x2={7}
+            y2={-7}
+            stroke="#ffffff"
+            strokeWidth={4}
+            strokeLinecap="round"
+            opacity={0.8}
+          />
+          {/* Sharp red delete cross */}
+          <line
+            x1={-7}
+            y1={-7}
+            x2={7}
+            y2={7}
+            stroke="#ef4444"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+          />
+          <line
+            x1={-7}
+            y1={7}
+            x2={7}
+            y2={-7}
+            stroke="#ef4444"
+            strokeWidth={2.4}
+            strokeLinecap="round"
+          />
+        </g>
+      ) : (
+        <>
+          <circle
+            cx={curScreenX}
+            cy={curScreenY}
+            r={5}
+            fill="none"
+            stroke="#2563eb"
+            strokeWidth={1.5}
+            opacity={0.8}
+          />
+          <circle
+            cx={curScreenX}
+            cy={curScreenY}
+            r={1.8}
+            fill="#2563eb"
+          />
+        </>
+      )}
 
       {/* 3. Ghost Component Preview During Placement */}
       {isPlacing && placingComponent && (
@@ -199,37 +224,59 @@ export default function CadCrosshairLayer({
             transform={`translate(${curScreenX}, ${curScreenY}) scale(${zoom})`}
             pointerEvents="none"
           >
-            <g transform={`rotate(${placingComponent.rotation})`}>
-              <g transform="translate(-60, -40)">
-                {/* Blueprint highlight box */}
-                <rect
-                  x={0}
-                  y={0}
-                  width={120}
-                  height={80}
-                  rx={4}
-                  fill="rgba(37, 99, 235, 0.1)"
-                  stroke="#2563eb"
-                  strokeWidth={1.6}
-                  strokeDasharray="4 3"
-                />
+            <g
+              transform={(() => {
+                const isNetOrPort =
+                  placingComponent.type === "port-in" ||
+                  placingComponent.type === "port-out" ||
+                  placingComponent.type === "port-bi" ||
+                  placingComponent.type === "net-label"
+                if (isNetOrPort) {
+                  const pins = getComponentPins(placingComponent.type as SchematicComponentType)
+                  const targetPin = pins[0] || { x: 0, y: 40 }
+                  const rotPin = getRotatedPinPos(targetPin, placingComponent.rotation)
+                  return `translate(${-rotPin.x}, ${-rotPin.y}) rotate(${placingComponent.rotation}, 60, 40)`
+                }
+                return `translate(-60, -40) rotate(${placingComponent.rotation}, 60, 40)`
+              })()}
+            >
+                {/* Blueprint highlight box (hidden for plain net labels and ports) */}
+                {placingComponent.type !== "net-label" &&
+                  placingComponent.type !== "port-in" &&
+                  placingComponent.type !== "port-out" &&
+                  placingComponent.type !== "port-bi" && (
+                    <rect
+                      x={0}
+                      y={0}
+                      width={120}
+                      height={80}
+                      rx={4}
+                      fill="rgba(37, 99, 235, 0.1)"
+                      stroke="#2563eb"
+                      strokeWidth={1.6}
+                      strokeDasharray="4 3"
+                    />
+                  )}
                 {/* Component vector graphic */}
-                <g opacity={0.85}>
-                  {renderSymbol(placingComponent.type as SchematicComponentType)}
+                <g opacity={0.9}>
+                  {renderSymbol(
+                    placingComponent.type as SchematicComponentType,
+                    placingComponent.customValue,
+                  )}
                 </g>
                 {/* Connection lead terminals */}
-                {getComponentPins(placingComponent.type as SchematicComponentType).map((pin) => (
-                  <circle
-                    key={pin.id}
-                    cx={pin.x}
-                    cy={pin.y}
-                    r={4}
-                    fill="#2563eb"
-                    stroke="#ffffff"
-                    strokeWidth={1.5}
-                  />
-                ))}
-              </g>
+                {placingComponent.type !== "net-label" &&
+                  getComponentPins(placingComponent.type as SchematicComponentType).map((pin) => (
+                    <circle
+                      key={pin.id}
+                      cx={pin.x}
+                      cy={pin.y}
+                      r={4}
+                      fill="#2563eb"
+                      stroke="#ffffff"
+                      strokeWidth={1.5}
+                    />
+                  ))}
             </g>
             {/* Instruction badge below */}
             <g transform="translate(0, 56)">

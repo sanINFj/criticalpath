@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Zap, TrendingUp, BarChart2, Maximize2, X, Crosshair } from "lucide-react"
 import LanguageSwitcher from "./components/LanguageSwitcher"
 import {
   addEdge,
@@ -41,6 +42,7 @@ import CadCrosshairLayer, {
   type PlacingComponent,
 } from "./components/schematic/CadCrosshairLayer"
 import {
+  buildOrthogonalDraftPoints,
   computeAvoidanceWaypoints,
   getComponentObstacles,
   getRoutedEdgeWaypoints,
@@ -60,8 +62,28 @@ import SpiceNetlistModal from "./components/SpiceNetlistModal"
 import WaveformViewer from "./components/WaveformViewer"
 import DiagnosticsPanel from "./components/DiagnosticsPanel"
 import ValidationBlockedModal from "./components/ValidationBlockedModal"
+import OperatingPointModal from "./components/OperatingPointModal"
+import AcAnalysisModal from "./components/AcAnalysisModal"
 import ComponentPropertiesModal from "./components/ComponentPropertiesModal"
+import NetNameModal from "./components/schematic/NetNameModal"
 import AutomaticMeasurementsPanel from "./components/AutomaticMeasurementsPanel"
+import CircuitTabBar from "./components/schematic/CircuitTabBar"
+import { AiCircuitAssistant } from "./components/ai/AiCircuitAssistant"
+import { AiCopilotLogo } from "./components/ai/AiCopilotLogo"
+import asapLogo from "./assets/asap_logo.png"
+import {
+  type CircuitTab,
+  type RecentFile,
+  createDefaultCircuitTab,
+  serializeCircuitTab,
+  deserializeCircuitTab,
+  getRecentFiles,
+  addRecentFile,
+  clearRecentFiles,
+  getLastSavedDir,
+  setLastSavedDir,
+  getFileNameFromPath,
+} from "./utils/circuitProject"
 import {
   generateSpiceNetlist,
   type NetlistGenerationResult,
@@ -164,6 +186,23 @@ function distToSegment(
   return { dist: Math.hypot(px - nearestX, py - nearestY), nearestX, nearestY }
 }
 
+function getNodeHandlePosition(node: Node, handleId?: string | null): Position {
+  if (node.type === "junction") {
+    if (handleId === "top") return Position.Top
+    if (handleId === "bottom") return Position.Bottom
+    if (handleId === "left") return Position.Left
+    if (handleId === "right") return Position.Right
+    return Position.Left
+  }
+
+  const compType = (node.data?.type ?? "generic") as SchematicComponentType
+  const pins = getComponentPins(compType)
+  const targetPin = pins.find((p) => p.id === handleId) || pins[0]
+  if (!targetPin) return Position.Left
+
+  return getRotatedPinPos(targetPin, node.data?.rotation ?? 0).handlePos
+}
+
 function getEdgeSegmentsAndPoints(
   edge: Edge,
   nodes: Node<SchematicNodeData>[],
@@ -174,6 +213,8 @@ function getEdgeSegmentsAndPoints(
 
   const p1 = getPinCoord(srcNode, edge.sourceHandle)
   const p2 = getPinCoord(tgtNode, edge.targetHandle)
+  const srcPos = getNodeHandlePosition(srcNode, edge.sourceHandle)
+  const tgtPos = getNodeHandlePosition(tgtNode, edge.targetHandle)
   const bendMode: WireBendMode = edge.data?.bendMode ?? "auto"
   const offset = edge.data?.offset
   const waypoints =
@@ -186,8 +227,8 @@ function getEdgeSegmentsAndPoints(
     p1.y,
     p2.x,
     p2.y,
-    edge.sourceHandle === "pin1" || edge.sourceHandle === "left" ? Position.Left : Position.Right,
-    edge.targetHandle === "pin2" || edge.targetHandle === "right" ? Position.Right : Position.Left,
+    srcPos,
+    tgtPos,
     bendMode,
     offset,
     waypoints,
@@ -226,15 +267,100 @@ function findEdgeAtCoord(
   return null
 }
 
+function getMagneticSnapCoord(
+  flowPos: { x: number; y: number },
+  nodes: Node<SchematicNodeData>[],
+  edges: Edge[],
+): { x: number; y: number } {
+  const pinRadius = 14
+  const edgeRadius = 10
+
+  // 1. Check pins & junctions
+  let bestPinDist = pinRadius
+  let bestPinCoord: { x: number; y: number } | null = null
+
+  for (const node of nodes) {
+    if (node.type === "junction") {
+      const jx = Math.round((node.position.x + 4) / 20) * 20
+      const jy = Math.round((node.position.y + 4) / 20) * 20
+      const d = Math.hypot(flowPos.x - jx, flowPos.y - jy)
+      if (d < bestPinDist) {
+        bestPinDist = d
+        bestPinCoord = { x: jx, y: jy }
+      }
+    } else {
+      const compType = (node.data?.type ?? "generic") as SchematicComponentType
+      const pins = getComponentPins(compType)
+      for (const pin of pins) {
+        const pCoord = getPinCoord(node, pin.id)
+        const d = Math.hypot(flowPos.x - pCoord.x, flowPos.y - pCoord.y)
+        if (d < bestPinDist) {
+          bestPinDist = d
+          bestPinCoord = { x: pCoord.x, y: pCoord.y }
+        }
+      }
+    }
+  }
+
+  if (bestPinCoord) {
+    return bestPinCoord
+  }
+
+  // 2. Check wire edges
+  let bestEdgeDist = edgeRadius
+  let bestEdgeCoord: { x: number; y: number } | null = null
+
+  for (const edge of edges) {
+    const edgeData = getEdgeSegmentsAndPoints(edge, nodes)
+    if (!edgeData) continue
+    for (const seg of edgeData.segments) {
+      const res = distToSegment(flowPos.x, flowPos.y, seg.x1, seg.y1, seg.x2, seg.y2)
+      if (res.dist < bestEdgeDist) {
+        bestEdgeDist = res.dist
+        if (seg.type === "h") {
+          const snappedX = Math.round(res.nearestX / 20) * 20
+          const minX = Math.min(seg.x1, seg.x2)
+          const maxX = Math.max(seg.x1, seg.x2)
+          bestEdgeCoord = {
+            x: Math.max(minX, Math.min(maxX, snappedX)),
+            y: seg.y1,
+          }
+        } else {
+          const snappedY = Math.round(res.nearestY / 20) * 20
+          const minY = Math.min(seg.y1, seg.y2)
+          const maxY = Math.max(seg.y1, seg.y2)
+          bestEdgeCoord = {
+            x: seg.x1,
+            y: Math.max(minY, Math.min(maxY, snappedY)),
+          }
+        }
+      }
+    }
+  }
+
+  if (bestEdgeCoord) {
+    return bestEdgeCoord
+  }
+
+  // 3. 20px CAD grid
+  return {
+    x: Math.round(flowPos.x / 20) * 20,
+    y: Math.round(flowPos.y / 20) * 20,
+  }
+}
+
 function splitEdgeAtPoint(
   targetEdge: Edge,
   nodes: Node<SchematicNodeData>[],
   junctionId: string,
   splitPoint: { x: number; y: number },
+  customHandle?: string,
 ): { edge1: Edge; edge2: Edge } {
   const result = getEdgeSegmentsAndPoints(targetEdge, nodes)
   let w1: { x: number; y: number }[] | undefined = undefined
   let w2: { x: number; y: number }[] | undefined = undefined
+  let targetHandle1 = "left"
+  let sourceHandle2 = "right"
 
   if (result && result.points.length >= 2) {
     const pts = result.points
@@ -257,6 +383,29 @@ function splitEdgeAtPoint(
     }
 
     if (segIdx >= 0) {
+      const pA = pts[segIdx]
+      const pB = pts[segIdx + 1]
+
+      if (pA.x === pB.x) {
+        // Vertical segment: arrive and depart along vertical axis without kinks
+        if (pA.y <= pB.y) {
+          targetHandle1 = "top"
+          sourceHandle2 = "bottom"
+        } else {
+          targetHandle1 = "bottom"
+          sourceHandle2 = "top"
+        }
+      } else {
+        // Horizontal segment: arrive and depart along horizontal axis without kinks
+        if (pA.x <= pB.x) {
+          targetHandle1 = "left"
+          sourceHandle2 = "right"
+        } else {
+          targetHandle1 = "right"
+          sourceHandle2 = "left"
+        }
+      }
+
       const beforePts = pts.slice(1, segIdx + 1)
       const afterPts = pts.slice(segIdx + 1, -1)
       if (beforePts.length > 0) w1 = beforePts
@@ -270,7 +419,7 @@ function splitEdgeAtPoint(
     source: targetEdge.source,
     sourceHandle: targetEdge.sourceHandle,
     target: junctionId,
-    targetHandle: "left",
+    targetHandle: customHandle ?? targetHandle1,
     type: "step",
     data: {
       bendMode: targetEdge.data?.bendMode ?? "auto",
@@ -281,7 +430,7 @@ function splitEdgeAtPoint(
   const edge2: Edge = {
     id: `e-${junctionId}-${targetEdge.target}-${ts}b`,
     source: junctionId,
-    sourceHandle: "right",
+    sourceHandle: customHandle ?? sourceHandle2,
     target: targetEdge.target,
     targetHandle: targetEdge.targetHandle,
     type: "step",
@@ -328,9 +477,13 @@ interface CompDef {
 const CompIcon = {
   resistor: (
     <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
-      <line x1="0" y1="8" x2="6" y2="8" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="6" y="3" width="16" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" />
-      <line x1="22" y1="8" x2="28" y2="8" stroke="currentColor" strokeWidth="1.5" />
+      <polyline
+        points="0,8 5,8 6.5,3 9.5,13 12.5,3 15.5,13 18.5,3 21.5,13 23,8 28,8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   ),
   capacitor: (
@@ -672,10 +825,49 @@ const CompIcon = {
     </svg>
   ),
   'net-label': (
+    <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+      <line x1="1" y1="13.5" x2="21" y2="13.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="5" cy="13.5" r="2.2" fill="currentColor" />
+      <text x="5" y="9" fontSize="10.5" fontWeight="bold" fill="currentColor" fontFamily="sans-serif">net</text>
+    </svg>
+  ),
+  port: (
+    <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+      <polygon points="2,1.5 14,1.5 19,8 14,14.5 2,14.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <line x1="19" y1="8" x2="21.5" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <text x="8.5" y="11" fontSize="7.5" fontWeight="bold" fill="currentColor" textAnchor="middle">IO</text>
+    </svg>
+  ),
+  'port-in': (
+    <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+      <polygon points="2,1.5 14,1.5 19,8 14,14.5 2,14.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <line x1="19" y1="8" x2="21.5" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <text x="8.5" y="11" fontSize="7.5" fontWeight="bold" fill="currentColor" textAnchor="middle">IN</text>
+    </svg>
+  ),
+  'port-out': (
+    <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+      <line x1="0.5" y1="8" x2="3" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <polygon points="3,1.5 15,1.5 20,8 15,14.5 3,14.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <text x="9.5" y="11" fontSize="6.5" fontWeight="bold" fill="currentColor" textAnchor="middle">OUT</text>
+    </svg>
+  ),
+  'port-bi': (
+    <svg width="22" height="16" viewBox="0 0 22 16" fill="none">
+      <polygon points="1,8 5,1.5 17,1.5 21,8 17,14.5 5,14.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <text x="11" y="11" fontSize="7.5" fontWeight="bold" fill="currentColor" textAnchor="middle">IO</text>
+    </svg>
+  ),
+  'spice-directive': (
     <svg width="28" height="16" viewBox="0 0 28 16" fill="none">
-      <line x1="0" y1="8" x2="6" y2="8" stroke="currentColor" strokeWidth="1.5" />
-      <polygon points="6,2 20,2 25,8 20,14 6,14" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <text x="13" y="11" fontSize="6.5" fontWeight="bold" fill="currentColor" textAnchor="middle">NET</text>
+      <rect x="2" y="2" width="24" height="12" rx="2" stroke="currentColor" strokeWidth="1.3" strokeDasharray="2,1.5" fill="none" />
+      <text x="14" y="11" fontSize="7" fontWeight="bold" fontFamily="monospace" fill="currentColor" textAnchor="middle">.op</text>
+    </svg>
+  ),
+  'schematic-text': (
+    <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
+      <rect x="1.5" y="1" width="17" height="14" rx="2" stroke="currentColor" strokeWidth="1.3" fill="none" />
+      <text x="10" y="11.5" fontSize="10.5" fontWeight="bold" fontFamily="serif" fill="currentColor" textAnchor="middle">Aa</text>
     </svg>
   ),
 } as const
@@ -743,7 +935,6 @@ const COMPONENT_CATALOG: CompDef[] = [
   // 7. Power
   { type: "ground", name: "Ground (0V)", icon: CompIcon.ground, hotkey: "G", category: "Power" },
   { type: "vcc", name: "VCC Power Rail", icon: CompIcon.vcc, hotkey: "P", category: "Power", defaultValue: "+5V" },
-  { type: "net-label", name: "Net Label", icon: CompIcon['net-label'], hotkey: "F4", category: "Power", defaultValue: "NET1" },
   { type: "generic", name: "Generic Component", icon: CompIcon.generic, hotkey: "U", category: "Power", defaultValue: "U1" },
 ]
 
@@ -776,13 +967,24 @@ function SchematicEditor() {
   const { screenToFlowPosition, project, zoomIn, zoomOut, fitView, getZoom, setCenter } =
     useReactFlow()
 
+  const [initialTab] = useState(() => createDefaultCircuitTab(1))
+  const [tabs, setTabs] = useState<CircuitTab[]>([initialTab])
+  const [activeTabId, setActiveTabId] = useState<string>(initialTab.id)
+  const draftCounterRef = useRef<number>(2)
+  const activeTabIdRef = useRef<string>(initialTab.id)
+  activeTabIdRef.current = activeTabId
+
+  const [recentFiles, setRecentFiles] = useState<RecentFile[]>(() => getRecentFiles())
+  const [showRecentMenu, setShowRecentMenu] = useState(false)
+
   const [nodes, setNodes] = useState<Node<SchematicNodeData>[]>(initialNodes)
   const [edges, setEdges] = useState<Edge[]>(initialEdges)
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
 
-  const [activeTool, setActiveTool] = useState<"select" | "wire" | "junction">("select")
+  const [activeTool, setActiveTool] = useState<"select" | "wire" | "junction" | "delete" | "probe">("select")
+  const [activeProbedSignal, setActiveProbedSignal] = useState<string | null>(null)
   const [placingComponent, setPlacingComponent] = useState<PlacingComponent | null>(null)
 
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -794,10 +996,32 @@ function SchematicEditor() {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false)
   const [propertiesModalNode, setPropertiesModalNode] = useState<Node<SchematicNodeData> | null>(null)
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false)
+  const [netNameModal, setNetNameModal] = useState<{
+    isOpen: boolean
+    type: "net-label" | "port-in" | "port-out" | "port-bi"
+    name?: string
+  }>({
+    isOpen: false,
+    type: "net-label",
+  })
+  const [isPortMenuOpen, setIsPortMenuOpen] = useState(false)
+  const portDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isPortMenuOpen) return undefined
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (portDropdownRef.current && !portDropdownRef.current.contains(e.target as unknown as globalThis.Node)) {
+        setIsPortMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleOutsideClick)
+    return () => document.removeEventListener("mousedown", handleOutsideClick)
+  }, [isPortMenuOpen])
 
   // Simulation & Analysis State
   const [isConfigAnalysisOpen, setIsConfigAnalysisOpen] = useState(false)
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+  const [isAiAssistantOpen, setIsAiAssistantOpen] = useState(false)
   const [analysisConfig, setAnalysisConfig] = useState<AnalysisConfig>(DEFAULT_ANALYSIS_CONFIG)
   const [solverSettings, setSolverSettings] = useState<SolverSettings>(DEFAULT_SOLVER_SETTINGS)
   const [simStatus, setSimStatus] = useState<"idle" | "running" | "paused">("idle")
@@ -808,8 +1032,10 @@ function SchematicEditor() {
   const [lastSimResult, setLastSimResult] = useState<SimulationRunResult | null>(null)
   const [isWaveformOpen, setIsWaveformOpen] = useState(false)
   const [waveformHeight, setWaveformHeight] = useState(320)
+  const [isWaveformMaximized, setIsWaveformMaximized] = useState(false)
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false)
   const [diagnosticsHeight, setDiagnosticsHeight] = useState(240)
+  const [isDiagnosticsMaximized, setIsDiagnosticsMaximized] = useState(false)
   const [isValidationBlockedModalOpen, setIsValidationBlockedModalOpen] = useState(false)
   const [isMeasurementsOpen, setIsMeasurementsOpen] = useState(false)
   const [measurementsHeight] = useState(300)
@@ -845,6 +1071,8 @@ function SchematicEditor() {
 
   // Netlist Inspection & Validation State
   const [isNetlistModalOpen, setIsNetlistModalOpen] = useState(false)
+  const [isOperatingPointModalOpen, setIsOperatingPointModalOpen] = useState(false)
+  const [isAcModalOpen, setIsAcModalOpen] = useState(false)
   const [netlistResult, setNetlistResult] = useState<NetlistGenerationResult | null>(null)
   const [netlistModalTab, setNetlistModalTab] = useState<"netlist" | "validation">("netlist")
 
@@ -852,6 +1080,304 @@ function SchematicEditor() {
   const liveConnectivity = useMemo<NetlistGenerationResult>(() => {
     return generateSpiceNetlist(nodes, edges, analysisConfig, solverSettings)
   }, [nodes, edges, analysisConfig, solverSettings])
+
+  // Available circuit nets & wire currents for waveform probing & calculations
+  const availableCircuitNets = useMemo(() => {
+    const list: Array<{
+      netName: string
+      signalName: string
+      displayName: string
+      pinCount: number
+      connectedComponents: string[]
+      isGround?: boolean
+      isCurrent?: boolean
+      wireLabel?: string
+      alternateSignal?: string
+      alternateLabel?: string
+    }> = []
+
+    const nets = liveConnectivity.nets || {}
+
+    // 1. Voltage nets
+    for (const [netName, connections] of Object.entries(nets)) {
+      const isGround = netName === "0"
+      const targetPattern = isGround ? "0" : `v(${netName.toLowerCase()})`
+      const matchedVar = lastSimResult?.variables.find(
+        (v) => v.name.toLowerCase() === targetPattern || v.name.toLowerCase() === netName.toLowerCase(),
+      )
+      const signalName = matchedVar ? matchedVar.name : targetPattern
+      const components = Array.from(
+        new Set(connections.map((c) => `${c.componentLabel || c.componentId}.${c.pinName || c.pinId}`)),
+      )
+
+      // Find first connected component that has a current signal
+      let companionCurrent: string | undefined
+      let companionCurrentLabel: string | undefined
+      for (const c of connections) {
+        const cLabel = (c.componentLabel || c.componentId).toLowerCase()
+        const curName = `i(${cLabel})`
+        if (lastSimResult?.variables.some((v) => v.name.toLowerCase() === curName)) {
+          companionCurrent = curName
+          companionCurrentLabel = `I(${c.componentLabel || c.componentId})`
+          break
+        }
+      }
+
+      list.push({
+        netName,
+        signalName,
+        displayName: isGround ? "0 (GND)" : `V(${netName.toUpperCase()})`,
+        pinCount: connections.length,
+        connectedComponents: components,
+        isGround,
+        alternateSignal: companionCurrent,
+        alternateLabel: companionCurrentLabel,
+      })
+    }
+
+    // 2. Wire & Device Currents
+    const currentVars = (lastSimResult?.variables || []).filter(
+      (v) => v.name.toLowerCase().startsWith("i(") && v.unit === "A",
+    )
+    const processedCurrents = new Set<string>()
+
+    currentVars.forEach((cVar) => {
+      const lower = cVar.name.toLowerCase()
+      processedCurrents.add(lower)
+      const devMatch = lower.match(/^i\(([a-z0-9_:]+)\)$/)
+      const devName = devMatch ? devMatch[1] : lower.replace(/^i\(|\)$/g, "")
+      const devBase = devName.split(":")[0]
+
+      const node = nodes.find(
+        (n) => (n.data?.label || n.id).toLowerCase() === devBase.toLowerCase(),
+      )
+      const compNets = node ? Object.values(liveConnectivity.nodePinNetMap[node.id] || {}) : []
+      const compType = node?.data?.type || "component"
+      const compVal = node?.data?.value ? ` (${node.data.value})` : ""
+
+      list.push({
+        netName: `I(${devName.toUpperCase()})`,
+        signalName: cVar.name,
+        displayName: `I(${devName.toUpperCase()})`,
+        pinCount: 2,
+        connectedComponents: [
+          `${devName.toUpperCase()}${compVal} - ${compType}`,
+          compNets.length > 0 ? `Nets: ${compNets.join(" ⇄ ")}` : "Wire branch",
+        ],
+        isCurrent: true,
+        wireLabel: `Wire current through ${devName.toUpperCase()}`,
+        alternateSignal: compNets.length > 0 && compNets[0] !== "0" ? `v(${compNets[0].toLowerCase()})` : undefined,
+        alternateLabel: compNets.length > 0 ? `V(${compNets[0].toUpperCase()})` : undefined,
+      })
+    })
+
+    // If simulation not yet run, populate schematic wire currents
+    if (currentVars.length === 0) {
+      nodes.forEach((n) => {
+        if (
+          n.type !== "junction" &&
+          n.data?.type &&
+          ["resistor", "capacitor", "inductor", "voltage-source", "current-source", "diode"].includes(
+            n.data.type,
+          )
+        ) {
+          const label = n.data.label || n.id
+          const sig = `i(${label.toLowerCase()})`
+          if (processedCurrents.has(sig)) return
+          processedCurrents.add(sig)
+
+          const compNets = Object.values(liveConnectivity.nodePinNetMap[n.id] || {})
+          list.push({
+            netName: `I(${label.toUpperCase()})`,
+            signalName: sig,
+            displayName: `I(${label.toUpperCase()})`,
+            pinCount: 2,
+            connectedComponents: [
+              `${label} (${n.data.value || n.data.type})`,
+              compNets.length > 0 ? `Nets: ${compNets.join(" ⇄ ")}` : "Wire branch",
+            ],
+            isCurrent: true,
+            wireLabel: `Wire current through ${label}`,
+            alternateSignal: compNets.length > 0 && compNets[0] !== "0" ? `v(${compNets[0].toLowerCase()})` : undefined,
+            alternateLabel: compNets.length > 0 ? `V(${compNets[0].toUpperCase()})` : undefined,
+          })
+        }
+      })
+    }
+
+    list.sort((a, b) => {
+      if (a.isCurrent && !b.isCurrent) return 1
+      if (!a.isCurrent && b.isCurrent) return -1
+      if (a.isGround) return 1
+      if (b.isGround) return -1
+      return a.displayName.localeCompare(b.displayName)
+    })
+
+    return list
+  }, [liveConnectivity, lastSimResult, nodes])
+
+  // Probe a circuit net or wire current: graphs the signal and computes values on the waveform HUD
+  const probeNet = useCallback(
+    (target: string, preferCurrent?: boolean) => {
+      if (!target) return
+
+      // Explicit current signal probe
+      if (target.toLowerCase().startsWith("i(")) {
+        const matchedVar = lastSimResult?.variables.find(
+          (v) => v.name.toLowerCase() === target.toLowerCase(),
+        )
+        const signalName = matchedVar ? matchedVar.name : target
+        setIsWaveformOpen(true)
+        setBottomPanelTab("waveforms")
+        setActiveProbedSignal(signalName)
+        setSimMessage(`Probed wire current: ${signalName.toUpperCase()} - Calculated on graph`)
+        return
+      }
+
+      const isGround = target === "0"
+      const netName = target.replace(/^v\(|\)$/gi, "")
+
+      if (preferCurrent) {
+        const connections = liveConnectivity.nets[netName] || []
+        for (const conn of connections) {
+          const compLabel = (conn.componentLabel || conn.componentId).toLowerCase()
+          const curSig = `i(${compLabel})`
+          const matchedCur = lastSimResult?.variables.find(
+            (v) => v.name.toLowerCase() === curSig,
+          )
+          if (matchedCur) {
+            setIsWaveformOpen(true)
+            setBottomPanelTab("waveforms")
+            setActiveProbedSignal(matchedCur.name)
+            setHighlightedNet(netName)
+            setSimMessage(`Probed wire current: ${matchedCur.name.toUpperCase()} (Net: ${netName.toUpperCase()}) - Calculated on graph`)
+            return
+          }
+        }
+      }
+
+      const targetPattern = isGround ? "0" : `v(${netName.toLowerCase()})`
+      const matchedVar = lastSimResult?.variables.find(
+        (v) => v.name.toLowerCase() === targetPattern || v.name.toLowerCase() === netName.toLowerCase(),
+      )
+      const signalName = matchedVar ? matchedVar.name : targetPattern
+
+      setIsWaveformOpen(true)
+      setBottomPanelTab("waveforms")
+      setActiveProbedSignal(signalName)
+      setHighlightedNet(netName)
+      setSimMessage(`Probed net: ${isGround ? "0 (GND)" : `V(${netName.toUpperCase()})`} - Calculated on graph`)
+    },
+    [lastSimResult, liveConnectivity],
+  )
+
+  // Parse engineering suffix values for SPICE derivation
+  const parseSpiceNumeric = (val?: string): number => {
+    if (!val || typeof val !== "string") return 0
+    const clean = val.trim().replace(/[\u2126\u03A9ohmsvfhda]/gi, "").trim()
+    const m = clean.match(/^([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s*([a-zA-Z]*)/)
+    if (!m) return parseFloat(clean) || 0
+    const num = parseFloat(m[1])
+    const suffix = (m[2] || "").toLowerCase()
+    if (suffix.startsWith("meg")) return num * 1e6
+    if (suffix.startsWith("k")) return num * 1e3
+    if (suffix.startsWith("m")) return num * 1e-3
+    if (suffix.startsWith("u")) return num * 1e-6
+    if (suffix.startsWith("n")) return num * 1e-9
+    if (suffix.startsWith("p")) return num * 1e-12
+    if (suffix.startsWith("f")) return num * 1e-15
+    if (suffix.startsWith("g")) return num * 1e9
+    if (suffix.startsWith("t")) return num * 1e12
+    return num
+  }
+
+  // Component current probing: resolves simulated or derived branch current
+  const probeComponentCurrent = useCallback(
+    (node: Node) => {
+      const compLabel = (node.data?.label || node.id || "").trim()
+      const compType = (node.data?.type || "") as string
+      const lowerLabel = compLabel.toLowerCase()
+
+      const candidates = [
+        `i(${lowerLabel})`,
+        `@${lowerLabel}[i]`,
+        `@${lowerLabel}[id]`,
+        `@${lowerLabel}[ic]`,
+        `${lowerLabel}#branch`,
+        `v${lowerLabel}#branch`,
+        `i(v${lowerLabel})`,
+        `i(r${lowerLabel})`,
+        `i(c${lowerLabel})`,
+        `i(l${lowerLabel})`,
+        `i(d${lowerLabel})`,
+        `@r${lowerLabel}[i]`,
+        `@c${lowerLabel}[i]`,
+        `@l${lowerLabel}[i]`,
+        `@d${lowerLabel}[id]`,
+        `@q${lowerLabel}[ic]`,
+        `@m${lowerLabel}[id]`,
+      ]
+
+      const matchedVar = lastSimResult?.variables.find((v) =>
+        candidates.includes(v.name.toLowerCase()),
+      )
+
+      if (matchedVar) {
+        probeNet(matchedVar.name)
+        setSimMessage(`Probed branch current: ${matchedVar.name.toUpperCase()} (${compLabel}) - Calculated on graph`)
+        return
+      }
+
+      // If it's a resistor and current was not directly in raw output, derive I = (V1 - V2) / R
+      if (compType === "resistor" && lastSimResult?.data) {
+        const pinMap = liveConnectivity.nodePinNetMap[node.id] || {}
+        const net1 = pinMap["pin1"]
+        const net2 = pinMap["pin2"]
+        const rVal = parseSpiceNumeric(node.data?.value)
+
+        if (net1 && net2 && rVal > 0) {
+          const ptCount = lastSimResult.pointCount || 0
+          const v1Data =
+            net1 === "0"
+              ? new Array(ptCount).fill(0)
+              : lastSimResult.data[`v(${net1.toLowerCase()})`] || lastSimResult.data[net1.toLowerCase()]
+          const v2Data =
+            net2 === "0"
+              ? new Array(ptCount).fill(0)
+              : lastSimResult.data[`v(${net2.toLowerCase()})`] || lastSimResult.data[net2.toLowerCase()]
+
+          if (v1Data && v2Data && v1Data.length > 0) {
+            const curSig = `i(${lowerLabel})`
+            const curData = new Array(v1Data.length)
+            for (let i = 0; i < v1Data.length; i++) {
+              curData[i] = (v1Data[i] - v2Data[i]) / rVal
+            }
+            lastSimResult.data[curSig] = curData
+            lastSimResult.data[curSig.toUpperCase()] = curData
+            if (!lastSimResult.variables.some((v) => v.name.toLowerCase() === curSig)) {
+              lastSimResult.variables.push({
+                index: lastSimResult.variables.length,
+                name: curSig,
+                type: "current",
+                unit: "A",
+              })
+            }
+            probeNet(curSig)
+            setSimMessage(
+              `Calculated branch current: ${curSig.toUpperCase()} (Ohm's Law R=${node.data?.value || rVal}Ω) - Plotted on graph`,
+            )
+            return
+          }
+        }
+      }
+
+      // If current is unavailable
+      setIsWaveformOpen(true)
+      setBottomPanelTab("waveforms")
+      setSimMessage(`Current vector for '${compLabel}' is unavailable in current simulation result.`)
+    },
+    [lastSimResult, liveConnectivity, probeNet],
+  )
 
   // Clickable ERC error navigation: center and highlight problematic component on canvas
   // Clickable ERC error navigation: center and highlight problematic component on canvas
@@ -933,15 +1459,38 @@ function SchematicEditor() {
         setSimStatus("idle")
 
         if (runRes.success) {
-          const ptCount =
-            runRes.pointCount > 0
-              ? `${runRes.pointCount} points`
-              : `${runRes.variables.length} vars`
-          setSimMessage(
-            `Simulation finished: ${ptCount} in ${runRes.elapsedMs}ms (${analysisConfig.command})`,
-          )
-          setIsWaveformOpen(true)
-          setBottomPanelTab("waveforms")
+          const isOp =
+            analysisConfig.type === "op" ||
+            /^\s*\.op(\s|$)/im.test(result.netlist) ||
+            runRes.plotName?.toLowerCase().includes("operating point")
+
+          const isAc =
+            analysisConfig.type === "ac" ||
+            runRes.isComplex ||
+            /^\s*\.ac(\s|$)/im.test(result.netlist) ||
+            runRes.plotName?.toLowerCase().includes("ac analysis")
+
+          if (isOp) {
+            setSimMessage(
+              `DC Operating Point evaluated: ${runRes.variables.length} parameters in ${runRes.elapsedMs}ms`,
+            )
+            setIsOperatingPointModalOpen(true)
+          } else if (isAc) {
+            setSimMessage(
+              `AC Analysis completed: ${runRes.pointCount} points across ${runRes.variables.length} variables in ${runRes.elapsedMs}ms (${analysisConfig.command})`,
+            )
+            setIsAcModalOpen(true)
+          } else {
+            const ptCount =
+              runRes.pointCount > 0
+                ? `${runRes.pointCount} points`
+                : `${runRes.variables.length} vars`
+            setSimMessage(
+              `Simulation finished: ${ptCount} in ${runRes.elapsedMs}ms (${analysisConfig.command})`,
+            )
+            setIsWaveformOpen(true)
+            setBottomPanelTab("waveforms")
+          }
         } else {
           setSimMessage(`Simulation Error: ${runRes.error || "Simulation failed"}`)
           setIsDiagnosticsOpen(true)
@@ -1005,12 +1554,37 @@ function SchematicEditor() {
 
   const connectingStartRef = useRef<OnConnectStartParams | null>(null)
 
+  const markActiveTabDirty = useCallback(() => {
+    setTabs((currTabs) =>
+      currTabs.map((t) => (t.id === activeTabIdRef.current ? { ...t, isDirty: true } : t)),
+    )
+  }, [])
+
+  // Sync working state changes into active tab in tabs list
+  useEffect(() => {
+    setTabs((currTabs) =>
+      currTabs.map((t) => {
+        if (t.id !== activeTabId) return t
+        return {
+          ...t,
+          nodes,
+          edges,
+          history,
+          analysisConfig,
+          solverSettings,
+          simulationResult: lastSimResult,
+        }
+      }),
+    )
+  }, [nodes, edges, history, analysisConfig, solverSettings, lastSimResult, activeTabId])
+
   /* ============================================================
      HISTORY SNAPSHOTS (UNDO / REDO)
      ============================================================ */
 
   const pushSnapshot = useCallback(
     (newNodes: Node<SchematicNodeData>[], newEdges: Edge[]) => {
+      markActiveTabDirty()
       setHistory((prev) => ({
         past: [
           ...prev.past.slice(-40),
@@ -1022,7 +1596,7 @@ function SchematicEditor() {
         future: [],
       }))
     },
-    [],
+    [markActiveTabDirty],
   )
 
   const undo = useCallback(() => {
@@ -1126,8 +1700,91 @@ function SchematicEditor() {
     [],
   )
 
-  // Augmented nodes with net-highlighted pins and ERC visual marker badges
+  // Augmented nodes with net-highlighted pins, ERC badges, and genuine T-junction detection
   const augmentedNodes = useMemo(() => {
+    // 1. Detect genuine 3+ branch junctions (or 2+ wire branches at a component pin)
+    const visibleJunctionIds = new Set<string>()
+    const junctionNodes = nodes.filter((n) => n.type === "junction")
+
+    if (junctionNodes.length > 0) {
+      // Precompute polyline points for each edge once
+      const edgePointsMap = new Map<string, { x: number; y: number }[]>()
+      for (const edge of edges) {
+        const edgeData = getEdgeSegmentsAndPoints(edge, nodes)
+        if (edgeData && edgeData.points.length >= 2) {
+          edgePointsMap.set(edge.id, edgeData.points)
+        }
+      }
+
+      for (const jNode of junctionNodes) {
+        const jx = Math.round((jNode.position.x + 4) / 20) * 20
+        const jy = Math.round((jNode.position.y + 4) / 20) * 20
+
+        const directions = new Set<string>()
+
+        for (const edge of edges) {
+          const pts = edgePointsMap.get(edge.id)
+          if (!pts || pts.length < 2) continue
+
+          const pFirst = pts[0]
+          const pLast = pts[pts.length - 1]
+
+          // Edge departs from this junction
+          if (Math.abs(pFirst.x - jx) < 8 && Math.abs(pFirst.y - jy) < 8) {
+            const pNext = pts[1]
+            const dx = pNext.x - jx
+            const dy = pNext.y - jy
+            if (Math.abs(dx) > Math.abs(dy)) {
+              directions.add(dx > 0 ? "right" : "left")
+            } else if (Math.abs(dy) > 0) {
+              directions.add(dy > 0 ? "down" : "up")
+            }
+          }
+
+          // Edge arrives at this junction
+          if (Math.abs(pLast.x - jx) < 8 && Math.abs(pLast.y - jy) < 8) {
+            const pPrev = pts[pts.length - 2]
+            const dx = pPrev.x - jx
+            const dy = pPrev.y - jy
+            if (Math.abs(dx) > Math.abs(dy)) {
+              directions.add(dx > 0 ? "right" : "left")
+            } else if (Math.abs(dy) > 0) {
+              directions.add(dy > 0 ? "down" : "up")
+            }
+          }
+
+          // Edge passes through this junction without terminating here
+          for (let i = 0; i < pts.length - 1; i++) {
+            const pA = pts[i]
+            const pB = pts[i + 1]
+
+            // Check if strictly interior to segment
+            if (pA.y === jy && pB.y === jy) {
+              const minX = Math.min(pA.x, pB.x)
+              const maxX = Math.max(pA.x, pB.x)
+              if (minX + 4 < jx && jx < maxX - 4) {
+                directions.add("left")
+                directions.add("right")
+              }
+            } else if (pA.x === jx && pB.x === jx) {
+              const minY = Math.min(pA.y, pB.y)
+              const maxY = Math.max(pA.y, pB.y)
+              if (minY + 4 < jy && jy < maxY - 4) {
+                directions.add("up")
+                directions.add("down")
+              }
+            }
+          }
+        }
+
+        // Show dot only where 3 or more wire directions genuinely connect (T-junctions or crosses)
+        // Simple bends, continuations (A->B->C), and component pin connections must not create dots
+        if (directions.size >= 3) {
+          visibleJunctionIds.add(jNode.id)
+        }
+      }
+    }
+
     return nodes.map((node) => {
       const nodePinsMap = liveConnectivity.nodePinNetMap[node.id] || {}
       const nodeErcMap = liveConnectivity.nodeErcIssues[node.id]
@@ -1149,17 +1806,21 @@ function SchematicEditor() {
         }
       }
 
+      const showDot = node.type === "junction" ? visibleJunctionIds.has(node.id) : undefined
+
       return {
         ...node,
+        selected: node.id === selectedNodeId,
         data: {
           ...node.data,
+          showDot,
           highlightedPins,
           ercIssues: nodeErcMap,
           onErcClick: handleErcIssueClick,
         },
       }
     })
-  }, [nodes, liveConnectivity, highlightedNet, handleErcIssueClick])
+  }, [nodes, edges, liveConnectivity, highlightedNet, handleErcIssueClick, selectedNodeId])
 
   // Augmented edges with net highlighting aura and ERC severity
   const augmentedEdges = useMemo(() => {
@@ -1185,6 +1846,7 @@ function SchematicEditor() {
 
       return {
         ...edge,
+        selected: edge.id === selectedEdgeId,
         data: {
           ...edge.data,
           waypoints: routedWaypoints ?? edge.data?.waypoints,
@@ -1196,7 +1858,7 @@ function SchematicEditor() {
         },
       }
     })
-  }, [edges, nodes, liveConnectivity, highlightedNet, updateEdgeOffset, updateEdgeWaypoints])
+  }, [edges, nodes, liveConnectivity, highlightedNet, updateEdgeOffset, updateEdgeWaypoints, selectedEdgeId])
 
   const flipEdgeBend = useCallback(
     (edgeId: string, specificMode?: WireBendMode) => {
@@ -1346,6 +2008,179 @@ function SchematicEditor() {
     }
   }, [activeTool])
 
+  const wireClickTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  /**
+   * Commit and save the active wire draft up to a specific endpoint (or last committed point if omitted).
+   * Exits wire mode to select mode upon completion (LTspice behavior).
+   */
+  const finishAndSaveWire = useCallback(
+    (targetPoint?: { x: number; y: number }) => {
+      if (wireClickTimeoutRef.current) {
+        clearTimeout(wireClickTimeoutRef.current)
+        wireClickTimeoutRef.current = null
+      }
+
+      if (!wireDraft.isDrawing || wireDraft.points.length === 0) {
+        if (activeTool === "wire") {
+          setActiveTool("select")
+        }
+        return
+      }
+
+      let pts = [...wireDraft.points]
+
+      // If an explicit target point was given (e.g. double-click), append it orthogonally if needed
+      if (targetPoint) {
+        const snapX = Math.round(targetPoint.x / 20) * 20
+        const snapY = Math.round(targetPoint.y / 20) * 20
+        pts = buildOrthogonalDraftPoints(
+          wireDraft.points,
+          { x: snapX, y: snapY },
+          wireDraft.bendOrientation,
+          componentObstacles,
+        )
+      }
+
+      // If we don't have at least 2 distinct points, cancel draft without saving a degenerate zero-length wire
+      if (pts.length < 2) {
+        setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+        setActiveTool("select")
+        return
+      }
+
+      const startPt = pts[0]
+      const endPt = pts[pts.length - 1]
+
+      if (startPt.x === endPt.x && startPt.y === endPt.y) {
+        setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+        setActiveTool("select")
+        return
+      }
+
+      pushSnapshot(nodes, edges)
+
+      const updatedNodes = [...nodes]
+      let updatedEdges = [...edges]
+
+      // 1. Resolve arrival handle at endpoint
+      const lastPrev = pts.length >= 2 ? pts[pts.length - 2] : startPt
+      const isLastVert = lastPrev.x === endPt.x
+      const arrivalHandle = isLastVert
+        ? lastPrev.y < endPt.y ? "top" : "bottom"
+        : lastPrev.x < endPt.x ? "left" : "right"
+
+      // Resolve target pin / wire / junction
+      const hitPin = findPinAtCoord(updatedNodes, endPt.x, endPt.y)
+      const hitEdgeResult = !hitPin ? findEdgeAtCoord(updatedEdges, updatedNodes, endPt.x, endPt.y) : null
+
+      let targetNodeId: string | undefined = hitPin?.nodeId
+      let targetHandleId: string | undefined = hitPin?.handleId ?? arrivalHandle
+
+      if (hitEdgeResult) {
+        const junctionId = `J${Date.now().toString().slice(-4)}`
+        const newJunctionNode: Node = {
+          id: junctionId,
+          type: "junction",
+          position: { x: endPt.x - 4, y: endPt.y - 4 },
+          data: {},
+        }
+        const { edge1, edge2 } = splitEdgeAtPoint(
+          hitEdgeResult.edge,
+          updatedNodes,
+          junctionId,
+          { x: endPt.x, y: endPt.y },
+        )
+        updatedNodes.push(newJunctionNode)
+        updatedEdges = [...updatedEdges.filter((e) => e.id !== hitEdgeResult.edge.id), edge1, edge2]
+        targetNodeId = junctionId
+        targetHandleId = arrivalHandle
+      } else if (!hitPin) {
+        // Free space: place end junction
+        const endJunctionId = `J${Date.now().toString().slice(-4)}e`
+        const endJunctionNode: Node = {
+          id: endJunctionId,
+          type: "junction",
+          position: { x: endPt.x - 4, y: endPt.y - 4 },
+          data: {},
+        }
+        updatedNodes.push(endJunctionNode)
+        targetNodeId = endJunctionId
+        targetHandleId = arrivalHandle
+      }
+
+      // 2. Resolve departure handle at startpoint
+      const nextPt = pts.length >= 2 ? pts[1] : endPt
+      const isFirstVert = nextPt.x === startPt.x
+      const departureHandle = isFirstVert
+        ? nextPt.y > startPt.y ? "bottom" : "top"
+        : nextPt.x > startPt.x ? "right" : "left"
+
+      let currentSourceId = wireDraft.startPin?.nodeId
+      let currentSourceHandle = wireDraft.startPin?.handleId ?? departureHandle
+
+      if (!currentSourceId) {
+        const startJunctionId = `J${Date.now().toString().slice(-4)}s`
+        const startJunctionNode: Node = {
+          id: startJunctionId,
+          type: "junction",
+          position: { x: startPt.x - 4, y: startPt.y - 4 },
+          data: {},
+        }
+        updatedNodes.push(startJunctionNode)
+        currentSourceId = startJunctionId
+        currentSourceHandle = departureHandle
+      }
+
+      if (currentSourceId && targetNodeId && currentSourceId === targetNodeId) {
+        setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+        setActiveTool("select")
+        return
+      }
+
+      // 3. Resolve intermediate waypoints & obstacle avoidance
+      let intermediateWaypoints = pts.slice(1, -1)
+      if (intermediateWaypoints.length === 0 && currentSourceId && targetNodeId) {
+        const obstacles = getComponentObstacles(updatedNodes, [currentSourceId, targetNodeId])
+        const avoidance = computeAvoidanceWaypoints(startPt, endPt, obstacles)
+        if (avoidance.length > 0) {
+          intermediateWaypoints = avoidance
+        }
+      }
+
+      // 4. Create and save edge (deduplicated)
+      if (targetNodeId && currentSourceId) {
+        const isDuplicate = updatedEdges.some(
+          (e) =>
+            ((e.source === currentSourceId && e.target === targetNodeId) ||
+              (e.source === targetNodeId && e.target === currentSourceId)) &&
+            JSON.stringify(e.data?.waypoints || []) === JSON.stringify(intermediateWaypoints || []),
+        )
+        if (!isDuplicate) {
+          const finalEdge: Edge = {
+            id: `e-${currentSourceId}-${targetNodeId}-${Date.now()}`,
+            source: currentSourceId,
+            sourceHandle: currentSourceHandle,
+            target: targetNodeId,
+            targetHandle: targetHandleId,
+            type: "step",
+            data: {
+              waypoints: intermediateWaypoints.length > 0 ? intermediateWaypoints : undefined,
+              bendMode: "auto",
+            },
+          }
+          updatedEdges.push(finalEdge)
+        }
+      }
+
+      setNodes(updatedNodes)
+      setEdges(updatedEdges)
+      setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+      setActiveTool("select")
+    },
+    [wireDraft, nodes, edges, pushSnapshot, activeTool, componentObstacles],
+  )
+
   const handleWireCanvasClick = useCallback(
     (flowPos: { x: number; y: number }) => {
       const snapX = Math.round(flowPos.x / 20) * 20
@@ -1402,10 +2237,24 @@ function SchematicEditor() {
         if (hitPin || hitEdgeResult) {
           // TERMINATION: Connects to a pin or wire!
           pushSnapshot(nodes, edges)
-          let targetNodeId = hitPin?.nodeId
-          let targetHandleId = hitPin?.handleId
           const updatedNodes = [...nodes]
           let updatedEdges = [...edges]
+
+          const cleanPts = buildOrthogonalDraftPoints(
+            pts,
+            clickPoint,
+            wireDraft.bendOrientation,
+            componentObstacles,
+          )
+
+          const lastPrev = cleanPts.length >= 2 ? cleanPts[cleanPts.length - 2] : cleanPts[0]
+          const isLastVert = lastPrev.x === clickPoint.x
+          const arrivalHandle = isLastVert
+            ? lastPrev.y < clickPoint.y ? "top" : "bottom"
+            : lastPrev.x < clickPoint.x ? "left" : "right"
+
+          let targetNodeId = hitPin?.nodeId
+          let targetHandleId = hitPin?.handleId ?? arrivalHandle
 
           if (hitEdgeResult) {
             const junctionId = `J${Date.now().toString().slice(-4)}`
@@ -1424,38 +2273,19 @@ function SchematicEditor() {
             updatedNodes.push(newJunctionNode)
             updatedEdges = [...updatedEdges.filter((e) => e.id !== hitEdgeResult.edge.id), edge1, edge2]
             targetNodeId = junctionId
-            targetHandleId = "top"
-          }
-
-          // Build clean orthogonal waypoints (zero diagonals)
-          const rawPts = [...pts, clickPoint]
-          const cleanPts: { x: number; y: number }[] = [rawPts[0]]
-          let curOri = wireDraft.bendOrientation
-
-          for (let i = 1; i < rawPts.length; i++) {
-            const prev = cleanPts[cleanPts.length - 1]
-            const cur = rawPts[i]
-            if (prev.x === cur.x && prev.y === cur.y) continue
-
-            if (prev.x === cur.x || prev.y === cur.y) {
-              cleanPts.push(cur)
-              curOri = prev.x === cur.x ? "v" : "h"
-            } else {
-              if (curOri === "h") {
-                cleanPts.push({ x: cur.x, y: prev.y })
-                cleanPts.push(cur)
-                curOri = "v"
-              } else {
-                cleanPts.push({ x: prev.x, y: cur.y })
-                cleanPts.push(cur)
-                curOri = "h"
-              }
-            }
+            targetHandleId = arrivalHandle
           }
 
           let finalWaypoints = cleanPts.slice(1, -1)
+
+          const nextPt = cleanPts.length >= 2 ? cleanPts[1] : clickPoint
+          const isFirstVert = nextPt.x === cleanPts[0].x
+          const departureHandle = isFirstVert
+            ? nextPt.y > cleanPts[0].y ? "bottom" : "top"
+            : nextPt.x > cleanPts[0].x ? "right" : "left"
+
           let currentSourceId = wireDraft.startPin?.nodeId
-          let currentSourceHandle = wireDraft.startPin?.handleId
+          let currentSourceHandle = wireDraft.startPin?.handleId ?? departureHandle
 
           // If start point was on free grid without a node, create a single junction node at start
           if (!currentSourceId) {
@@ -1468,7 +2298,12 @@ function SchematicEditor() {
             }
             updatedNodes.push(startJunctionNode)
             currentSourceId = startJunctionId
-            currentSourceHandle = "right"
+            currentSourceHandle = departureHandle
+          }
+
+          if (currentSourceId && targetNodeId && currentSourceId === targetNodeId) {
+            setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+            return
           }
 
           if (finalWaypoints.length === 0 && currentSourceId && targetNodeId) {
@@ -1479,22 +2314,30 @@ function SchematicEditor() {
             }
           }
 
-          // Single continuous edge connecting source to target with waypoints for all bends
+          // Single continuous edge connecting source to target with waypoints for all bends (deduplicated)
           if (targetNodeId && currentSourceId) {
-            const finalEdge: Edge = {
-              id: `e-${currentSourceId}-${targetNodeId}-${Date.now()}`,
-              source: currentSourceId,
-              sourceHandle: currentSourceHandle,
-              target: targetNodeId,
-              targetHandle: targetHandleId,
-              type: "step",
-              data: {
-                waypoints:
-                  finalWaypoints.length > 0 ? finalWaypoints : undefined,
-                bendMode: "auto",
-              },
+            const isDuplicate = updatedEdges.some(
+              (e) =>
+                ((e.source === currentSourceId && e.target === targetNodeId) ||
+                  (e.source === targetNodeId && e.target === currentSourceId)) &&
+                JSON.stringify(e.data?.waypoints || []) === JSON.stringify(finalWaypoints || []),
+            )
+            if (!isDuplicate) {
+              const finalEdge: Edge = {
+                id: `e-${currentSourceId}-${targetNodeId}-${Date.now()}`,
+                source: currentSourceId,
+                sourceHandle: currentSourceHandle,
+                target: targetNodeId,
+                targetHandle: targetHandleId,
+                type: "step",
+                data: {
+                  waypoints:
+                    finalWaypoints.length > 0 ? finalWaypoints : undefined,
+                  bendMode: "auto",
+                },
+              }
+              updatedEdges.push(finalEdge)
             }
-            updatedEdges.push(finalEdge)
           }
 
           setNodes(updatedNodes)
@@ -1503,29 +2346,28 @@ function SchematicEditor() {
         } else {
           // Clicked on empty grid -> commit 90-degree bend and continue drawing
           setWireDraft((prev) => {
-            const last = prev.points[prev.points.length - 1]
-            if (last.x === snapX || last.y === snapY) {
-              return {
-                ...prev,
-                points: [...prev.points, clickPoint],
-                bendOrientation: prev.bendOrientation === "h" ? "v" : "h",
-              }
-            } else {
-              const corner =
-                prev.bendOrientation === "h"
-                  ? { x: snapX, y: last.y }
-                  : { x: last.x, y: snapY }
-              return {
-                ...prev,
-                points: [...prev.points, corner, clickPoint],
-                bendOrientation: prev.bendOrientation === "h" ? "v" : "h",
-              }
+            const nextPts = buildOrthogonalDraftPoints(
+              prev.points,
+              clickPoint,
+              prev.bendOrientation,
+              componentObstacles,
+            )
+            const last = nextPts[nextPts.length - 1]
+            const secondLast = nextPts.length >= 2 ? nextPts[nextPts.length - 2] : null
+            const newOri = secondLast
+              ? secondLast.x === last.x ? "h" : "v"
+              : prev.bendOrientation === "h" ? "v" : "h"
+
+            return {
+              ...prev,
+              points: nextPts,
+              bendOrientation: newOri,
             }
           })
         }
       }
     },
-    [wireDraft, nodes, edges, pushSnapshot],
+    [wireDraft, nodes, edges, pushSnapshot, componentObstacles],
   )
 
   const placeComponentAt = useCallback(
@@ -1593,33 +2435,98 @@ function SchematicEditor() {
                           ? "VCC"
                           : compType === "net-label"
                             ? "NET"
-                            : compType === "nmos" || compType === "pmos"
-                              ? "M"
-                              : compType === "npn-bjt" || compType === "pnp-bjt"
-                                ? "Q"
-                                : "U"
+                            : compType === "port-in"
+                              ? "IN"
+                              : compType === "port-out"
+                                ? "OUT"
+                                : compType === "port-bi"
+                                  ? "IO"
+                                  : compType === "spice-directive"
+                                    ? "SPICE"
+                                    : compType === "schematic-text"
+                                      ? "TXT"
+                                      : compType === "nmos" || compType === "pmos"
+                                        ? "M"
+                                        : compType === "npn-bjt" || compType === "pnp-bjt"
+                                          ? "Q"
+                                          : "U"
 
         let num = 1
         while (nodes.some((n) => n.id === `${prefix}${num}`)) {
           num++
         }
         const id = `${prefix}${num}`
+        const isDirectiveOrText = compType === "spice-directive" || compType === "schematic-text"
+        const isNetLabel = compType === "net-label"
+        const isPort = compType === "port-in" || compType === "port-out" || compType === "port-bi"
+        const isNetOrPort = isNetLabel || isPort
+        const assignedName = placingComponent.customValue || (isDirectiveOrText ? "" : id)
+        const portType =
+          compType === "port-in"
+            ? "input"
+            : compType === "port-out"
+              ? "output"
+              : compType === "port-bi"
+                ? "bidirectional"
+                : undefined
+        const directiveType = compType === "spice-directive" ? "spice" : undefined
+
+        let nodePosX = snapX - 60
+        let nodePosY = snapY - 40
+        if (isNetOrPort) {
+          const pins = getComponentPins(compType)
+          if (pins.length > 0) {
+            const rotPin = getRotatedPinPos(pins[0], placingComponent.rotation)
+            nodePosX = snapX - rotPin.x
+            nodePosY = snapY - rotPin.y
+          }
+        } else if (isDirectiveOrText) {
+          nodePosX = snapX
+          nodePosY = snapY - 40
+        }
+
         const newNode: Node<SchematicNodeData> = {
           id,
           type: "schematic",
           position: {
-            x: snapX - 60,
-            y: snapY - 40,
+            x: nodePosX,
+            y: nodePosY,
           },
           data: {
-            label: id,
+            label: isDirectiveOrText ? "" : assignedName,
             type: compType,
-            value: def?.defaultValue,
+            value:
+              placingComponent.customValue ??
+              def?.defaultValue ??
+              (compType === "spice-directive"
+                ? ".tran 1u 10m"
+                : compType === "schematic-text"
+                  ? "Text Annotation"
+                  : undefined),
             rotation: placingComponent.rotation,
+            portType,
+            directiveType,
           },
         }
 
-        setNodes((curr) => [...curr, newNode])
+        const hitEdgeResult = findEdgeAtCoord(edges, nodes, snapX, snapY)
+        if (hitEdgeResult && isNetOrPort) {
+          const { edge1, edge2 } = splitEdgeAtPoint(
+            hitEdgeResult.edge,
+            nodes,
+            newNode.id,
+            { x: snapX, y: snapY },
+            "pin1",
+          )
+          setNodes((curr) => [...curr, newNode])
+          setEdges((curr) => [
+            ...curr.filter((e) => e.id !== hitEdgeResult.edge.id),
+            edge1,
+            edge2,
+          ])
+        } else {
+          setNodes((curr) => [...curr, newNode])
+        }
         setSelectedNodeId(id)
         setSelectedEdgeId(null)
       }
@@ -1627,6 +2534,198 @@ function SchematicEditor() {
       setPlacingComponent(null)
     },
     [placingComponent, nodes, edges, pushSnapshot, cursorPos],
+  )
+
+  const deleteNodeById = useCallback(
+    (nodeId: string) => {
+      pushSnapshot(nodes, edges)
+      const targetNode = nodes.find((n) => n.id === nodeId)
+
+      if (targetNode) {
+        // If deleting a component, preserve all connected wires by leaving junction endpoints where the pins were
+        const newJunctionNodes: Node[] = []
+        const pinJunctionMap = new Map<string, string>()
+
+        const updatedEdges = edges.map((e) => {
+          if (e.source !== nodeId && e.target !== nodeId) {
+            return e
+          }
+
+          let newSource = e.source
+          let newSourceHandle = e.sourceHandle
+          let newTarget = e.target
+          let newTargetHandle = e.targetHandle
+
+          if (e.source === nodeId) {
+            const pCoord = getPinCoord(targetNode, e.sourceHandle)
+            const key = `${pCoord.x},${pCoord.y}`
+            let jId = pinJunctionMap.get(key)
+            if (!jId) {
+              const existingJ = nodes.find(
+                (n) =>
+                  n.type === "junction" &&
+                  Math.abs(n.position.x + 4 - pCoord.x) < 2 &&
+                  Math.abs(n.position.y + 4 - pCoord.y) < 2,
+              )
+              if (existingJ) {
+                jId = existingJ.id
+              } else {
+                jId = `J${Date.now().toString().slice(-4)}${Math.random().toString(36).slice(2, 5)}`
+                newJunctionNodes.push({
+                  id: jId,
+                  type: "junction",
+                  position: { x: pCoord.x - 4, y: pCoord.y - 4 },
+                  data: {},
+                })
+              }
+              pinJunctionMap.set(key, jId)
+            }
+            newSource = jId
+            newSourceHandle = "right"
+          }
+
+          if (e.target === nodeId) {
+            const pCoord = getPinCoord(targetNode, e.targetHandle)
+            const key = `${pCoord.x},${pCoord.y}`
+            let jId = pinJunctionMap.get(key)
+            if (!jId) {
+              const existingJ = nodes.find(
+                (n) =>
+                  n.type === "junction" &&
+                  Math.abs(n.position.x + 4 - pCoord.x) < 2 &&
+                  Math.abs(n.position.y + 4 - pCoord.y) < 2,
+              )
+              if (existingJ) {
+                jId = existingJ.id
+              } else {
+                jId = `J${Date.now().toString().slice(-4)}${Math.random().toString(36).slice(2, 5)}`
+                newJunctionNodes.push({
+                  id: jId,
+                  type: "junction",
+                  position: { x: pCoord.x - 4, y: pCoord.y - 4 },
+                  data: {},
+                })
+              }
+              pinJunctionMap.set(key, jId)
+            }
+            newTarget = jId
+            newTargetHandle = "left"
+          }
+
+          return {
+            ...e,
+            source: newSource,
+            sourceHandle: newSourceHandle,
+            target: newTarget,
+            targetHandle: newTargetHandle,
+          }
+        })
+
+        setNodes((curr) => [
+          ...curr.filter((n) => n.id !== nodeId),
+          ...newJunctionNodes,
+        ])
+        setEdges(updatedEdges)
+      } else {
+        setNodes((curr) => curr.filter((n) => n.id !== nodeId))
+      }
+      setSelectedNodeId((curr) => (curr === nodeId ? null : curr))
+    },
+    [nodes, edges, pushSnapshot],
+  )
+
+  const deleteEdgeById = useCallback(
+    (edgeId: string) => {
+      pushSnapshot(nodes, edges)
+      const edgeToDelete = edges.find((e) => e.id === edgeId)
+      const remainingEdges = edges.filter((e) => e.id !== edgeId)
+
+      // Clean up any orphan floating junction nodes that had only this deleted edge
+      if (edgeToDelete) {
+        const remainingEndpoints = new Set<string>()
+        for (const e of remainingEdges) {
+          remainingEndpoints.add(e.source)
+          remainingEndpoints.add(e.target)
+        }
+        setNodes((curr) =>
+          curr.filter((n) => {
+            if (n.type !== "junction") return true
+            // If it's one of the endpoints of the deleted edge and has no other edges, remove it
+            if (
+              (n.id === edgeToDelete.source || n.id === edgeToDelete.target) &&
+              !remainingEndpoints.has(n.id)
+            ) {
+              return false
+            }
+            return true
+          }),
+        )
+      }
+
+      setEdges(remainingEdges)
+      setSelectedEdgeId((curr) => (curr === edgeId ? null : curr))
+    },
+    [nodes, edges, pushSnapshot],
+  )
+
+  const onEdgeMouseEnter = useCallback(
+    (_event: React.MouseEvent, edge: Edge) => {
+      if (activeTool === "probe") {
+        const edgeNet = liveConnectivity.edgeNetMap[edge.id]
+        if (edgeNet) {
+          setHighlightedNet(edgeNet)
+          const vStr = edgeNet === "0" ? "0V (GND)" : `V(${edgeNet.toUpperCase()})`
+          setSimMessage(`🎯 Probe Wire: Net ${edgeNet.toUpperCase()} - Click to plot ${vStr}`)
+        }
+      }
+    },
+    [activeTool, liveConnectivity],
+  )
+
+  const onEdgeMouseLeave = useCallback(
+    (_event: React.MouseEvent, _edge: Edge) => {
+      if (activeTool === "probe") {
+        setHighlightedNet(null)
+      }
+    },
+    [activeTool],
+  )
+
+  const onNodeMouseEnter = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      if (activeTool === "probe") {
+        if (
+          node.type === "junction" ||
+          node.data?.type === "ground" ||
+          node.data?.type === "net-label" ||
+          node.data?.type === "vcc" ||
+          node.data?.type === "port-in" ||
+          node.data?.type === "port-out" ||
+          node.data?.type === "port-bi"
+        ) {
+          const pinMap = liveConnectivity.nodePinNetMap[node.id] || {}
+          const netName = Object.values(pinMap)[0] || (node.data?.type === "ground" ? "0" : undefined)
+          if (netName) {
+            setHighlightedNet(netName)
+            const vStr = netName === "0" ? "0V (GND)" : `V(${netName.toUpperCase()})`
+            setSimMessage(`🎯 Probe Node: Net ${netName.toUpperCase()} - Click to plot ${vStr}`)
+          }
+        } else {
+          const label = node.data?.label || node.id
+          setSimMessage(`🎯 Current Clamp: ${label} - Click to plot branch current I(${label.toUpperCase()})`)
+        }
+      }
+    },
+    [activeTool, liveConnectivity],
+  )
+
+  const onNodeMouseLeave = useCallback(
+    (_event: React.MouseEvent, _node: Node) => {
+      if (activeTool === "probe") {
+        setHighlightedNet(null)
+      }
+    },
+    [activeTool],
   )
 
   const onEdgeClick = useCallback(
@@ -1645,23 +2744,59 @@ function SchematicEditor() {
         handleWireCanvasClick(flowPos)
         return
       }
+
+      if (activeTool === "delete") {
+        event.stopPropagation()
+        deleteEdgeById(clickedEdge.id)
+        return
+      }
+
+      if (activeTool === "probe") {
+        event.stopPropagation()
+        const edgeNet = liveConnectivity.edgeNetMap[clickedEdge.id]
+        if (edgeNet) {
+          if (event.shiftKey || event.altKey) {
+            probeNet(edgeNet, true)
+          } else {
+            probeNet(edgeNet, false)
+          }
+        }
+        return
+      }
+
       event.stopPropagation()
       const edgeNet = liveConnectivity.edgeNetMap[clickedEdge.id]
       if (edgeNet) {
         setHighlightedNet((prev) => (prev === edgeNet ? null : edgeNet))
+        if (lastSimResult) {
+          probeNet(edgeNet)
+        }
       }
       setSelectedEdgeId(clickedEdge.id)
       setSelectedNodeId(null)
       setContextMenu({ visible: false, x: 0, y: 0 })
     },
-    [activeTool, placingComponent, placeComponentAt, handleWireCanvasClick, screenToFlowPosition, project, liveConnectivity],
+    [activeTool, placingComponent, placeComponentAt, handleWireCanvasClick, screenToFlowPosition, project, liveConnectivity, deleteEdgeById, probeNet, lastSimResult],
   )
 
   const onEdgeDoubleClick = useCallback(
-    (_event: React.MouseEvent, clickedEdge: Edge) => {
+    (event: React.MouseEvent, clickedEdge: Edge) => {
+      if (wireClickTimeoutRef.current) {
+        clearTimeout(wireClickTimeoutRef.current)
+        wireClickTimeoutRef.current = null
+      }
+
+      if (activeTool === "wire") {
+        event.stopPropagation()
+        const getFlowCoord = screenToFlowPosition || project
+        const flowPos = getFlowCoord ? getFlowCoord({ x: event.clientX, y: event.clientY }) : cursorPos
+        finishAndSaveWire(flowPos)
+        return
+      }
+
       flipEdgeBend(clickedEdge.id)
     },
-    [flipEdgeBend],
+    [activeTool, screenToFlowPosition, project, cursorPos, finishAndSaveWire, flipEdgeBend],
   )
 
   const onNodeClick = useCallback(
@@ -1680,20 +2815,85 @@ function SchematicEditor() {
         handleWireCanvasClick(flowPos)
         return
       }
-      if (node.type === "junction" || node.data?.type === "ground" || node.data?.type === "net-label") {
-        const netName = Object.values(liveConnectivity.nodePinNetMap[node.id] || {})[0]
+
+      if (activeTool === "delete") {
+        event.stopPropagation()
+        deleteNodeById(node.id)
+        return
+      }
+
+      if (activeTool === "probe") {
+        event.stopPropagation()
+        // If node is a junction, ground, net-label, vcc, or port: probe its voltage!
+        if (
+          node.type === "junction" ||
+          node.data?.type === "ground" ||
+          node.data?.type === "net-label" ||
+          node.data?.type === "vcc" ||
+          node.data?.type === "port-in" ||
+          node.data?.type === "port-out" ||
+          node.data?.type === "port-bi"
+        ) {
+          const pinMap = liveConnectivity.nodePinNetMap[node.id] || {}
+          const netName = Object.values(pinMap)[0] || (node.data?.type === "ground" ? "0" : undefined)
+          if (netName) {
+            probeNet(netName)
+          }
+          return
+        }
+
+        // It is a component body (resistor, capacitor, inductor, diode, bjt, mosfet, source): probe its branch current!
+        probeComponentCurrent(node)
+        return
+      }
+
+      if (
+        node.type === "junction" ||
+        node.data?.type === "ground" ||
+        node.data?.type === "net-label" ||
+        node.data?.type === "port-in" ||
+        node.data?.type === "port-out" ||
+        node.data?.type === "port-bi"
+      ) {
+        const pinMap = liveConnectivity.nodePinNetMap[node.id] || {}
+        const netName = Object.values(pinMap)[0]
         if (netName) {
           setHighlightedNet((prev) => (prev === netName ? null : netName))
+          if (lastSimResult) {
+            probeNet(netName)
+          }
         }
       }
       setSelectedNodeId(node.id)
       setSelectedEdgeId(null)
       setContextMenu({ visible: false, x: 0, y: 0 })
     },
-    [activeTool, placingComponent, placeComponentAt, handleWireCanvasClick, screenToFlowPosition, project, liveConnectivity],
+    [activeTool, placingComponent, placeComponentAt, handleWireCanvasClick, screenToFlowPosition, project, liveConnectivity, deleteNodeById, probeNet, probeComponentCurrent, lastSimResult],
   )
 
-  const wireClickTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const onNodeDoubleClick = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      if (wireClickTimeoutRef.current) {
+        clearTimeout(wireClickTimeoutRef.current)
+        wireClickTimeoutRef.current = null
+      }
+
+      if (activeTool === "wire") {
+        event.stopPropagation()
+        const getFlowCoord = screenToFlowPosition || project
+        const flowPos = getFlowCoord ? getFlowCoord({ x: event.clientX, y: event.clientY }) : cursorPos
+        finishAndSaveWire(flowPos)
+        return
+      }
+
+      if (node) {
+        event.stopPropagation()
+        setPropertiesModalNode(node as Node<SchematicNodeData>)
+        setIsPropertiesModalOpen(true)
+      }
+    },
+    [activeTool, screenToFlowPosition, project, cursorPos, finishAndSaveWire],
+  )
 
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
@@ -1707,16 +2907,17 @@ function SchematicEditor() {
       }
 
       if (activeTool === "wire") {
-        if (wireClickTimeoutRef.current) {
-          clearTimeout(wireClickTimeoutRef.current)
-          wireClickTimeoutRef.current = null
-        }
-        wireClickTimeoutRef.current = setTimeout(() => {
-          wireClickTimeoutRef.current = null
-          handleWireCanvasClick(flowPos)
-        }, 220)
+        event.stopPropagation()
+        handleWireCanvasClick(flowPos)
         return
       }
+
+      if (activeTool === "delete") {
+        setSelectedNodeId(null)
+        setSelectedEdgeId(null)
+        return
+      }
+
       setSelectedNodeId(null)
       setSelectedEdgeId(null)
       setContextMenu({ visible: false, x: 0, y: 0 })
@@ -1727,91 +2928,45 @@ function SchematicEditor() {
   )
 
   const onPaneDoubleClick = useCallback(
-    (_event: React.MouseEvent) => {
+    (event: React.MouseEvent) => {
       if (wireClickTimeoutRef.current) {
         clearTimeout(wireClickTimeoutRef.current)
         wireClickTimeoutRef.current = null
       }
 
-      if (activeTool === "wire" && wireDraft.isDrawing && wireDraft.points.length > 0) {
-        // Double-click to commit wire chain in free space
-        pushSnapshot(nodes, edges)
-        const pts = wireDraft.points
-        const lastPt = pts[pts.length - 1]
-        let intermediateWaypoints = pts.slice(1, -1)
-        const updatedNodes = [...nodes]
-        const updatedEdges = [...edges]
-
-        let currentSourceId = wireDraft.startPin?.nodeId
-        let currentSourceHandle = wireDraft.startPin?.handleId
-
-        if (!currentSourceId) {
-          const startJunctionId = `J${Date.now().toString().slice(-4)}s`
-          const startNode: Node = {
-            id: startJunctionId,
-            type: "junction",
-            position: { x: pts[0].x - 4, y: pts[0].y - 4 },
-            data: {},
-          }
-          updatedNodes.push(startNode)
-          currentSourceId = startJunctionId
-          currentSourceHandle = "right"
-        }
-
-        const endJunctionId = `J${Date.now().toString().slice(-4)}e`
-        const endNode: Node = {
-          id: endJunctionId,
-          type: "junction",
-          position: { x: lastPt.x - 4, y: lastPt.y - 4 },
-          data: {},
-        }
-        updatedNodes.push(endNode)
-
-        if (intermediateWaypoints.length === 0 && currentSourceId) {
-          const obstacles = getComponentObstacles(updatedNodes, [currentSourceId, endJunctionId])
-          const avoidance = computeAvoidanceWaypoints(pts[0], lastPt, obstacles)
-          if (avoidance.length > 0) {
-            intermediateWaypoints = avoidance
-          }
-        }
-
-        const finalEdge: Edge = {
-          id: `e-${currentSourceId}-${endJunctionId}-${Date.now()}`,
-          source: currentSourceId,
-          sourceHandle: currentSourceHandle,
-          target: endJunctionId,
-          targetHandle: "left",
-          type: "step",
-          data: {
-            waypoints:
-              intermediateWaypoints.length > 0 ? intermediateWaypoints : undefined,
-            bendMode: "auto",
-          },
-        }
-        updatedEdges.push(finalEdge)
-
-        setNodes(updatedNodes)
-        setEdges(updatedEdges)
-        setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
-        setActiveTool("select")
+      if (activeTool === "wire") {
+        event.stopPropagation()
+        const getFlowCoord = screenToFlowPosition || project
+        const flowPos = getFlowCoord ? getFlowCoord({ x: event.clientX, y: event.clientY }) : cursorPos
+        finishAndSaveWire(flowPos)
+        return
       }
     },
-    [activeTool, wireDraft, nodes, edges, pushSnapshot],
+    [activeTool, screenToFlowPosition, project, cursorPos, finishAndSaveWire],
   )
 
   const onPaneMouseMove = useCallback(
     (event: React.MouseEvent) => {
       const getFlowCoord = screenToFlowPosition || project
       const flowPos = getFlowCoord({ x: event.clientX, y: event.clientY })
-      setCursorPos({
-        x: Math.round(flowPos.x / 20) * 20,
-        y: Math.round(flowPos.y / 20) * 20,
-      })
+      if (activeTool === "wire") {
+        setCursorPos(getMagneticSnapCoord(flowPos, nodes, edges))
+      } else if (activeTool === "delete") {
+        setCursorPos({
+          x: Math.round(flowPos.x),
+          y: Math.round(flowPos.y),
+        })
+      } else {
+        setCursorPos({
+          x: Math.round(flowPos.x / 20) * 20,
+          y: Math.round(flowPos.y / 20) * 20,
+        })
+      }
       if (getZoom) {
         setZoomLevel(Math.round(getZoom() * 100))
       }
     },
-    [screenToFlowPosition, project, getZoom],
+    [screenToFlowPosition, project, getZoom, activeTool, nodes, edges],
   )
 
   /* ============================================================
@@ -1825,6 +2980,9 @@ function SchematicEditor() {
         label?: string
         value?: string
         rotation?: number
+        type?: SchematicComponentType
+        directiveType?: "spice" | "comment"
+        portType?: "none" | "input" | "output" | "bidirectional"
       },
     ) => {
       setNodes((curr) => {
@@ -1837,6 +2995,9 @@ function SchematicEditor() {
               ...(updates.label !== undefined ? { label: updates.label } : {}),
               ...(updates.value !== undefined ? { value: updates.value } : {}),
               ...(updates.rotation !== undefined ? { rotation: updates.rotation } : {}),
+              ...(updates.type !== undefined ? { type: updates.type } : {}),
+              ...(updates.directiveType !== undefined ? { directiveType: updates.directiveType } : {}),
+              ...(updates.portType !== undefined ? { portType: updates.portType } : {}),
             },
           }
         })
@@ -1853,6 +3014,9 @@ function SchematicEditor() {
             ...(updates.label !== undefined ? { label: updates.label } : {}),
             ...(updates.value !== undefined ? { value: updates.value } : {}),
             ...(updates.rotation !== undefined ? { rotation: updates.rotation } : {}),
+            ...(updates.type !== undefined ? { type: updates.type } : {}),
+            ...(updates.directiveType !== undefined ? { directiveType: updates.directiveType } : {}),
+            ...(updates.portType !== undefined ? { portType: updates.portType } : {}),
           },
         }
       })
@@ -1868,11 +3032,21 @@ function SchematicEditor() {
         setPlacingComponent(null)
         return
       }
+      if (activeTool === "wire") {
+        finishAndSaveWire()
+        setContextMenu({ visible: false, x: 0, y: 0 })
+        return
+      }
+      if (activeTool === "delete") {
+        setActiveTool("select")
+        setContextMenu({ visible: false, x: 0, y: 0 })
+        return
+      }
       setContextMenu({ visible: false, x: 0, y: 0 })
       setPropertiesModalNode(node as Node<SchematicNodeData>)
       setIsPropertiesModalOpen(true)
     },
-    [placingComponent],
+    [placingComponent, activeTool, finishAndSaveWire],
   )
 
   const onPaneContextMenu = useCallback(
@@ -1881,9 +3055,21 @@ function SchematicEditor() {
       if (placingComponent) {
         setPlacingComponent(null)
       }
+      if (activeTool === "wire") {
+        event.stopPropagation()
+        finishAndSaveWire()
+        setContextMenu({ visible: false, x: 0, y: 0 })
+        return
+      }
+      if (activeTool === "delete") {
+        event.stopPropagation()
+        setActiveTool("select")
+        setContextMenu({ visible: false, x: 0, y: 0 })
+        return
+      }
       setContextMenu({ visible: false, x: 0, y: 0 })
     },
-    [placingComponent],
+    [placingComponent, activeTool, finishAndSaveWire],
   )
 
   const onEdgeContextMenu = useCallback(
@@ -1891,6 +3077,18 @@ function SchematicEditor() {
       event.preventDefault()
       if (placingComponent) {
         setPlacingComponent(null)
+        return
+      }
+      if (activeTool === "wire") {
+        event.stopPropagation()
+        finishAndSaveWire()
+        setContextMenu({ visible: false, x: 0, y: 0 })
+        return
+      }
+      if (activeTool === "delete") {
+        event.stopPropagation()
+        setActiveTool("select")
+        setContextMenu({ visible: false, x: 0, y: 0 })
         return
       }
       setSelectedEdgeId(edge.id)
@@ -1902,7 +3100,7 @@ function SchematicEditor() {
         edgeId: edge.id,
       })
     },
-    [placingComponent],
+    [placingComponent, activeTool, finishAndSaveWire],
   )
 
   /* ============================================================
@@ -1910,9 +3108,11 @@ function SchematicEditor() {
      ============================================================ */
 
   const startPlacingComponent = useCallback(
-    (type: SchematicComponentType) => {
+    (type: SchematicComponentType, customValue?: string) => {
       setPlacingComponent((curr) =>
-        curr?.type === type ? null : { type, rotation: 0 },
+        curr?.type === type && curr?.customValue === customValue
+          ? null
+          : { type, rotation: 0, customValue },
       )
       setActiveTool("select")
       setSelectedNodeId(null)
@@ -1920,6 +3120,29 @@ function SchematicEditor() {
       setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
     },
     [],
+  )
+
+  const openNetLabelDialog = useCallback(() => {
+    setNetNameModal({
+      isOpen: true,
+      type: "net-label",
+      name: "",
+    })
+  }, [])
+
+  const openPortDialog = useCallback((portType: "port-in" | "port-out" | "port-bi" = "port-in") => {
+    setNetNameModal({
+      isOpen: true,
+      type: portType,
+      name: portType === "port-in" ? "IN" : portType === "port-out" ? "OUT" : "IO",
+    })
+  }, [])
+
+  const handleConfirmNetName = useCallback(
+    (type: SchematicComponentType, name: string) => {
+      startPlacingComponent(type, name)
+    },
+    [startPlacingComponent],
   )
 
   const startPlacingJunction = useCallback(() => {
@@ -1941,17 +3164,12 @@ function SchematicEditor() {
 
   const deleteSelected = useCallback(() => {
     if (selectedNodeId) {
-      pushSnapshot(nodes, edges)
-      setNodes((curr) => curr.filter((n) => n.id !== selectedNodeId))
-      setEdges((curr) => curr.filter((e) => e.source !== selectedNodeId && e.target !== selectedNodeId))
-      setSelectedNodeId(null)
+      deleteNodeById(selectedNodeId)
     } else if (selectedEdgeId) {
-      pushSnapshot(nodes, edges)
-      setEdges((curr) => curr.filter((e) => e.id !== selectedEdgeId))
-      setSelectedEdgeId(null)
+      deleteEdgeById(selectedEdgeId)
     }
     setContextMenu({ visible: false, x: 0, y: 0 })
-  }, [selectedNodeId, selectedEdgeId, nodes, edges, pushSnapshot])
+  }, [selectedNodeId, selectedEdgeId, deleteNodeById, deleteEdgeById])
 
   const rotateSelected = useCallback(() => {
     if (!selectedNodeId) return
@@ -1970,14 +3188,263 @@ function SchematicEditor() {
     setContextMenu({ visible: false, x: 0, y: 0 })
   }, [selectedNodeId, nodes, edges, pushSnapshot])
 
-  const clearCanvas = useCallback(() => {
-    if (nodes.length === 0 && edges.length === 0) return
-    pushSnapshot(nodes, edges)
-    setNodes([])
-    setEdges([])
+  /* ============================================================
+     MULTI-FILE PROJECT & TAB MANAGEMENT (LTspice Style)
+     ============================================================ */
+
+  const switchTab = useCallback(
+    (targetTabId: string) => {
+      if (targetTabId === activeTabId) return
+      const targetTab = tabs.find((t) => t.id === targetTabId)
+      if (!targetTab) return
+
+      setSelectedNodeId(null)
+      setSelectedEdgeId(null)
+      setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+      setActiveTool("select")
+      setPlacingComponent(null)
+
+      setActiveTabId(targetTabId)
+      setNodes(targetTab.nodes)
+      setEdges(targetTab.edges)
+      setHistory(targetTab.history)
+      setAnalysisConfig(targetTab.analysisConfig)
+      setSolverSettings(targetTab.solverSettings)
+      setLastSimResult(targetTab.simulationResult)
+    },
+    [activeTabId, tabs],
+  )
+
+  const createNewSchematicTab = useCallback(() => {
+    const newTab = createDefaultCircuitTab(draftCounterRef.current++)
+    setTabs((curr) => [...curr, newTab])
     setSelectedNodeId(null)
     setSelectedEdgeId(null)
-  }, [nodes, edges, pushSnapshot])
+    setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+    setActiveTool("select")
+    setPlacingComponent(null)
+
+    setActiveTabId(newTab.id)
+    setNodes(newTab.nodes)
+    setEdges(newTab.edges)
+    setHistory(newTab.history)
+    setAnalysisConfig(newTab.analysisConfig)
+    setSolverSettings(newTab.solverSettings)
+    setLastSimResult(null)
+  }, [])
+
+  const saveTabById = useCallback(
+    async (tabId: string, saveAs: boolean = false): Promise<boolean> => {
+      const targetTab = tabs.find((t) => t.id === tabId)
+      if (!targetTab) return false
+
+      const tabToSave: CircuitTab =
+        tabId === activeTabId
+          ? {
+            ...targetTab,
+            nodes,
+            edges,
+            analysisConfig,
+            solverSettings,
+            simulationResult: lastSimResult,
+          }
+          : targetTab
+
+      const content = serializeCircuitTab(tabToSave)
+      const lastDir = getLastSavedDir()
+      const defaultPath = targetTab.filePath || (lastDir ? `${lastDir}/${targetTab.title}` : targetTab.title)
+
+      try {
+        const result = await window.api.saveFile({
+          filePath: saveAs ? null : targetTab.filePath,
+          content,
+          defaultPath,
+        })
+
+        if (result.canceled || !result.filePath) {
+          return false
+        }
+
+        const newFilePath = result.filePath
+        const newTitle = getFileNameFromPath(newFilePath)
+
+        setTabs((currTabs) =>
+          currTabs.map((t) =>
+            t.id === tabId
+              ? {
+                ...t,
+                filePath: newFilePath,
+                title: newTitle,
+                isDirty: false,
+              }
+              : t,
+          ),
+        )
+
+        const updatedRecent = addRecentFile(newFilePath, newTitle)
+        setRecentFiles(updatedRecent)
+        setLastSavedDir(newFilePath)
+        return true
+      } catch (err) {
+        console.error("Failed to save schematic:", err)
+        return false
+      }
+    },
+    [tabs, activeTabId, nodes, edges, analysisConfig, solverSettings, lastSimResult],
+  )
+
+  const saveActiveTab = useCallback(
+    async (saveAs: boolean = false) => {
+      return saveTabById(activeTabId, saveAs)
+    },
+    [activeTabId, saveTabById],
+  )
+
+  const openFileByPath = useCallback(
+    async (filePath: string) => {
+      const existingTab = tabs.find((t) => t.filePath === filePath)
+      if (existingTab) {
+        switchTab(existingTab.id)
+        return
+      }
+
+      try {
+        const res = await window.api.readFile(filePath)
+        if (!res.success || !res.content) {
+          console.error("Failed to read file:", res.error)
+          return
+        }
+
+        const title = getFileNameFromPath(filePath)
+        const openedTab = deserializeCircuitTab(res.content, filePath, title)
+
+        const currentTab = tabs.find((t) => t.id === activeTabId)
+        const isCurrentPristine =
+          currentTab && !currentTab.isDirty && currentTab.nodes.length === 0 && !currentTab.filePath
+
+        if (isCurrentPristine) {
+          setTabs((currTabs) =>
+            currTabs.map((t) => (t.id === activeTabId ? { ...openedTab, id: activeTabId } : t)),
+          )
+          setNodes(openedTab.nodes)
+          setEdges(openedTab.edges)
+          setHistory({ past: [], future: [] })
+          setAnalysisConfig(openedTab.analysisConfig)
+          setSolverSettings(openedTab.solverSettings)
+          setLastSimResult(null)
+        } else {
+          setTabs((curr) => [...curr, openedTab])
+          setActiveTabId(openedTab.id)
+          setNodes(openedTab.nodes)
+          setEdges(openedTab.edges)
+          setHistory({ past: [], future: [] })
+          setAnalysisConfig(openedTab.analysisConfig)
+          setSolverSettings(openedTab.solverSettings)
+          setLastSimResult(null)
+        }
+
+        const updatedRecent = addRecentFile(filePath, title)
+        setRecentFiles(updatedRecent)
+        setLastSavedDir(filePath)
+      } catch (err) {
+        console.error("Failed to open file:", err)
+      }
+    },
+    [tabs, activeTabId, switchTab],
+  )
+
+  const openSchematicFile = useCallback(async () => {
+    try {
+      const res = await window.api.openFile()
+      if (res.canceled || !res.filePath || res.content === undefined) {
+        return
+      }
+      await openFileByPath(res.filePath)
+    } catch (err) {
+      console.error("Failed to show open dialog:", err)
+    }
+  }, [openFileByPath])
+
+  const closeTab = useCallback(
+    async (tabIdToClose: string) => {
+      const tabToClose = tabs.find((t) => t.id === tabIdToClose)
+      if (!tabToClose) return
+
+      if (tabToClose.isDirty) {
+        try {
+          const res = await window.api.confirmClose(tabToClose.title)
+          if (res.action === "cancel") {
+            return
+          }
+          if (res.action === "save") {
+            const saved = await saveTabById(tabIdToClose, false)
+            if (!saved) {
+              return
+            }
+          }
+        } catch (_err) { }
+      }
+
+      setTabs((currTabs) => {
+        const remaining = currTabs.filter((t) => t.id !== tabIdToClose)
+        if (remaining.length === 0) {
+          const fresh = createDefaultCircuitTab(1)
+          draftCounterRef.current = 2
+          setActiveTabId(fresh.id)
+          setNodes(fresh.nodes)
+          setEdges(fresh.edges)
+          setHistory(fresh.history)
+          setAnalysisConfig(fresh.analysisConfig)
+          setSolverSettings(fresh.solverSettings)
+          setLastSimResult(null)
+          return [fresh]
+        }
+
+        if (tabIdToClose === activeTabId) {
+          const closedIdx = currTabs.findIndex((t) => t.id === tabIdToClose)
+          const nextActive = remaining[Math.min(closedIdx, remaining.length - 1)]
+          setActiveTabId(nextActive.id)
+          setNodes(nextActive.nodes)
+          setEdges(nextActive.edges)
+          setHistory(nextActive.history)
+          setAnalysisConfig(nextActive.analysisConfig)
+          setSolverSettings(nextActive.solverSettings)
+          setLastSimResult(nextActive.simulationResult)
+        }
+
+        return remaining
+      })
+    },
+    [tabs, activeTabId, saveTabById],
+  )
+
+  const closeOtherTabs = useCallback(
+    async (keepTabId: string) => {
+      const otherTabs = tabs.filter((t) => t.id !== keepTabId)
+      for (const t of otherTabs) {
+        await closeTab(t.id)
+      }
+    },
+    [tabs, closeTab],
+  )
+
+  const closeAllTabs = useCallback(async () => {
+    for (const t of [...tabs]) {
+      await closeTab(t.id)
+    }
+  }, [tabs, closeTab])
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const hasDirty = tabs.some((t) => t.isDirty)
+      if (hasDirty) {
+        e.preventDefault()
+        e.returnValue = ""
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [tabs])
 
   /* ============================================================
      KEYBOARD SHORTCUTS
@@ -2007,6 +3474,41 @@ function SchematicEditor() {
         return
       }
 
+      // New Schematic: Ctrl+N
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "n") {
+        event.preventDefault()
+        createNewSchematicTab()
+        return
+      }
+
+      // Toggle AI Assistant: Ctrl+Space or Ctrl+J
+      if ((event.ctrlKey || event.metaKey) && (event.key.toLowerCase() === "j" || event.code === "Space")) {
+        event.preventDefault()
+        setIsAiAssistantOpen((prev) => !prev)
+        return
+      }
+
+      // Open Schematic: Ctrl+O
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") {
+        event.preventDefault()
+        openSchematicFile()
+        return
+      }
+
+      // Save / Save As: Ctrl+S / Ctrl+Shift+S
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault()
+        saveActiveTab(event.shiftKey)
+        return
+      }
+
+      // Close Tab: Ctrl+W
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "w") {
+        event.preventDefault()
+        closeTab(activeTabId)
+        return
+      }
+
       // Space / F: Flip wire bend
       if (event.key === " " || event.key.toLowerCase() === "f") {
         if (activeTool === "wire" && wireDraft.isDrawing) {
@@ -2026,7 +3528,11 @@ function SchematicEditor() {
 
       // Delete: Del or Backspace
       if (event.key === "Delete" || event.key === "Backspace") {
-        deleteSelected()
+        if (selectedNodeId || selectedEdgeId) {
+          deleteSelected()
+        } else {
+          setActiveTool((prev) => (prev === "delete" ? "select" : "delete"))
+        }
         return
       }
 
@@ -2092,13 +3598,17 @@ function SchematicEditor() {
 
         if (event.key === "F4") {
           event.preventDefault()
-          startPlacingComponent("net-label")
+          openNetLabelDialog()
           return
         }
 
         if (event.key === "F5") {
           event.preventDefault()
-          deleteSelected()
+          if (selectedNodeId || selectedEdgeId) {
+            deleteSelected()
+          } else {
+            setActiveTool((prev) => (prev === "delete" ? "select" : "delete"))
+          }
           return
         }
 
@@ -2115,6 +3625,9 @@ function SchematicEditor() {
         }
 
         switch (event.key.toLowerCase()) {
+          case "a":
+            startPlacingComponent("ac-source")
+            break
           case "c":
             startPlacingComponent("capacitor")
             break
@@ -2142,9 +3655,48 @@ function SchematicEditor() {
           case "j":
             startPlacingJunction()
             break
+          case "s":
+            startPlacingComponent("spice-directive")
+            break
+          case "t":
+            startPlacingComponent("schematic-text")
+            break
+          case "p":
+            setActiveTool((prev) => (prev === "probe" ? "select" : "probe"))
+            break
           case "escape":
+            if (activeTool === "probe") {
+              setActiveTool("select")
+              return
+            }
+            if (activeTool === "delete") {
+              setActiveTool("select")
+              return
+            }
+            if (activeTool === "wire") {
+              if (wireClickTimeoutRef.current) {
+                clearTimeout(wireClickTimeoutRef.current)
+                wireClickTimeoutRef.current = null
+              }
+              if (wireDraft.isDrawing) {
+                // Cancel ONLY the unfinished wire draft in progress; never delete committed wires
+                setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
+                return
+              }
+              // If not actively drawing, exit wire mode to select mode
+              setActiveTool("select")
+              return
+            }
             if (highlightedNet) {
               setHighlightedNet(null)
+              return
+            }
+            if (isOperatingPointModalOpen) {
+              setIsOperatingPointModalOpen(false)
+              return
+            }
+            if (isAcModalOpen) {
+              setIsAcModalOpen(false)
               return
             }
             if (isNetlistModalOpen) {
@@ -2167,10 +3719,6 @@ function SchematicEditor() {
               setPlacingComponent(null)
               return
             }
-            if (activeTool === "wire" && wireDraft.isDrawing) {
-              setWireDraft({ isDrawing: false, points: [], bendOrientation: "h" })
-              return
-            }
             setActiveTool("select")
             setSelectedNodeId(null)
             setSelectedEdgeId(null)
@@ -2186,6 +3734,11 @@ function SchematicEditor() {
   }, [
     undo,
     redo,
+    createNewSchematicTab,
+    openSchematicFile,
+    saveActiveTab,
+    closeTab,
+    activeTabId,
     deleteSelected,
     rotateSelected,
     startPlacingComponent,
@@ -2200,9 +3753,16 @@ function SchematicEditor() {
     isConfigAnalysisOpen,
     isSettingsModalOpen,
     runOrPauseSimulation,
+    openNetLabelDialog,
   ])
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId)
+  const activeTab = tabs.find((t) => t.id === activeTabId) || tabs[0]
+
+  document.title = "ASAP"
+  useEffect(() => {
+    document.title = "ASAP"
+  }, [activeTabId, tabs])
 
   return (
     <div
@@ -2217,9 +3777,16 @@ function SchematicEditor() {
 
       <header className="app-header">
         <div className="header-left">
-          <div className="app-logo">
-            <div className="app-logo-badge">CP</div>
-            <span>CriticalPath</span>
+          <div className="app-logo" style={{ display: "flex", alignItems: "center" }}>
+            <img
+              src={asapLogo}
+              alt="ASAP"
+              style={{
+                height: "20px",
+                width: "auto",
+                objectFit: "contain",
+              }}
+            />
           </div>
 
           <div className="menu-bar">
@@ -2236,14 +3803,72 @@ function SchematicEditor() {
               </button>
               {openMenu === "file" && (
                 <div className="dropdown-menu">
-                  <button className="dropdown-item" onClick={() => { clearCanvas(); setOpenMenu(null) }}>
+                  <button className="dropdown-item" onClick={() => { createNewSchematicTab(); setOpenMenu(null) }}>
                     <span>{t('menu.newSchematic')}</span> <span className="shortcut">Ctrl+N</span>
                   </button>
-                  <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
+                  <button className="dropdown-item" onClick={() => { openSchematicFile(); setOpenMenu(null) }}>
                     <span>{t('menu.openCircuit')}</span> <span className="shortcut">Ctrl+O</span>
                   </button>
-                  <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
+
+                  {/* Recent Files submenu */}
+                  <div
+                    className="dropdown-item dropdown-has-submenu"
+                    onMouseEnter={() => setShowRecentMenu(true)}
+                    onMouseLeave={() => setShowRecentMenu(false)}
+                  >
+                    <span>{t('menu.openRecent')}</span>
+                    <span className="submenu-arrow">▶</span>
+                    {showRecentMenu && (
+                      <div className="dropdown-submenu">
+                        {recentFiles.length === 0 ? (
+                          <div className="dropdown-item disabled" style={{ opacity: 0.6, cursor: "default" }}>
+                            {t('menu.noRecentFiles')}
+                          </div>
+                        ) : (
+                          <>
+                            {recentFiles.map((rf) => (
+                              <button
+                                key={rf.filePath}
+                                className="dropdown-item"
+                                onClick={() => {
+                                  openFileByPath(rf.filePath)
+                                  setOpenMenu(null)
+                                  setShowRecentMenu(false)
+                                }}
+                                title={rf.filePath}
+                              >
+                                <span className="recent-file-title">{rf.title}</span>
+                                <span className="recent-file-path">{rf.filePath}</span>
+                              </button>
+                            ))}
+                            <div className="dropdown-separator" />
+                            <button
+                              className="dropdown-item"
+                              onClick={() => {
+                                clearRecentFiles()
+                                setRecentFiles([])
+                                setOpenMenu(null)
+                                setShowRecentMenu(false)
+                              }}
+                            >
+                              <span>{t('menu.clearRecentFiles')}</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="dropdown-separator" />
+
+                  <button className="dropdown-item" onClick={() => { saveActiveTab(false); setOpenMenu(null) }}>
                     <span>{t('menu.saveSchematic')}</span> <span className="shortcut">Ctrl+S</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { saveActiveTab(true); setOpenMenu(null) }}>
+                    <span>{t('menu.saveAs')}</span> <span className="shortcut">Ctrl+Shift+S</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { closeTab(activeTabId); setOpenMenu(null) }}>
+                    <span>{t('menu.closeSchematic')}</span> <span className="shortcut">Ctrl+W</span>
                   </button>
                   <div className="dropdown-separator" />
                   <button
@@ -2329,13 +3954,13 @@ function SchematicEditor() {
                     <span>{t('menu.componentProperties')}</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { setIsDiagnosticsOpen(!isDiagnosticsOpen); setBottomPanelTab("diagnostics"); setOpenMenu(null) }}>
-                    <span>{isDiagnosticsOpen ? "Hide Diagnostics" : t('menu.diagnostics')}</span> <span className="shortcut">F7</span>
+                    <span>{isDiagnosticsOpen ? t('menu.hideDiagnostics') : t('menu.diagnostics')}</span> <span className="shortcut">F7</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { setIsWaveformOpen(!isWaveformOpen); setBottomPanelTab("waveforms"); setOpenMenu(null) }}>
-                    <span>{isWaveformOpen ? "Hide Waveform Viewer" : t('menu.waveformViewer')}</span> <span className="shortcut">F10</span>
+                    <span>{isWaveformOpen ? t('menu.hideWaveformViewer') : t('menu.waveformViewer')}</span> <span className="shortcut">F10</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { setIsMeasurementsOpen(!isMeasurementsOpen); setBottomPanelTab("measurements"); setOpenMenu(null) }}>
-                    <span>{isMeasurementsOpen ? "Hide Measurements" : t('menu.measurements')}</span> <span className="shortcut">F11</span>
+                    <span>{isMeasurementsOpen ? t('menu.hideMeasurements') : t('menu.measurements')}</span> <span className="shortcut">F11</span>
                   </button>
                 </div>
               )}
@@ -2383,8 +4008,28 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Simulation Diagnostics...</span>
+                    <span>{t('menu.simulationDiagnostics')}</span>
                     <span className="shortcut">F7</span>
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      setIsOperatingPointModalOpen(true)
+                      setOpenMenu(null)
+                    }}
+                    disabled={!lastSimResult}
+                  >
+                    <span>{t('menu.opResults')}</span>
+                  </button>
+                  <button
+                    className="dropdown-item"
+                    onClick={() => {
+                      setIsAcModalOpen(true)
+                      setOpenMenu(null)
+                    }}
+                    disabled={!lastSimResult || (!lastSimResult.isComplex && analysisConfig.type !== "ac")}
+                  >
+                    <span>{t('menu.acResults')}</span>
                   </button>
                   <button
                     className="dropdown-item"
@@ -2394,7 +4039,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Waveform Viewer...</span>
+                    <span>{t('menu.waveformViewerMenu')}</span>
                     <span className="shortcut">F10</span>
                   </button>
                   <button
@@ -2405,7 +4050,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Automatic Measurements...</span>
+                    <span>{t('menu.measurementsMenu')}</span>
                     <span className="shortcut">F11</span>
                   </button>
                   <button
@@ -2415,7 +4060,7 @@ function SchematicEditor() {
                       setOpenMenu(null)
                     }}
                   >
-                    <span>Clear Waveforms & Diagnostics</span>
+                    <span>{t('menu.clearWaveforms')}</span>
                   </button>
                   <div className="dropdown-separator" />
                   <button
@@ -2479,8 +4124,23 @@ function SchematicEditor() {
                   <button className="dropdown-item" onClick={() => { addComponent("voltage-source"); setOpenMenu(null) }}>
                     <span>{t('toolsMenu.placeVoltageSource')}</span> <span className="shortcut">V</span>
                   </button>
-                  <button className="dropdown-item" onClick={() => { addComponent("net-label"); setOpenMenu(null) }}>
+                  <button className="dropdown-item" onClick={() => { openNetLabelDialog(); setOpenMenu(null) }}>
                     <span>{t('toolsMenu.placeNetLabel')}</span> <span className="shortcut">F4</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { openPortDialog("port-in"); setOpenMenu(null) }}>
+                    <span>{t('toolsMenu.placeInputPort')}</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { openPortDialog("port-out"); setOpenMenu(null) }}>
+                    <span>{t('toolsMenu.placeOutputPort')}</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { openPortDialog("port-bi"); setOpenMenu(null) }}>
+                    <span>{t('toolsMenu.placeBiPort')}</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { addComponent("spice-directive"); setOpenMenu(null) }}>
+                    <span>{t('toolsMenu.placeSpiceDirective')}</span> <span className="shortcut">S</span>
+                  </button>
+                  <button className="dropdown-item" onClick={() => { addComponent("schematic-text"); setOpenMenu(null) }}>
+                    <span>{t('toolsMenu.placeTextAnnotation')}</span> <span className="shortcut">T</span>
                   </button>
                   <button className="dropdown-item" onClick={() => { addJunction(); setOpenMenu(null) }}>
                     <span>{t('toolsMenu.placeSolderDot')}</span> <span className="shortcut">J</span>
@@ -2524,14 +4184,25 @@ function SchematicEditor() {
               {openMenu === "help" && (
                 <div className="dropdown-menu">
                   <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
-                    <span>Keyboard Shortcuts</span>
+                    <span>{t('menu.keyboardShortcuts')}</span>
                   </button>
                   <button className="dropdown-item" onClick={() => setOpenMenu(null)}>
-                    <span>LTspice Reference</span>
+                    <span>{t('menu.ltspiceReference')}</span>
                   </button>
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        <div className="header-center">
+          <div className="project-title-badge">
+            <span
+              className="project-status-dot"
+              style={{ background: activeTab?.isDirty ? "#ef4444" : "#107c41" }}
+            />
+            <span>{activeTab?.title || "Untitled.qsch"}</span>
+            {activeTab?.isDirty && <span style={{ color: "#ef4444", fontWeight: 700 }}>*</span>}
           </div>
         </div>
 
@@ -2545,6 +4216,58 @@ function SchematicEditor() {
           2. LTSPICE TOP SCHEMATIC TOOLBAR
           ===================================================== */}
       <div className="ltspice-toolbar" role="toolbar" aria-label="LTspice Schematic Toolbar">
+        {/* Group 0: File Operations */}
+        <div className="tb-group">
+          <button
+            className="tb-btn tb-icon-btn"
+            onClick={() => { hideTooltip(); createNewSchematicTab() }}
+            onMouseEnter={(e) => showTooltip(e, "New Schematic", "Ctrl+N")}
+            onMouseLeave={hideTooltip}
+            aria-label="New Schematic"
+          >
+            <span className="tb-icon-slot">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M9 1.5H3.5C2.7 1.5 2 2.2 2 3V13C2 13.8 2.7 14.5 3.5 14.5H12.5C13.3 14.5 14 13.8 14 13V6.5L9 1.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+                <path d="M9 1.5V6.5H14" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+                <line x1="8" y1="9" x2="8" y2="12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                <line x1="6.5" y1="10.5" x2="9.5" y2="10.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+              </svg>
+            </span>
+          </button>
+
+          <button
+            className="tb-btn tb-icon-btn"
+            onClick={() => { hideTooltip(); openSchematicFile() }}
+            onMouseEnter={(e) => showTooltip(e, "Open Schematic", "Ctrl+O")}
+            onMouseLeave={hideTooltip}
+            aria-label="Open Schematic"
+          >
+            <span className="tb-icon-slot">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M1.5 5.5V13C1.5 13.6 1.9 14 2.5 14H13.5C14.1 14 14.5 13.6 14.5 13V7C14.5 6.4 14.1 6 13.5 6H8L6.5 4H2.5C1.9 4 1.5 4.4 1.5 5V5.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </button>
+
+          <button
+            className="tb-btn tb-icon-btn"
+            onClick={() => { hideTooltip(); saveActiveTab(false) }}
+            onMouseEnter={(e) => showTooltip(e, "Save Schematic", "Ctrl+S")}
+            onMouseLeave={hideTooltip}
+            aria-label="Save Schematic"
+          >
+            <span className="tb-icon-slot">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                <path d="M2.5 2H11.5L14 4.5V13.5C14 13.8 13.8 14 13.5 14H2.5C2.2 14 2 13.8 2 13.5V2.5C2 2.2 2.2 2 2.5 2Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+                <path d="M5 2V5H11V2" stroke="currentColor" strokeWidth="1.2" />
+                <rect x="4.5" y="8" width="7" height="6" stroke="currentColor" strokeWidth="1.2" />
+              </svg>
+            </span>
+          </button>
+        </div>
+
+        <div className="tb-divider" />
+
         {/* Group 1: Simulation Controls & History */}
         <div className="tb-group tb-group-sim">
           <button
@@ -2601,8 +4324,8 @@ function SchematicEditor() {
               borderColor: isDiagnosticsOpen ? "rgba(56, 189, 248, 0.4)" : undefined,
             }}
           >
-            <span className="tb-icon-slot" style={{ fontSize: 13, lineHeight: 1 }}>
-              ⚡
+            <span className="tb-icon-slot" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Zap size={14} />
             </span>
           </button>
 
@@ -2617,8 +4340,8 @@ function SchematicEditor() {
               borderColor: isWaveformOpen ? "rgba(56, 189, 248, 0.4)" : undefined,
             }}
           >
-            <span className="tb-icon-slot" style={{ fontSize: 13, lineHeight: 1 }}>
-              📈
+            <span className="tb-icon-slot" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <TrendingUp size={14} />
             </span>
           </button>
 
@@ -2633,8 +4356,29 @@ function SchematicEditor() {
               borderColor: isMeasurementsOpen ? "rgba(16, 185, 129, 0.4)" : undefined,
             }}
           >
-            <span className="tb-icon-slot" style={{ fontSize: 13, lineHeight: 1 }}>
-              📊
+            <span className="tb-icon-slot" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <BarChart2 size={14} />
+            </span>
+          </button>
+
+          {/* AI Circuit Copilot Button */}
+          <button
+            className={`tb-btn tb-icon-btn ${isAiAssistantOpen ? "active" : ""}`}
+            onClick={() => { hideTooltip(); setIsAiAssistantOpen(!isAiAssistantOpen) }}
+            onMouseEnter={(e) => showTooltip(e, isAiAssistantOpen ? "Close AI Copilot" : "CriticalPath AI Copilot", "Ctrl+Space")}
+            onMouseLeave={hideTooltip}
+            aria-label="CriticalPath AI Copilot"
+            style={{
+              borderColor: isAiAssistantOpen ? "rgba(168, 85, 247, 0.8)" : "rgba(139, 92, 246, 0.4)",
+              background: isAiAssistantOpen
+                ? "linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(99, 102, 241, 0.16) 100%)"
+                : "rgba(139, 92, 246, 0.06)",
+              boxShadow: isAiAssistantOpen ? "0 0 8px rgba(168, 85, 247, 0.35)" : undefined,
+              transition: "all 0.15s ease",
+            }}
+          >
+            <span className="tb-icon-slot" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <AiCopilotLogo size={16} active={isAiAssistantOpen} glow={isAiAssistantOpen} />
             </span>
           </button>
         </div>
@@ -2667,6 +4411,29 @@ function SchematicEditor() {
             </span>
           </button>
 
+          {/* Probe Wire / Node Tool */}
+          <button
+            className={`tb-btn tb-icon-btn ${activeTool === "probe" ? "active" : ""}`}
+            onClick={() => {
+              hideTooltip()
+              setActiveTool((prev) => (prev === "probe" ? "select" : "probe"))
+            }}
+            onMouseEnter={(e) =>
+              showTooltip(e, activeTool === "probe" ? "Exit Probe Mode" : "Probe Wire/Node (Graph & Calculate)", "P")
+            }
+            onMouseLeave={hideTooltip}
+            aria-label="Probe Wire/Node"
+            style={{
+              color: activeTool === "probe" ? "#0284c7" : undefined,
+              borderColor: activeTool === "probe" ? "rgba(2, 132, 199, 0.6)" : undefined,
+              background: activeTool === "probe" ? "#e0f2fe" : undefined,
+            }}
+          >
+            <span className="tb-icon-slot" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Crosshair size={14} />
+            </span>
+          </button>
+
           <button
             className={`tb-btn tb-icon-btn ${placingComponent?.type === "ground" ? "active" : ""}`}
             onClick={() => { hideTooltip(); startPlacingComponent("ground") }}
@@ -2679,12 +4446,152 @@ function SchematicEditor() {
 
           <button
             className={`tb-btn tb-icon-btn ${placingComponent?.type === "net-label" ? "active" : ""}`}
-            onClick={() => { hideTooltip(); startPlacingComponent("net-label") }}
+            onClick={() => { hideTooltip(); openNetLabelDialog() }}
             onMouseEnter={(e) => showTooltip(e, "Net Label", "F4")}
             onMouseLeave={hideTooltip}
             aria-label="Net Label"
           >
             <span className="tb-icon-slot">{CompIcon['net-label']}</span>
+          </button>
+
+          {/* Port Tool with dropdown for Input, Output, Bidirectional */}
+          <div ref={portDropdownRef} style={{ position: "relative", display: "inline-flex" }}>
+            <button
+              className={`tb-btn tb-icon-btn ${placingComponent?.type === "port-in" ||
+                placingComponent?.type === "port-out" ||
+                placingComponent?.type === "port-bi"
+                ? "active"
+                : ""
+                }`}
+              onClick={() => {
+                hideTooltip()
+                setIsPortMenuOpen(false)
+                openPortDialog("port-in")
+              }}
+              onMouseEnter={(e) => showTooltip(e, "Place Port (Input / Output / Bi-Dir)", "")}
+              onMouseLeave={hideTooltip}
+              aria-label="Port"
+              style={{ display: "inline-flex", alignItems: "center", borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+            >
+              <span className="tb-icon-slot">{CompIcon.port}</span>
+            </button>
+            <button
+              className={`tb-btn tb-icon-btn ${isPortMenuOpen ? "active" : ""}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                hideTooltip()
+                setIsPortMenuOpen((prev) => !prev)
+              }}
+              style={{ minWidth: 14, width: 14, padding: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderLeft: "none" }}
+              aria-label="Port Options"
+            >
+              <svg width="6" height="4" viewBox="0 0 6 4" style={{ opacity: 0.7 }}>
+                <path d="M0 0 L3 3 L6 0 Z" fill="currentColor" />
+              </svg>
+            </button>
+
+            {isPortMenuOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  marginTop: 2,
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 4,
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+                  zIndex: 1000,
+                  minWidth: 160,
+                  padding: "4px 0",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <button
+                  type="button"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 10px",
+                    background: "none",
+                    border: "none",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    color: "#1e293b",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                  onClick={() => {
+                    setIsPortMenuOpen(false)
+                    openPortDialog("port-in")
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center" }}>{CompIcon["port-in"]}</span>
+                  <span>Input Port</span>
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 10px",
+                    background: "none",
+                    border: "none",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    color: "#1e293b",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                  onClick={() => {
+                    setIsPortMenuOpen(false)
+                    openPortDialog("port-out")
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center" }}>{CompIcon["port-out"]}</span>
+                  <span>Output Port</span>
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 10px",
+                    background: "none",
+                    border: "none",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    color: "#1e293b",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#f1f5f9")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "none")}
+                  onClick={() => {
+                    setIsPortMenuOpen(false)
+                    openPortDialog("port-bi")
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center" }}>{CompIcon["port-bi"]}</span>
+                  <span>Bidirectional Port</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button
+            className={`tb-btn tb-icon-btn ${placingComponent?.type === "schematic-text" ? "active" : ""}`}
+            onClick={() => { hideTooltip(); startPlacingComponent("schematic-text") }}
+            onMouseEnter={(e) => showTooltip(e, "Text Annotation", "T")}
+            onMouseLeave={hideTooltip}
+            aria-label="Text Annotation"
+          >
+            <span className="tb-icon-slot">{CompIcon['schematic-text']}</span>
           </button>
 
           <button
@@ -2751,31 +4658,22 @@ function SchematicEditor() {
           >
             <span className="tb-icon-slot">{CompIcon['voltage-source']}</span>
           </button>
+
+          <button
+            className={`tb-btn tb-icon-btn ${placingComponent?.type === "ac-source" ? "active" : ""}`}
+            onClick={() => { hideTooltip(); startPlacingComponent("ac-source") }}
+            onMouseEnter={(e) => showTooltip(e, "AC Voltage Source", "A")}
+            onMouseLeave={hideTooltip}
+            aria-label="AC Voltage Source"
+          >
+            <span className="tb-icon-slot">{CompIcon['ac-source']}</span>
+          </button>
         </div>
 
         <div className="tb-divider" />
 
         {/* Group 4: Transistors & Semiconductors */}
         <div className="tb-group">
-          <button
-            className={`tb-btn tb-icon-btn ${placingComponent?.type === "nmos" ? "active" : ""}`}
-            onClick={() => { hideTooltip(); startPlacingComponent("nmos") }}
-            onMouseEnter={(e) => showTooltip(e, "NMOS Transistor", "M")}
-            onMouseLeave={hideTooltip}
-            aria-label="NMOS Transistor"
-          >
-            <span className="tb-icon-slot">{CompIcon.nmos}</span>
-          </button>
-
-          <button
-            className={`tb-btn tb-icon-btn ${placingComponent?.type === "pmos" ? "active" : ""}`}
-            onClick={() => { hideTooltip(); startPlacingComponent("pmos") }}
-            onMouseEnter={(e) => showTooltip(e, "PMOS Transistor", "O")}
-            onMouseLeave={hideTooltip}
-            aria-label="PMOS Transistor"
-          >
-            <span className="tb-icon-slot">{CompIcon.pmos}</span>
-          </button>
 
           <button
             className={`tb-btn tb-icon-btn ${placingComponent?.type === "npn-bjt" ? "active" : ""}`}
@@ -2817,7 +4715,7 @@ function SchematicEditor() {
                 <line x1="0" y1="13" x2="3" y2="13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
               </svg>
             </span>
-            <span className="tb-lib-text">Component</span>
+            <span className="tb-lib-text">{t('toolbar.component')}</span>
             <kbd className="tb-lib-kbd">F2</kbd>
           </button>
         </div>
@@ -2868,12 +4766,18 @@ function SchematicEditor() {
           </button>
 
           <button
-            className="tb-btn tb-icon-btn tb-btn-delete"
-            onClick={() => { hideTooltip(); deleteSelected() }}
-            disabled={!selectedNodeId && !selectedEdgeId}
-            onMouseEnter={(e) => showTooltip(e, "Delete Selected", "Del / F5")}
+            className={`tb-btn tb-icon-btn tb-btn-delete ${activeTool === "delete" ? "active" : ""}`}
+            onClick={() => {
+              hideTooltip()
+              if (selectedNodeId || selectedEdgeId) {
+                deleteSelected()
+              } else {
+                setActiveTool((prev) => (prev === "delete" ? "select" : "delete"))
+              }
+            }}
+            onMouseEnter={(e) => showTooltip(e, activeTool === "delete" ? "Exit Delete Mode" : "Delete Tool", "Del / F5")}
             onMouseLeave={hideTooltip}
-            aria-label="Delete Selected"
+            aria-label="Delete Tool"
           >
             <span className="tb-icon-slot">
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
@@ -2890,10 +4794,26 @@ function SchematicEditor() {
             onMouseLeave={hideTooltip}
             aria-label="Fit to Screen"
           >
-            <span className="tb-icon-slot" style={{ fontSize: 13 }}>⛶</span>
+            <span className="tb-icon-slot" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Maximize2 size={13} />
+            </span>
           </button>
         </div>
       </div>
+
+      {/* =====================================================
+          2.5 CIRCUIT DOCUMENT TABS (MULTI-PROJECT MANAGEMENT)
+          ===================================================== */}
+      <CircuitTabBar
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onSelectTab={switchTab}
+        onCloseTab={closeTab}
+        onNewTab={createNewSchematicTab}
+        onSaveTab={saveTabById}
+        onCloseOtherTabs={closeOtherTabs}
+        onCloseAllTabs={closeAllTabs}
+      />
 
       {/* =====================================================
           3. MAIN WORKSPACE (Canvas + Properties)
@@ -2918,13 +4838,32 @@ function SchematicEditor() {
             position: "relative",
           }}
         >
+          {/* Main Schematic Canvas */}
           <main
-            className={`schematic-viewport ${activeTool === "wire" ? "wire-mode-active" : ""} ${placingComponent ? "placing-mode-active" : ""}`}
-            style={{ flex: 1, width: "100%", height: "100%", minHeight: 0 }}
+            className={`schematic-viewport ${activeTool === "wire" ? "wire-mode-active" : ""} ${activeTool === "delete" ? "delete-mode-active" : ""} ${activeTool === "probe" ? "probe-mode-active" : ""} ${placingComponent ? "placing-mode-active" : ""}`}
+            style={{
+              flex: 1,
+              width: "100%",
+              height: "100%",
+              minHeight: 0,
+              display:
+                (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                  (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                  ? "none"
+                  : "block",
+            }}
             onMouseMove={onPaneMouseMove}
             onMouseEnter={() => setIsHoveringCanvas(true)}
             onMouseLeave={() => setIsHoveringCanvas(false)}
-            onContextMenu={(e) => e.preventDefault()}
+            onContextMenu={(e) => {
+              e.preventDefault()
+              if (activeTool === "wire") {
+                finishAndSaveWire()
+              }
+              if (activeTool === "delete" || activeTool === "probe") {
+                setActiveTool("select")
+              }
+            }}
             onClick={(e) => {
               if (placingComponent) {
                 const getFlowCoord = screenToFlowPosition || project
@@ -2946,8 +4885,9 @@ function SchematicEditor() {
                 className="zoom-btn"
                 onClick={() => fitView({ padding: 0.2, maxZoom: 1 })}
                 title="Fit to Screen"
+                style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
               >
-                ⛶
+                <Maximize2 size={12} />
               </button>
             </div>
 
@@ -2964,7 +4904,12 @@ function SchematicEditor() {
               onConnectEnd={onConnectEnd}
               onEdgeClick={onEdgeClick}
               onEdgeDoubleClick={onEdgeDoubleClick}
+              onEdgeMouseEnter={onEdgeMouseEnter}
+              onEdgeMouseLeave={onEdgeMouseLeave}
               onNodeClick={onNodeClick}
+              onNodeDoubleClick={onNodeDoubleClick}
+              onNodeMouseEnter={onNodeMouseEnter}
+              onNodeMouseLeave={onNodeMouseLeave}
               onPaneClick={onPaneClick}
               onDoubleClick={onPaneDoubleClick}
               onPaneContextMenu={onPaneContextMenu}
@@ -2974,8 +4919,8 @@ function SchematicEditor() {
               connectionLineComponent={SchematicConnectionLine}
               connectionLineType={ConnectionLineType.Step}
               defaultEdgeOptions={{ type: "step", animated: false }}
-              nodesConnectable={activeTool === "wire"}
-              elementsSelectable={activeTool === "select"}
+              nodesConnectable={false}
+              elementsSelectable={activeTool === "select" || activeTool === "probe"}
               panOnDrag={placingComponent ? false : true}
               snapToGrid
               snapGrid={[20, 20]}
@@ -2984,6 +4929,7 @@ function SchematicEditor() {
               deleteKeyCode={null}
               minZoom={0.2}
               maxZoom={2.5}
+              zoomOnDoubleClick={false}
             >
               {/* LTspice CAD Crosshair Guides & Live Wire Preview */}
               <CadCrosshairLayer
@@ -3008,136 +4954,190 @@ function SchematicEditor() {
           {/* Bottom Dock: Simulation Diagnostics Panel, Waveform Viewer & Automatic Measurements */}
           {(isDiagnosticsOpen || isWaveformOpen || isMeasurementsOpen) && (
             <div
-              className="bottom-dock-container"
+              className={`bottom-dock-container ${(isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                ? "maximized"
+                : ""
+                }`}
               style={{
                 display: "flex",
                 flexDirection: "column",
-                position: "relative",
+                position:
+                  (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                    (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                    ? "absolute"
+                    : "relative",
+                top:
+                  (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                    (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                    ? 0
+                    : undefined,
+                left:
+                  (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                    (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                    ? 0
+                    : undefined,
+                right:
+                  (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                    (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                    ? 0
+                    : undefined,
+                bottom:
+                  (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                    (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                    ? 0
+                    : undefined,
+                width:
+                  (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                    (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                    ? "100%"
+                    : undefined,
+                height:
+                  (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                    (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+                    ? "100%"
+                    : undefined,
                 zIndex: 25,
               }}
             >
-              {/* Unified Dock Tabs */}
-              <div
-                style={{
-                  height: 28,
-                  background: "#0d121f",
-                  borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                  borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "0 8px",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <button
-                    onClick={() => {
-                      setIsDiagnosticsOpen(true)
-                      setBottomPanelTab("diagnostics")
-                    }}
+              {/* Unified Dock Tabs (hidden when panel is maximized) */}
+              {!(
+                (isWaveformOpen && isWaveformMaximized && (bottomPanelTab === "waveforms" || (!isDiagnosticsOpen && !isMeasurementsOpen))) ||
+                (isDiagnosticsOpen && isDiagnosticsMaximized && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)))
+              ) && (
+                  <div
                     style={{
-                      height: 22,
-                      padding: "0 10px",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      background: bottomPanelTab === "diagnostics" && isDiagnosticsOpen ? "rgba(255, 255, 255, 0.12)" : "transparent",
-                      color: bottomPanelTab === "diagnostics" && isDiagnosticsOpen ? "#ffffff" : "#94a3b8",
-                      border: "none",
-                      borderRadius: 3,
-                      cursor: "pointer",
+                      height: 28,
+                      background: "#0d121f",
+                      borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+                      borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
                       display: "flex",
                       alignItems: "center",
-                      gap: 5,
+                      justifyContent: "space-between",
+                      padding: "0 8px",
                     }}
                   >
-                    <span>⚡ {t('dockTabs.diagnostics')}</span>
-                    {liveConnectivity.errors.length > 0 ? (
-                      <span style={{ color: "#ef4444", fontSize: 10 }}>({liveConnectivity.errors.length})</span>
-                    ) : liveConnectivity.warnings.length > 0 ? (
-                      <span style={{ color: "#f59e0b", fontSize: 10 }}>({liveConnectivity.warnings.length})</span>
-                    ) : null}
-                  </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <button
+                        onClick={() => {
+                          setIsDiagnosticsOpen(true)
+                          setBottomPanelTab("diagnostics")
+                        }}
+                        style={{
+                          height: 22,
+                          padding: "0 10px",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: bottomPanelTab === "diagnostics" && isDiagnosticsOpen ? "rgba(255, 255, 255, 0.12)" : "transparent",
+                          color: bottomPanelTab === "diagnostics" && isDiagnosticsOpen ? "#ffffff" : "#94a3b8",
+                          border: "none",
+                          borderRadius: 3,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <Zap size={13} style={{ color: "#38bdf8" }} />
+                        <span>{t('dockTabs.diagnostics')}</span>
+                        {liveConnectivity.errors.length > 0 ? (
+                          <span style={{ color: "#ef4444", fontSize: 10 }}>({liveConnectivity.errors.length})</span>
+                        ) : liveConnectivity.warnings.length > 0 ? (
+                          <span style={{ color: "#f59e0b", fontSize: 10 }}>({liveConnectivity.warnings.length})</span>
+                        ) : null}
+                      </button>
 
-                  <button
-                    onClick={() => {
-                      setIsWaveformOpen(true)
-                      setBottomPanelTab("waveforms")
-                    }}
-                    style={{
-                      height: 22,
-                      padding: "0 10px",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      background: bottomPanelTab === "waveforms" && isWaveformOpen ? "rgba(255, 255, 255, 0.12)" : "transparent",
-                      color: bottomPanelTab === "waveforms" && isWaveformOpen ? "#ffffff" : "#94a3b8",
-                      border: "none",
-                      borderRadius: 3,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    <span>📈 {t('dockTabs.waveforms')}</span>
-                    {lastSimResult?.pointCount ? (
-                      <span style={{ color: "#38bdf8", fontSize: 10 }}>({lastSimResult.pointCount} pts)</span>
-                    ) : null}
-                  </button>
+                      <button
+                        onClick={() => {
+                          setIsWaveformOpen(true)
+                          setBottomPanelTab("waveforms")
+                        }}
+                        style={{
+                          height: 22,
+                          padding: "0 10px",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: bottomPanelTab === "waveforms" && isWaveformOpen ? "rgba(255, 255, 255, 0.12)" : "transparent",
+                          color: bottomPanelTab === "waveforms" && isWaveformOpen ? "#ffffff" : "#94a3b8",
+                          border: "none",
+                          borderRadius: 3,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <TrendingUp size={13} style={{ color: "#38bdf8" }} />
+                        <span>{t('dockTabs.waveforms')}</span>
+                        {lastSimResult?.pointCount ? (
+                          <span style={{ color: "#38bdf8", fontSize: 10 }}>({lastSimResult.pointCount} pts)</span>
+                        ) : null}
+                      </button>
 
-                  <button
-                    onClick={() => {
-                      setIsMeasurementsOpen(true)
-                      setBottomPanelTab("measurements")
-                    }}
-                    style={{
-                      height: 22,
-                      padding: "0 10px",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      background: bottomPanelTab === "measurements" && isMeasurementsOpen ? "rgba(255, 255, 255, 0.12)" : "transparent",
-                      color: bottomPanelTab === "measurements" && isMeasurementsOpen ? "#ffffff" : "#94a3b8",
-                      border: "none",
-                      borderRadius: 3,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    <span>📊 {t('dockTabs.measurements')}</span>
-                    {lastSimResult?.variables?.length ? (
-                      <span style={{ color: "#10b981", fontSize: 10 }}>
-                        ({lastSimResult.variables.filter((v) => !["time", "frequency"].includes(v.name.toLowerCase())).length})
-                      </span>
-                    ) : null}
-                  </button>
-                </div>
+                      <button
+                        onClick={() => {
+                          setIsMeasurementsOpen(true)
+                          setBottomPanelTab("measurements")
+                        }}
+                        style={{
+                          height: 22,
+                          padding: "0 10px",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: bottomPanelTab === "measurements" && isMeasurementsOpen ? "rgba(255, 255, 255, 0.12)" : "transparent",
+                          color: bottomPanelTab === "measurements" && isMeasurementsOpen ? "#ffffff" : "#94a3b8",
+                          border: "none",
+                          borderRadius: 3,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <BarChart2 size={13} style={{ color: "#10b981" }} />
+                        <span>{t('dockTabs.measurements')}</span>
+                        {lastSimResult?.variables?.length ? (
+                          <span style={{ color: "#10b981", fontSize: 10 }}>
+                            ({lastSimResult.variables.filter((v) => !["time", "frequency"].includes(v.name.toLowerCase())).length})
+                          </span>
+                        ) : null}
+                      </button>
+                    </div>
 
-                <button
-                  onClick={() => {
-                    setIsDiagnosticsOpen(false)
-                    setIsWaveformOpen(false)
-                    setIsMeasurementsOpen(false)
-                  }}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "#94a3b8",
-                    fontSize: 12,
-                    cursor: "pointer",
-                    padding: "0 6px",
-                  }}
-                  title="Close Bottom Dock"
-                >
-                  ✕
-                </button>
-              </div>
+                    <button
+                      onClick={() => {
+                        setIsDiagnosticsOpen(false)
+                        setIsDiagnosticsMaximized(false)
+                        setIsWaveformOpen(false)
+                        setIsWaveformMaximized(false)
+                        setIsMeasurementsOpen(false)
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        color: "#94a3b8",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        padding: "0 6px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      title="Close Bottom Dock"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                )}
 
               {/* Render Diagnostics Panel */}
               {isDiagnosticsOpen && (bottomPanelTab === "diagnostics" || (!isWaveformOpen && !isMeasurementsOpen)) && (
                 <DiagnosticsPanel
                   isOpen={true}
-                  onClose={() => setIsDiagnosticsOpen(false)}
+                  onClose={() => {
+                    setIsDiagnosticsOpen(false)
+                    setIsDiagnosticsMaximized(false)
+                  }}
                   onClear={clearWaveforms}
                   simResult={lastSimResult}
                   simStatus={simStatus}
@@ -3153,6 +5153,8 @@ function SchematicEditor() {
                   }}
                   height={diagnosticsHeight}
                   onHeightChange={setDiagnosticsHeight}
+                  isMaximized={isDiagnosticsMaximized}
+                  onToggleMaximize={() => setIsDiagnosticsMaximized((prev) => !prev)}
                 />
               )}
 
@@ -3161,10 +5163,24 @@ function SchematicEditor() {
                 <WaveformViewer
                   isOpen={true}
                   simulationResult={lastSimResult}
-                  onClose={() => setIsWaveformOpen(false)}
+                  onClose={() => {
+                    setIsWaveformOpen(false)
+                    setIsWaveformMaximized(false)
+                  }}
                   onClear={clearWaveforms}
                   height={waveformHeight}
                   onHeightChange={setWaveformHeight}
+                  isMaximized={isWaveformMaximized}
+                  onToggleMaximize={() => setIsWaveformMaximized((prev) => !prev)}
+                  availableNets={availableCircuitNets}
+                  activeProbedSignal={activeProbedSignal}
+                  onProbeSignal={(sig, net) => {
+                    setActiveProbedSignal(sig)
+                    if (net) setHighlightedNet(net)
+                  }}
+                  isProbeToolActive={activeTool === "probe"}
+                  onToggleProbeTool={() => setActiveTool((prev) => (prev === "probe" ? "select" : "probe"))}
+                  onHighlightNet={setHighlightedNet}
                 />
               )}
 
@@ -3259,6 +5275,25 @@ function SchematicEditor() {
           </div>
         )}
 
+        {activeTool === "probe" && (
+          <div className="status-segment">
+            <span
+              className="status-tool-badge"
+              style={{
+                background: "#e0f2fe",
+                color: "#0284c7",
+                borderColor: "#bae6fd",
+                fontWeight: 700,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <span>🎯 Probe Mode: Click any wire or node to graph & calculate</span>
+            </span>
+          </div>
+        )}
+
         {/* Interactive net highlight badge */}
         {highlightedNet && (
           <div className="status-segment">
@@ -3269,11 +5304,15 @@ function SchematicEditor() {
                 color: "#0284c7",
                 borderColor: "#0284c7",
                 cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
               }}
               onClick={() => setHighlightedNet(null)}
               title="Click or press Esc to clear net highlight"
             >
-              Net: {highlightedNet} ✕
+              <span>Net: {highlightedNet}</span>
+              <X size={11} />
             </span>
           </div>
         )}
@@ -3318,7 +5357,7 @@ function SchematicEditor() {
               title={`Analysis: ${lastSimResult.analysisType} | Variables: ${lastSimResult.variables.map((v) => v.name).join(", ")}\nClick to view Waveform Viewer`}
             >
               <span style={{ color: "#38bdf8", fontSize: "11px", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                📈 {lastSimResult.pointCount} pts ({lastSimResult.elapsedMs}ms) · {t('statusBar.viewPlot')}
+                <TrendingUp size={12} /> {lastSimResult.pointCount} pts ({lastSimResult.elapsedMs}ms) · {t('statusBar.viewPlot')}
               </span>
             </div>
             <div
@@ -3330,7 +5369,7 @@ function SchematicEditor() {
               title="Click to view Automatic Measurements panel"
             >
               <span style={{ color: "#10b981", fontSize: "11px", fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                📊 {t('statusBar.autoMeasurements')}
+                <BarChart2 size={12} /> {t('statusBar.autoMeasurements')}
               </span>
             </div>
           </>
@@ -3491,6 +5530,15 @@ function SchematicEditor() {
         }
       />
 
+      {/* Net Name & Port Definition Modal */}
+      <NetNameModal
+        isOpen={netNameModal.isOpen}
+        initialType={netNameModal.type}
+        initialName={netNameModal.name}
+        onClose={() => setNetNameModal((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmNetName}
+      />
+
       {/* Simulation Analysis Configuration Modal (.tran, .ac, .dc, .op) */}
       <ConfigureAnalysisModal
         isOpen={isConfigAnalysisOpen}
@@ -3542,9 +5590,53 @@ function SchematicEditor() {
         onLocateComponent={locateComponent}
       />
 
+      {/* Operating Point Analysis (.op) Results Modal */}
+      <OperatingPointModal
+        isOpen={isOperatingPointModalOpen}
+        onClose={() => setIsOperatingPointModalOpen(false)}
+        simulationResult={lastSimResult}
+        circuitTitle={activeTab?.title || "Circuit"}
+      />
+
+      {/* AC Analysis (.ac) Bode Plot & Frequency Results Modal */}
+      <AcAnalysisModal
+        isOpen={isAcModalOpen}
+        onClose={() => setIsAcModalOpen(false)}
+        simulationResult={lastSimResult}
+        circuitTitle={activeTab?.title || "Circuit"}
+      />
+
+      {/* AI Circuit Assistant Drawer */}
+      <AiCircuitAssistant
+        isOpen={isAiAssistantOpen}
+        onClose={() => setIsAiAssistantOpen(false)}
+        context={(() => {
+          const compLabels = nodes.map((n) => n.data?.label || n.data?.type || n.id).filter(Boolean)
+          const summary = `${nodes.length} components (${compLabels.slice(0, 8).join(', ')}${compLabels.length > 8 ? '...' : ''})`
+          return {
+            circuitName: activeTab?.title || 'Schematic',
+            componentSummary: summary,
+            netlist: netlistResult?.netlist || '',
+            simStatus,
+            simError: lastSimResult?.error || (netlistResult?.errors?.length ? netlistResult.errors[0].message : undefined),
+            ercErrors: netlistResult?.errors?.map((e) => e.message) || [],
+          }
+        })()}
+      />
+
       {/* Modern Floating Tooltip with Name & Keyboard Shortcut */}
       {activeTooltip && (
         <div
+          ref={(el) => {
+            if (el) {
+              const r = el.getBoundingClientRect()
+              if (r.left < 8) {
+                el.style.left = `${activeTooltip.x + (8 - r.left)}px`
+              } else if (r.right > window.innerWidth - 8) {
+                el.style.left = `${activeTooltip.x - (r.right - (window.innerWidth - 8))}px`
+              }
+            }
+          }}
           className="tb-floating-tooltip"
           style={{ left: activeTooltip.x, top: activeTooltip.y }}
         >

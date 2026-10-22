@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { useTranslation } from "react-i18next"
+import { useTranslation, Trans } from "react-i18next"
+import {
+  ZoomIn,
+  Move,
+  Maximize2,
+  Crosshair,
+  Activity,
+  Settings,
+  Zap,
+} from "lucide-react"
 import type { SimulationRunResult } from "../../../shared/simulation"
 import { formatEngineering } from "../utils/engineeringFormat"
 import {
@@ -15,13 +24,25 @@ import {
   savePlotSettings,
   exportPlotSettingsJson,
   importPlotSettingsJson,
-  THEME_PALETTES,
 } from "../utils/waveformSettings"
 import { PALETTE_COLORS } from "./waveform/TraceConfigModal"
 import WaveformSettingsModal, { type WaveformSettingsTab } from "./waveform/WaveformSettingsModal"
+import {
+  calculateAutomaticMeasurements,
+  type MeasurementsReport,
+} from "../utils/automaticMeasurements"
 
 // Distinct, vibrant LTspice trace color palette defaults
 const TRACE_COLORS = PALETTE_COLORS
+
+export interface CircuitNetInfo {
+  netName: string
+  signalName: string
+  displayName: string
+  pinCount: number
+  connectedComponents: string[]
+  isGround?: boolean
+}
 
 export interface WaveformViewerProps {
   simulationResult: SimulationRunResult | null
@@ -30,6 +51,14 @@ export interface WaveformViewerProps {
   onClear: () => void
   height?: number
   onHeightChange?: (height: number) => void
+  isMaximized?: boolean
+  onToggleMaximize?: () => void
+  availableNets?: CircuitNetInfo[]
+  activeProbedSignal?: string | null
+  onProbeSignal?: (signalName: string, netName?: string) => void
+  isProbeToolActive?: boolean
+  onToggleProbeTool?: () => void
+  onHighlightNet?: (netName: string | null) => void
 }
 
 /**
@@ -68,14 +97,24 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   onClear,
   height = 360,
   onHeightChange,
+  isMaximized: propIsMaximized,
+  onToggleMaximize,
+  availableNets = [],
+  activeProbedSignal,
+  onProbeSignal,
+  isProbeToolActive = false,
+  onToggleProbeTool,
+  onHighlightNet,
 }) => {
   const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const probeDropdownRef = useRef<HTMLDivElement | null>(null)
 
   // Viewer display state
-  const [isMaximized, setIsMaximized] = useState(false)
+  const [internalMaximized, setInternalMaximized] = useState(false)
+  const isMaximized = propIsMaximized !== undefined ? propIsMaximized : internalMaximized
   const [isMinimized, setIsMinimized] = useState(false)
   const [, setContainerSize] = useState({ width: 0, height: 0 })
 
@@ -97,6 +136,37 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   // Modes
   const [cursorsEnabled, setCursorsEnabled] = useState(false)
   const [fftMode, setFftMode] = useState(false)
+
+  // Probed node / wire interactive calculations state
+  const [currentProbedSignal, setCurrentProbedSignal] = useState<string | null>(activeProbedSignal || null)
+  const [isProbedHudVisible, setIsProbedHudVisible] = useState(true)
+  const [isProbedHudCollapsed, setIsProbedHudCollapsed] = useState(false)
+  const [isNetDropdownOpen, setIsNetDropdownOpen] = useState(false)
+  const [netSearchQuery, setNetSearchQuery] = useState("")
+
+  // Sync external probed signal from schematic clicks
+  useEffect(() => {
+    if (activeProbedSignal) {
+      setCurrentProbedSignal(activeProbedSignal)
+      setIsProbedHudVisible(true)
+      setSelectedTraces((prev) => (prev.includes(activeProbedSignal) ? prev : [...prev, activeProbedSignal]))
+    }
+  }, [activeProbedSignal])
+
+  // Close probe dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (probeDropdownRef.current && !probeDropdownRef.current.contains(e.target as HTMLElement)) {
+        setIsNetDropdownOpen(false)
+      }
+    }
+    if (isNetDropdownOpen) {
+      document.addEventListener("mousedown", handleOutsideClick)
+    }
+    return () => document.removeEventListener("mousedown", handleOutsideClick)
+  }, [isNetDropdownOpen])
+
+
 
   // Consolidated Plot Settings & Tools Modal
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
@@ -152,6 +222,13 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       }
     }
 
+    // Ensure Ground reference (0 / v(0)) has a valid 0V array
+    if (xData.length > 0 && !map["0"]) {
+      const zeroArr = new Array(xData.length).fill(0)
+      map["0"] = zeroArr
+      map["v(0)"] = zeroArr
+    }
+
     // Evaluate custom math traces
     plotSettings.customMathTraces.forEach((mt) => {
       const res = evaluateWaveformExpression(mt.expression, map, xVarName)
@@ -191,6 +268,8 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
     return list
   }, [simulationResult, xVarName, plotSettings.customMathTraces])
+
+
 
   // Analysis type & X-unit
   const xUnit = useMemo(() => {
@@ -257,6 +336,165 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     },
     [plotSettings.traceConfigs],
   )
+
+  // List of available circuit nets and signals for dropdown
+  const resolvedNetsList: CircuitNetInfo[] = useMemo(() => {
+    if (availableNets && availableNets.length > 0) return availableNets
+    return allAvailableTraces.map((t) => ({
+      netName: t.name.replace(/^v\(|\)$/gi, ""),
+      signalName: t.name,
+      displayName: t.name.toUpperCase(),
+      pinCount: 1,
+      connectedComponents: [],
+    }))
+  }, [availableNets, allAvailableTraces])
+
+  const filteredAvailableNets = useMemo(() => {
+    if (!netSearchQuery.trim()) return resolvedNetsList
+    const q = netSearchQuery.toLowerCase()
+    return resolvedNetsList.filter(
+      (n) =>
+        n.netName.toLowerCase().includes(q) ||
+        n.displayName.toLowerCase().includes(q) ||
+        n.connectedComponents.some((c) => c.toLowerCase().includes(q)),
+    )
+  }, [resolvedNetsList, netSearchQuery])
+
+  // Active probed trace identifier (explicitly probed or first selected trace)
+  const activeProbedTrace = currentProbedSignal || (selectedTraces.length > 0 ? selectedTraces[0] : null)
+
+  // Calculate live electrical measurements for the active probed wire/node
+  const probedReport: MeasurementsReport | null = useMemo(() => {
+    if (!activeProbedTrace || !simulationResult || !simulationResult.data) return null
+    if (activeProbedTrace === "0") {
+      return {
+        signalName: "0 (GND)",
+        analysisType: simulationResult.analysisType || "TRAN",
+        pointCount: simulationResult.pointCount,
+        measurements: [
+          {
+            id: "v_max",
+            name: "Maximum Voltage",
+            symbol: "Vmax",
+            category: "transient",
+            valueFormatted: "0.000 V",
+            numericValue: 0,
+            unit: "V",
+            definition: "Ground Reference",
+            status: "valid",
+          },
+          {
+            id: "v_min",
+            name: "Minimum Voltage",
+            symbol: "Vmin",
+            category: "transient",
+            valueFormatted: "0.000 V",
+            numericValue: 0,
+            unit: "V",
+            definition: "Ground Reference",
+            status: "valid",
+          },
+          {
+            id: "v_peak_to_peak",
+            name: "Peak-to-Peak Voltage",
+            symbol: "Vp-p",
+            category: "transient",
+            valueFormatted: "0.000 V",
+            numericValue: 0,
+            unit: "V",
+            definition: "Ground Reference",
+            status: "valid",
+          },
+          {
+            id: "v_avg",
+            name: "Average DC Voltage",
+            symbol: "Vavg",
+            category: "transient",
+            valueFormatted: "0.000 V",
+            numericValue: 0,
+            unit: "V",
+            definition: "Ground Reference",
+            status: "valid",
+          },
+          {
+            id: "v_rms",
+            name: "RMS Voltage",
+            symbol: "Vrms",
+            category: "transient",
+            valueFormatted: "0.000 V",
+            numericValue: 0,
+            unit: "V",
+            definition: "Ground Reference",
+            status: "valid",
+          },
+        ],
+      }
+    }
+    return calculateAutomaticMeasurements(simulationResult, activeProbedTrace)
+  }, [simulationResult, activeProbedTrace])
+
+  // Key electrical figures computed for graph display HUD
+  const probedKeyMetrics = useMemo(() => {
+    if (!probedReport || probedReport.measurements.length === 0) return null
+
+    const findVal = (idPrefix: string) => {
+      const m = probedReport.measurements.find((x) => x.id.toLowerCase().includes(idPrefix.toLowerCase()))
+      return m ? m.valueFormatted : "N/A"
+    }
+
+    const vpp = findVal("peak_to_peak") || findVal("v_pp")
+    const vmax = findVal("max")
+    const vmin = findVal("min")
+    const vavg = findVal("avg") || findVal("dc")
+    const vrms = findVal("rms")
+    const freq = findVal("freq")
+    const period = findVal("period")
+
+    return { vpp, vmax, vmin, vavg, vrms, freq, period }
+  }, [probedReport])
+
+  // Real-time instantaneous value at mouse cursor
+  const instantaneousProbedVal = useMemo(() => {
+    if (!activeProbedTrace || !mousePos || !combinedDataMap[activeProbedTrace.toLowerCase()] || !xData.length) {
+      return null
+    }
+    const val = interpolateAtX(xData, combinedDataMap[activeProbedTrace.toLowerCase()], mousePos.dataX)
+    const unit = activeProbedTrace.toLowerCase().startsWith("i(") ? "A" : "V"
+    return formatEngineering(val, unit)
+  }, [activeProbedTrace, mousePos, combinedDataMap, xData])
+
+  // Net wiring metadata for active probed node
+  const matchedNetInfo = useMemo(() => {
+    if (!activeProbedTrace || !availableNets) return null
+    return availableNets.find(
+      (n) =>
+        n.signalName.toLowerCase() === activeProbedTrace.toLowerCase() ||
+        n.netName.toLowerCase() === activeProbedTrace.toLowerCase() ||
+        `v(${n.netName.toLowerCase()})` === activeProbedTrace.toLowerCase(),
+    )
+  }, [activeProbedTrace, availableNets])
+
+  // Color matching trace on graph
+  const activeProbedTraceColor = useMemo(() => {
+    if (!activeProbedTrace) return "#38bdf8"
+    const idx = allAvailableTraces.findIndex((t) => t.name.toLowerCase() === activeProbedTrace.toLowerCase())
+    if (idx >= 0) {
+      const cfg = getTraceConfig(activeProbedTrace, idx)
+      return cfg.color || TRACE_COLORS[idx % TRACE_COLORS.length]
+    }
+    return "#38bdf8"
+  }, [activeProbedTrace, allAvailableTraces, getTraceConfig])
+
+  const handleSelectNet = (net: CircuitNetInfo) => {
+    const signalName = net.signalName
+    setCurrentProbedSignal(signalName)
+    setIsProbedHudVisible(true)
+    setIsNetDropdownOpen(false)
+
+    setSelectedTraces((prev) => (prev.includes(signalName) ? prev : [...prev, signalName]))
+    onProbeSignal?.(signalName, net.netName)
+    onHighlightNet?.(net.netName)
+  }
 
   // Compute natural bounds for independent X axis
   const naturalXBounds = useMemo(() => {
@@ -418,10 +656,14 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     setSelectedTraces((prev) =>
       prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name],
     )
+    setCurrentProbedSignal(name)
+    setIsProbedHudVisible(true)
   }
 
   const soloTrace = (name: string) => {
     setSelectedTraces([name])
+    setCurrentProbedSignal(name)
+    setIsProbedHudVisible(true)
   }
 
   const selectAllTraces = () => {
@@ -521,17 +763,27 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   const handleToggleMinimize = () => {
     setIsMinimized((prev) => {
       const next = !prev
-      if (next) setIsMaximized(false)
+      if (next) {
+        if (onToggleMaximize && isMaximized) {
+          onToggleMaximize()
+        } else {
+          setInternalMaximized(false)
+        }
+      }
       return next
     })
   }
 
   const handleToggleMaximize = () => {
-    setIsMaximized((prev) => {
-      const next = !prev
-      if (next) setIsMinimized(false)
-      return next
-    })
+    if (onToggleMaximize) {
+      onToggleMaximize()
+    } else {
+      setInternalMaximized((prev) => {
+        const next = !prev
+        if (next) setIsMinimized(false)
+        return next
+      })
+    }
   }
 
   const handleHeaderDoubleClick = (e: React.MouseEvent) => {
@@ -1289,7 +1541,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={() => setActiveTool("zoom")}
             title="Box Zoom Tool (Click and drag box to zoom)"
           >
-            <span>🔍 {t('waveformToolbar.zoom')}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <ZoomIn size={13} />
+              {t('waveformToolbar.zoom')}
+            </span>
           </button>
 
           <button
@@ -1297,7 +1552,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={() => setActiveTool("pan")}
             title="Pan Tool (Click and drag canvas to move viewport)"
           >
-            <span>✋ {t('waveformToolbar.pan')}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Move size={13} />
+              {t('waveformToolbar.pan')}
+            </span>
           </button>
 
           {/* Autoscale / Fit */}
@@ -1306,7 +1564,85 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={resetZoom}
             title="Autoscale / Fit all waveforms to view (Home)"
           >
-            <span>⛶ {t('waveformToolbar.fit')}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Maximize2 size={13} />
+              {t('waveformToolbar.fit')}
+            </span>
+          </button>
+
+          <div className="waveform-header-divider" />
+
+          {/* Probe Wire / Node Dropdown */}
+          <div className="waveform-probe-dropdown-container" ref={probeDropdownRef}>
+            <button
+              className={`waveform-tool-btn ${isNetDropdownOpen ? "active" : ""}`}
+              onClick={() => setIsNetDropdownOpen(!isNetDropdownOpen)}
+              title="Select a circuit wire or node to plot and calculate its values on the graph"
+            >
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <Crosshair size={13} style={{ color: "#0284c7" }} />
+                <span>Probe Node/Wire</span>
+                <span style={{ fontSize: 9, opacity: 0.7 }}>▼</span>
+              </span>
+            </button>
+
+            {isNetDropdownOpen && (
+              <div className="waveform-probe-menu dropdown-menu">
+                <input
+                  type="text"
+                  className="waveform-probe-search-input"
+                  placeholder="Filter nodes or wires..."
+                  value={netSearchQuery}
+                  onChange={(e) => setNetSearchQuery(e.target.value)}
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                />
+
+                <div className="waveform-probe-menu-section-title">Circuit Nets & Wires</div>
+                {filteredAvailableNets.map((net) => {
+                  const isProbed =
+                    activeProbedTrace?.toLowerCase() === net.signalName.toLowerCase() ||
+                    activeProbedTrace?.toLowerCase() === net.netName.toLowerCase()
+                  return (
+                    <button
+                      key={net.netName}
+                      className={`waveform-probe-menu-item ${isProbed ? "active" : ""}`}
+                      onClick={() => handleSelectNet(net)}
+                    >
+                      <span>
+                        <strong>{net.displayName}</strong>
+                        {net.connectedComponents.length > 0 && (
+                          <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.8 }}>
+                            ({net.connectedComponents.slice(0, 3).join(", ")})
+                          </span>
+                        )}
+                      </span>
+                      <span className="probe-item-sub">
+                        {net.pinCount} {net.pinCount === 1 ? "pin" : "pins"}
+                      </span>
+                    </button>
+                  )
+                })}
+
+                {filteredAvailableNets.length === 0 && (
+                  <div style={{ padding: "6px 8px", fontSize: 11, opacity: 0.6 }}>
+                    No matching nets found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Interactive Schematic Probe Mode Toggle */}
+          <button
+            className={`waveform-tool-btn ${isProbeToolActive ? "active probe-mode-active" : ""}`}
+            onClick={onToggleProbeTool}
+            title="Toggle Schematic Probe Mode (P): Click any wire or node directly on the schematic to plot and calculate its values"
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <span style={{ fontSize: 12 }}>🎯</span>
+              <span>{isProbeToolActive ? "Probe: Active" : "Probe Tool (P)"}</span>
+            </span>
           </button>
 
           <div className="waveform-header-divider" />
@@ -1317,7 +1653,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={() => setCursorsEnabled(!cursorsEnabled)}
             title="Toggle Dual Cursors with Delta Measurements (ΔX, ΔY, 1/ΔX, Slope)"
           >
-            <span>☩ {t('waveformToolbar.cursors')}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Crosshair size={13} />
+              {t('waveformToolbar.cursors')}
+            </span>
           </button>
 
           {/* FFT Spectrum Toggle */}
@@ -1326,7 +1665,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             onClick={() => setFftMode(!fftMode)}
             title="Toggle Fast Fourier Transform (FFT) Power Spectrum View (dB vs Hz)"
           >
-            <span>⚡ {t('waveformToolbar.fft')}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Activity size={13} />
+              {t('waveformToolbar.fft')}
+            </span>
           </button>
 
           <div className="waveform-header-divider" />
@@ -1341,7 +1683,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             }}
             title="Open Waveform Plot Settings (Traces, Axes, Appearance, Math Expressions, Annotations, Export)"
           >
-            <span>⚙️ {t('waveformToolbar.plotSettings')}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+              <Settings size={13} />
+              {t('waveformToolbar.plotSettings')}
+            </span>
           </button>
 
           {/* Clear Plot */}
@@ -1363,8 +1708,8 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             <button
               className={`waveform-win-btn ${isMinimized ? "active" : ""}`}
               onClick={handleToggleMinimize}
-              title={isMinimized ? "Restore Waveform Viewer" : "Minimize Waveform Viewer"}
-              aria-label={isMinimized ? "Restore" : "Minimize"}
+              title={isMinimized ? t('waveformToolbar.restore') : t('waveformToolbar.minimize')}
+              aria-label={isMinimized ? t('waveformToolbar.restore') : t('waveformToolbar.minimize')}
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                 <line x1="1" y1="8" x2="9" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -1374,8 +1719,8 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             <button
               className={`waveform-win-btn ${isMaximized ? "active" : ""}`}
               onClick={handleToggleMaximize}
-              title={isMaximized ? "Restore Previous Size" : "Maximize Waveform Viewer"}
-              aria-label={isMaximized ? "Restore" : "Maximize"}
+              title={isMaximized ? t('waveformToolbar.restore') : t('waveformToolbar.maximize')}
+              aria-label={isMaximized ? t('waveformToolbar.restore') : t('waveformToolbar.maximize')}
             >
               {isMaximized ? (
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -1392,7 +1737,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             <button
               className="waveform-win-btn win-close"
               onClick={onClose}
-              title="Close Waveform Viewer (W / F10)"
+              title={t('waveformToolbar.closeTooltip')}
               aria-label="Close"
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -1407,47 +1752,56 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       {/* Main Plot Body */}
       <div className="waveform-body-container" style={{ display: isMinimized ? "none" : "flex" }}>
         {/* Left / Top: Interactive Trace Selectors */}
+        {/* Left / Top: Folder-based Signal Selector Bar */}
         <div className="waveform-trace-bar">
-          <div className="trace-bar-header">
-            <span className="trace-bar-title">{t('waveformToolbar.activeSignals')}</span>
-            <div className="trace-quick-actions">
-              <button onClick={selectAllTraces} className="trace-text-btn">{t('waveformToolbar.all')}</button>
-              <button onClick={clearSelectedTraces} className="trace-text-btn">{t('waveformToolbar.none')}</button>
-            </div>
-          </div>
-
+          {/* Active Plotted Trace Chips */}
           <div className="trace-chips-scroll">
-            {allAvailableTraces.map((trace, idx) => {
-              const cfg = getTraceConfig(trace.name, idx)
-              const color = cfg.color || TRACE_COLORS[idx % TRACE_COLORS.length]
-              const isSelected = selectedTraces.includes(trace.name)
+            {selectedTraces.map((traceName) => {
+              const traceMeta = allAvailableTraces.find((t) => t.name.toLowerCase() === traceName.toLowerCase())
+              const idx = allAvailableTraces.findIndex((t) => t.name.toLowerCase() === traceName.toLowerCase())
+              const cfg = getTraceConfig(traceName, idx >= 0 ? idx : 0)
+              const color = cfg.color || TRACE_COLORS[0]
+              const isProbed = activeProbedTrace?.toLowerCase() === traceName.toLowerCase()
+              const isCurrent = traceName.toLowerCase().startsWith("i(") || traceMeta?.unit === "A"
 
               return (
-                <button
-                  key={trace.name}
-                  className={`trace-chip ${isSelected ? "selected" : ""}`}
-                  onClick={() => toggleTrace(trace.name)}
-                  title={`Toggle trace ${trace.name} (${trace.type || "trace"}). Click 'Traces...' to customize.`}
+                <div
+                  key={traceName}
+                  className={`trace-chip selected ${isProbed ? "probed" : ""}`}
+                  onClick={() => {
+                    setCurrentProbedSignal(traceName)
+                    setIsProbedHudVisible(true)
+                  }}
+                  title={`Active trace ${traceName.toUpperCase()} (${isCurrent ? "Current A" : "Voltage V"}). Click to calculate on HUD.`}
                 >
-                  <span
-                    className="trace-color-dot"
-                    style={{
-                      background: color,
-                    }}
-                  />
-                  <span className="trace-chip-name">{trace.name.toUpperCase()}</span>
-                  <span className="trace-chip-unit">{trace.unit || "V"}</span>
+                  <span className="trace-color-dot" style={{ background: color }} />
+                  <span className="trace-chip-name">
+                    {isProbed ? `🎯 ${traceName.toUpperCase()}` : traceName.toUpperCase()}
+                  </span>
+                  <span className="trace-chip-unit">{traceMeta?.unit || (isCurrent ? "A" : "V")}</span>
                   {cfg.pane !== undefined && plotSettings.panesCount > 1 && (
                     <span style={{ fontSize: "9px", background: "rgba(255,255,255,0.15)", padding: "0 3px", borderRadius: "2px" }}>
                       P{cfg.pane + 1}
                     </span>
                   )}
-                </button>
+                  <button
+                    className="trace-chip-remove"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleTrace(traceName)
+                    }}
+                    title={`Unplot ${traceName.toUpperCase()}`}
+                  >
+                    ✕
+                  </button>
+                </div>
               )
             })}
 
-            {allAvailableTraces.length === 0 && (
-              <span className="no-traces-hint">No signals found in output</span>
+            {selectedTraces.length === 0 && (
+              <span className="no-traces-hint" style={{ fontSize: 11, color: "#666666" }}>
+                Probe nets or components on the schematic to plot waveforms
+              </span>
             )}
           </div>
         </div>
@@ -1473,11 +1827,115 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             />
           ) : (
             <div className="waveform-empty-state">
-              <div className="empty-state-icon">⚡</div>
-              <div className="empty-state-title">No Simulation Data Loaded</div>
-              <div className="empty-state-subtitle">
-                Press <strong>Run SPICE (F9)</strong> to simulate your circuit with ngspice and plot genuine waveforms.
+              <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+                <Zap size={36} strokeWidth={1.5} color="var(--accent, #38bdf8)" />
               </div>
+              <div className="empty-state-title">{t('waveformToolbar.noDataTitle')}</div>
+              <div className="empty-state-subtitle">
+                <Trans
+                  i18nKey="waveformToolbar.noDataSubtitle"
+                  components={{ strong: <strong /> }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Interactive Probed Node / Wire Calculated Values HUD Overlay (Top-Left) */}
+          {isProbedHudVisible && activeProbedTrace && probedReport && probedKeyMetrics && (
+            <div className={`waveform-node-calc-hud ${isProbedHudCollapsed ? "collapsed" : ""}`}>
+              <div className="node-hud-header">
+                <div className="node-hud-title-wrap">
+                  <span className="node-hud-dot" style={{ background: activeProbedTraceColor }} />
+                  <span className="node-hud-title" title={`Signal: ${activeProbedTrace}`}>
+                    🎯 {activeProbedTrace.toUpperCase()}
+                  </span>
+                  {matchedNetInfo && (
+                    <span
+                      className="node-hud-net-badge"
+                      title={`Net: ${matchedNetInfo.netName} (${matchedNetInfo.pinCount} pins: ${matchedNetInfo.connectedComponents.join(", ")})`}
+                    >
+                      {matchedNetInfo.netName} ({matchedNetInfo.pinCount}p)
+                    </span>
+                  )}
+                </div>
+
+                <div className="node-hud-controls">
+                  <button
+                    className="node-hud-btn"
+                    onClick={() => setIsProbedHudCollapsed(!isProbedHudCollapsed)}
+                    title={isProbedHudCollapsed ? "Expand Calculated Values" : "Collapse HUD"}
+                  >
+                    {isProbedHudCollapsed ? "▼" : "▲"}
+                  </button>
+                  <button
+                    className="node-hud-btn"
+                    onClick={() => setIsProbedHudVisible(false)}
+                    title="Dismiss Calculated Values HUD"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {!isProbedHudCollapsed && (
+                <>
+                  <div className="node-hud-metrics-grid">
+                    <div className="node-hud-metric-item">
+                      <span className="node-hud-metric-label">Vp-p</span>
+                      <span className="node-hud-metric-val highlight-vpp">{probedKeyMetrics.vpp}</span>
+                    </div>
+                    <div className="node-hud-metric-item">
+                      <span className="node-hud-metric-label">Vmax</span>
+                      <span className="node-hud-metric-val">{probedKeyMetrics.vmax}</span>
+                    </div>
+                    <div className="node-hud-metric-item">
+                      <span className="node-hud-metric-label">Vmin</span>
+                      <span className="node-hud-metric-val">{probedKeyMetrics.vmin}</span>
+                    </div>
+                    <div className="node-hud-metric-item">
+                      <span className="node-hud-metric-label">Vavg (DC)</span>
+                      <span className="node-hud-metric-val">{probedKeyMetrics.vavg}</span>
+                    </div>
+                    <div className="node-hud-metric-item">
+                      <span className="node-hud-metric-label">Vrms</span>
+                      <span className="node-hud-metric-val">{probedKeyMetrics.vrms}</span>
+                    </div>
+                    {probedKeyMetrics.freq && probedKeyMetrics.freq !== "N/A" && (
+                      <div className="node-hud-metric-item">
+                        <span className="node-hud-metric-label">Frequency</span>
+                        <span className="node-hud-metric-val">{probedKeyMetrics.freq}</span>
+                      </div>
+                    )}
+                    {probedKeyMetrics.period && probedKeyMetrics.period !== "N/A" && (
+                      <div className="node-hud-metric-item">
+                        <span className="node-hud-metric-label">Period</span>
+                        <span className="node-hud-metric-val">{probedKeyMetrics.period}</span>
+                      </div>
+                    )}
+                    {instantaneousProbedVal && (
+                      <div className="node-hud-metric-item">
+                        <span className="node-hud-metric-label">V(cursor)</span>
+                        <span className="node-hud-metric-val highlight-cursor">{instantaneousProbedVal}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="node-hud-footer">
+                    {matchedNetInfo && (
+                      <button
+                        className="node-hud-action-btn"
+                        onClick={() => onHighlightNet?.(matchedNetInfo.netName)}
+                        title="Highlight this net and its wires in the schematic canvas"
+                      >
+                        Highlight Wire
+                      </button>
+                    )}
+                    <span style={{ fontSize: 9, opacity: 0.65 }}>
+                      {probedReport.pointCount} pts · {probedReport.analysisType}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1485,21 +1943,21 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           {cursorsEnabled && cursorReadout && (
             <div className="waveform-cursor-hud">
               <div className="hud-header">
-                <span className="hud-title">Cursors Readout ({cursorReadout.traceName.toUpperCase()})</span>
+                <span className="hud-title">{t('waveformToolbar.cursorsReadout', { trace: cursorReadout.traceName.toUpperCase() })}</span>
               </div>
               <div className="hud-grid">
                 <div className="hud-col cursor-1">
-                  <span className="hud-label">Cursor 1</span>
+                  <span className="hud-label">{t('waveformToolbar.cursor1')}</span>
                   <span className="hud-val">X₁: {formatEngineering(cursorReadout.x1, xUnit)}</span>
                   <span className="hud-val">Y₁: {formatEngineering(cursorReadout.y1, "V")}</span>
                 </div>
                 <div className="hud-col cursor-2">
-                  <span className="hud-label">Cursor 2</span>
+                  <span className="hud-label">{t('waveformToolbar.cursor2')}</span>
                   <span className="hud-val">X₂: {formatEngineering(cursorReadout.x2, xUnit)}</span>
                   <span className="hud-val">Y₂: {formatEngineering(cursorReadout.y2, "V")}</span>
                 </div>
                 <div className="hud-col delta">
-                  <span className="hud-label">Delta (Δ)</span>
+                  <span className="hud-label">{t('waveformToolbar.delta')}</span>
                   <span className="hud-val">ΔX: {formatEngineering(cursorReadout.dx, xUnit)}</span>
                   <span className="hud-val">ΔY: {formatEngineering(cursorReadout.dy, "V")}</span>
                   {xUnit === "s" && cursorReadout.invDx > 0 && (
@@ -1509,7 +1967,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
                   )}
                   {cursorReadout.slope !== 0 && (
                     <span className="hud-val">
-                      Slope: {formatEngineering(cursorReadout.slope, "V/s")}
+                      {t('waveformToolbar.slope')} {formatEngineering(cursorReadout.slope, "V/s")}
                     </span>
                   )}
                 </div>

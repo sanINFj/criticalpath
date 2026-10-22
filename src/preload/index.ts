@@ -7,6 +7,12 @@ const api = {
     ipcRenderer.invoke('simulation:run', { netlist, analysisType }),
   stopSimulation: () => ipcRenderer.invoke('simulation:stop'),
   checkEngine: () => ipcRenderer.invoke('simulation:checkEngine'),
+  openFile: () => ipcRenderer.invoke('file:open'),
+  readFile: (filePath: string) => ipcRenderer.invoke('file:read', filePath),
+  saveFile: (payload: { filePath?: string | null; content: string; defaultPath?: string }) =>
+    ipcRenderer.invoke('file:save', payload),
+  confirmClose: (filename: string) => ipcRenderer.invoke('file:confirmClose', filename),
+  aiChat: (payload: any) => ipcRenderer.invoke('ai:chat', payload),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

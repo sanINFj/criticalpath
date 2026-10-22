@@ -1,0 +1,19 @@
+Title: * test op with diode and bjt
+Date: Wed Oct 21 01:51:03  2026
+Command: ngspice-44.2, Build Jan 11 2025   14:28:27
+Plotname: Operating Point
+Flags: real
+No. Variables: 5
+No. Points: 1       
+Variables:
+	0	v(1)	voltage
+	1	v(2)	voltage
+	2	i(v1)	current
+	3	i(@r1[i])	current
+	4	i(@d1[id])	current
+Values:
+0		1.000000000000000e+01
+	6.905599373168977e-01
+	-9.309440062683102e-03
+	9.309440062683102e-03
+	9.309636820548788e-03

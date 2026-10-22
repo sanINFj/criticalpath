@@ -1,5 +1,6 @@
 import React, { useEffect } from "react"
 import { useTranslation } from "react-i18next"
+import { X } from "lucide-react"
 import type { NetlistValidationError } from "../utils/spiceNetlist"
 
 export interface ValidationBlockedModalProps {
@@ -81,8 +82,9 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
             onClick={onClose}
             aria-label="Close dialog"
             title={`${t('actions.close')} (Esc)`}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
 

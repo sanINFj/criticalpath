@@ -99,7 +99,7 @@ export function findNgspiceExecutable(): string | null {
           cachedExecutablePath = first
           return cachedExecutablePath
         }
-      } catch {}
+      } catch { }
     }
   } else {
     // Linux / macOS default locations
@@ -125,7 +125,7 @@ export function findNgspiceExecutable(): string | null {
         cachedExecutablePath = first
         return cachedExecutablePath
       }
-    } catch {}
+    } catch { }
   }
 
   return null
@@ -222,6 +222,12 @@ export function parseAsciiRaw(rawText: string): {
         else if (name === 'frequency') unit = 'Hz'
         else if (name.startsWith('i(') || rawType.includes('current')) unit = 'A'
         else if (name.startsWith('v(') || rawType.includes('voltage')) unit = 'V'
+        else if (rawType.includes('power') || name.includes('[p]')) unit = 'W'
+        else if (rawType.includes('admittance') || name.includes('[gm]') || name.includes('[gds]')) unit = 'S'
+        else if (rawType.includes('resistance')) unit = 'Ω'
+        else if (rawType.includes('capacitance')) unit = 'F'
+        else if (rawType.includes('inductance')) unit = 'H'
+        else if (rawType.includes('charge')) unit = 'C'
 
         rawVariables.push({ index: idx, name, type: rawType, unit })
         data[name] = []
@@ -231,12 +237,14 @@ export function parseAsciiRaw(rawText: string): {
 
   const xVariable = rawVariables.length > 0 ? rawVariables[0].name : undefined
 
-  // If AC complex analysis, allocate companion arrays for dB and phase
+  // If AC complex analysis, allocate companion arrays for dB, phase, real, and imag
   if (isComplex) {
     for (let v = 1; v < rawVariables.length; v++) {
       const baseName = rawVariables[v].name
       data[`${baseName}_db`] = []
       data[`${baseName}_phase`] = []
+      data[`${baseName}_real`] = []
+      data[`${baseName}_imag`] = []
     }
   }
 
@@ -277,6 +285,8 @@ export function parseAsciiRaw(rawText: string): {
           data[varName].push(mag)
           data[`${varName}_db`].push(magDb)
           data[`${varName}_phase`].push(phase)
+          data[`${varName}_real`].push(re)
+          data[`${varName}_imag`].push(im)
         } else {
           data[varName].push(isNaN(re) ? 0 : re)
         }
@@ -287,26 +297,111 @@ export function parseAsciiRaw(rawText: string): {
     }
   }
 
-  // Construct complete variables list including AC dB and Phase representations
+  // Construct complete variables list including AC dB and Phase representations,
+  // plus normalized current aliases and ground node 0
   const variables: SimulationVariable[] = []
+  const knownVarNames = new Set<string>()
+
   for (let v = 0; v < rawVariables.length; v++) {
     const rv = rawVariables[v]
     variables.push(rv)
+    knownVarNames.add(rv.name.toLowerCase())
 
     if (isComplex && v > 0) {
+      const dbName = `${rv.name}_db`
+      const phaseName = `${rv.name}_phase`
+      const realName = `${rv.name}_real`
+      const imagName = `${rv.name}_imag`
       variables.push({
         index: variables.length,
-        name: `${rv.name}_db`,
+        name: dbName,
         type: `${rv.type} (dB)`,
         unit: 'dB',
       })
+      knownVarNames.add(dbName.toLowerCase())
       variables.push({
         index: variables.length,
-        name: `${rv.name}_phase`,
+        name: phaseName,
         type: `${rv.type} (Phase)`,
         unit: '°',
       })
+      knownVarNames.add(phaseName.toLowerCase())
+      variables.push({
+        index: variables.length,
+        name: realName,
+        type: `${rv.type} (Real)`,
+        unit: rv.unit,
+      })
+      knownVarNames.add(realName.toLowerCase())
+      variables.push({
+        index: variables.length,
+        name: imagName,
+        type: `${rv.type} (Imag)`,
+        unit: rv.unit,
+      })
+      knownVarNames.add(imagName.toLowerCase())
     }
+
+    // Current Aliasing: v1#branch -> i(v1), @r1[i] -> i(r1), @c1[i] -> i(c1), @d1[id] -> i(d1)
+    const lowerName = rv.name.toLowerCase()
+    let aliasName: string | null = null
+
+    if (lowerName.endsWith('#branch')) {
+      const dev = lowerName.replace(/#branch$/, '')
+      aliasName = `i(${dev})`
+    } else if (lowerName.startsWith('@') && lowerName.includes('[')) {
+      const match = lowerName.match(/^@([a-z0-9_]+)\[([a-z0-9_]+)\]$/)
+      if (match) {
+        const dev = match[1]
+        const param = match[2]
+        if (param === 'i' || param === 'id') {
+          aliasName = `i(${dev})`
+        } else if (param === 'ic') {
+          aliasName = `i(${dev}:c)`
+        } else if (param === 'ib') {
+          aliasName = `i(${dev}:b)`
+        }
+      }
+    }
+
+    if (aliasName && !knownVarNames.has(aliasName)) {
+      knownVarNames.add(aliasName)
+      data[aliasName] = data[rv.name]
+      if (isComplex && v > 0) {
+        if (data[`${rv.name}_db`]) data[`${aliasName}_db`] = data[`${rv.name}_db`]
+        if (data[`${rv.name}_phase`]) data[`${aliasName}_phase`] = data[`${rv.name}_phase`]
+        if (data[`${rv.name}_real`]) data[`${aliasName}_real`] = data[`${rv.name}_real`]
+        if (data[`${rv.name}_imag`]) data[`${aliasName}_imag`] = data[`${rv.name}_imag`]
+      }
+      variables.push({
+        index: variables.length,
+        name: aliasName,
+        type: 'current',
+        unit: 'A',
+      })
+    }
+  }
+
+  // Ensure Ground reference (Node 0) is accessible as a 0V array
+  if (pointCount > 0 && !data['0'] && !data['v(0)']) {
+    const zeroArr = new Array(pointCount).fill(0)
+    data['0'] = zeroArr
+    data['v(0)'] = zeroArr
+    if (!knownVarNames.has('v(0)')) {
+      variables.push({
+        index: variables.length,
+        name: 'v(0)',
+        type: 'voltage',
+        unit: 'V',
+      })
+      knownVarNames.add('v(0)')
+    }
+  }
+
+  // Populate case-insensitive keys in data lookup
+  for (const k of Object.keys(data)) {
+    data[k.toLowerCase()] = data[k]
+    data[k.toUpperCase()] = data[k]
   }
 
   return { plotName, isComplex, xVariable, variables, data, pointCount }
@@ -367,7 +462,7 @@ export async function runNgspiceSimulation(
       if (activeSimulationProcess) {
         try {
           activeSimulationProcess.kill()
-        } catch {}
+        } catch { }
       }
     }, timeoutMs)
 
@@ -431,7 +526,7 @@ export async function runNgspiceSimulation(
         if (fs.existsSync(rawFile)) {
           try {
             rawContent = fs.readFileSync(rawFile, 'utf-8')
-          } catch {}
+          } catch { }
         }
 
         cleanupDir(tmpDir)
@@ -461,8 +556,7 @@ export async function runNgspiceSimulation(
           (v) =>
             v.name !== 'time' &&
             v.name !== 'frequency' &&
-            !v.name.includes('sweep') &&
-            v.index > 0,
+            !v.name.includes('sweep'),
         )
         const hasData = parsed.pointCount > 0 && hasCircuitNodes
         const isSuccessful =
@@ -477,9 +571,9 @@ export async function runNgspiceSimulation(
           stderr,
           error: !isSuccessful
             ? errMsg ||
-              (parsed.variables.length <= 1
-                ? 'No valid circuit nodes found to simulate'
-                : 'Simulation produced no output vectors')
+            (parsed.variables.length <= 1
+              ? 'No valid circuit nodes found to simulate'
+              : 'Simulation produced no output vectors')
             : undefined,
           analysisType,
           plotName: parsed.plotName,
@@ -543,7 +637,7 @@ function cleanupDir(dirPath: string) {
     if (fs.existsSync(dirPath)) {
       fs.rmSync(dirPath, { recursive: true, force: true })
     }
-  } catch {}
+  } catch { }
 }
 
 function extractNgspiceErrorMessage(stdout: string, stderr: string): string | null {

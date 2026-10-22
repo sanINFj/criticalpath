@@ -1,0 +1,39 @@
+Title: * test op bjt
+Date: Wed Oct 21 01:51:12  2026
+Command: ngspice-44.2, Build Jan 11 2025   14:28:27
+Plotname: Operating Point
+Flags: real
+No. Variables: 15
+No. Points: 1       
+Variables:
+	0	v(vc)	voltage
+	1	v(vb)	voltage
+	2	v(c)	voltage
+	3	v(b)	voltage
+	4	i(vin)	current
+	5	i(vcc)	current
+	6	i(@q1[ib])	current
+	7	i(@q1[ic])	current
+	8	v(@q1[vbe])	voltage
+	9	v(@q1[vce])	voltage
+	10	@q1[gm]	admittance
+	11	i(@rc[i])	current
+	12	i(@rb[i])	current
+	13	i(@q1[ie])	current
+	14	i(@q1[is])	current
+Values:
+0		1.000000000000000e+01
+	1.200000000000000e+00
+	1.766052435712575e-01
+	7.051313391604841e-01
+	-4.948686608395162e-05
+	-9.823394756428743e-03
+	4.948686714778713e-05
+	9.823394754139396e-03
+	7.051313391604841e-01
+	0.000000000000000e+00
+	3.800775050917940e-01
+	9.823394756428742e-03
+	4.948686608395161e-05
+	-9.872881621463788e-03
+	1.766052435712574e-13

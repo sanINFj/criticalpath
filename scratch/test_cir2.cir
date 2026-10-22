@@ -1,0 +1,9 @@
+* Test vectors with resistor and diode
+V1 1 0 5
+R1 1 2 1k
+D1 2 0 D1N4148
+.model D1N4148 D(Is=2.52n Rs=0.568 N=1.752)
+.options savecurrents
+.save all @r1[i] @r1[p] @d1[id] @d1[vd]
+.op
+.end

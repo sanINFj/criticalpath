@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
+import { X, Search } from "lucide-react"
 import {
   renderSymbol,
   getComponentPins,
@@ -159,8 +160,9 @@ export default function ComponentLibraryModal({
             onClick={onClose}
             title={`${t('actions.close')} (Esc)`}
             aria-label="Close"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
 
@@ -181,8 +183,9 @@ export default function ComponentLibraryModal({
                 className="comp-lib-search-clear"
                 onClick={() => setSearchQuery("")}
                 title="Clear search"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
               >
-                ✕
+                <X size={12} />
               </button>
             )}
           </div>
@@ -217,7 +220,9 @@ export default function ComponentLibraryModal({
           <div className="comp-lib-list-container">
             {filteredItems.length === 0 ? (
               <div className="comp-lib-empty">
-                <span className="comp-lib-empty-icon">🔍</span>
+                <span className="comp-lib-empty-icon" style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+                  <Search size={36} strokeWidth={1.5} color="#94a3b8" />
+                </span>
                 <p>{t('componentLib.noMatches')}</p>
                 <button
                   className="comp-lib-empty-btn"

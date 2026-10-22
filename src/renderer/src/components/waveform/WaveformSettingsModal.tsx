@@ -1,5 +1,24 @@
 import React, { useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import {
+  Settings,
+  X,
+  Palette,
+  Sliders,
+  Eye,
+  EyeOff,
+  Tag,
+  BarChart2,
+  Download,
+  Crosshair,
+  FileText,
+  FileSpreadsheet,
+  Camera,
+  Save,
+  FolderOpen,
+  Check,
+  AlertTriangle,
+} from "lucide-react"
 import type { SimulationRunResult } from "../../../../shared/simulation"
 import AutomaticMeasurementsPanel from "../AutomaticMeasurementsPanel"
 import type {
@@ -242,11 +261,13 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
       <div className="wf-modal-window" onClick={(e) => e.stopPropagation()} style={{ width: "660px", maxWidth: "95vw" }}>
         {/* Header */}
         <div className="wf-modal-header">
-          <div className="wf-modal-title">
-            <span style={{ marginRight: "6px" }}>⚙️</span>
+          <div className="wf-modal-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Settings size={16} />
             {t('waveform:modalTitle')}
           </div>
-          <button className="wf-modal-close" onClick={onClose} title={t('common:actions.close')}>✕</button>
+          <button className="wf-modal-close" onClick={onClose} title={t('common:actions.close')} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <X size={14} />
+          </button>
         </div>
 
         {/* Tab Navigation Strip */}
@@ -255,22 +276,28 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "traces" ? "active" : ""}`}
             onClick={() => setActiveTab("traces")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
           >
-            🎨 {t('waveform:tabs.traces')}
+            <Palette size={13} />
+            {t('waveform:tabs.traces')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "axes" ? "active" : ""}`}
             onClick={() => setActiveTab("axes")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
           >
-            📐 {t('waveform:tabs.axes')}
+            <Sliders size={13} />
+            {t('waveform:tabs.axes')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "appearance" ? "active" : ""}`}
             onClick={() => setActiveTab("appearance")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
           >
-            🖼️ {t('waveform:tabs.appearance')}
+            <Eye size={13} />
+            {t('waveform:tabs.appearance')}
           </button>
           <button
             type="button"
@@ -283,22 +310,28 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "annotations" ? "active" : ""}`}
             onClick={() => setActiveTab("annotations")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
           >
-            🏷️ {t('waveform:tabs.annotations')}
+            <Tag size={13} />
+            {t('waveform:tabs.annotations')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "measurements" ? "active" : ""}`}
             onClick={() => setActiveTab("measurements")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
           >
-            📊 {t('waveform:tabs.measurements')}
+            <BarChart2 size={13} />
+            {t('waveform:tabs.measurements')}
           </button>
           <button
             type="button"
             className={`cfg-analysis-win-tab ${activeTab === "export" ? "active" : ""}`}
             onClick={() => setActiveTab("export")}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
           >
-            💾 {t('waveform:tabs.export')}
+            <Download size={13} />
+            {t('waveform:tabs.export')}
           </button>
         </div>
 
@@ -363,16 +396,29 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                         type="button"
                         className={`wf-action-btn ${isTraceSelected ? "active" : ""}`}
                         onClick={() => onToggleTrace(activeTrace.name)}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
                       >
-                        {isTraceSelected ? "👁 Visible" : "Hidden"}
+                        {isTraceSelected ? (
+                          <>
+                            <Eye size={13} />
+                            <span>Visible</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff size={13} />
+                            <span>Hidden</span>
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
                         className="wf-action-btn"
                         onClick={() => onSoloTrace(activeTrace.name)}
                         title="Isolate this trace (solo)"
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
                       >
-                        🎯 Solo
+                        <Crosshair size={13} />
+                        <span>Solo</span>
                       </button>
                     </div>
                   </div>
@@ -785,11 +831,22 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                     background: evalResult?.success ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
                     color: evalResult?.success ? "#059669" : "#dc2626",
                     border: `1px solid ${evalResult?.success ? "#10b981" : "#ef4444"}`,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                   }}
                 >
-                  {evalResult?.success
-                    ? `✓ Valid expression (${evalResult.data?.length || 0} points, unit: ${evalResult.unit})`
-                    : `⚠ ${evalResult?.error || "Invalid expression"}`}
+                  {evalResult?.success ? (
+                    <>
+                      <Check size={13} style={{ flexShrink: 0 }} />
+                      <span>Valid expression ({evalResult.data?.length || 0} points, unit: {evalResult.unit})</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle size={13} style={{ flexShrink: 0 }} />
+                      <span>{evalResult?.error || "Invalid expression"}</span>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -874,8 +931,9 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                           type="button"
                           className="wf-mini-btn danger"
                           onClick={() => onRemoveMathTrace(mt.id)}
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                         >
-                          ✕
+                          <X size={11} />
                         </button>
                       </div>
                     ))}
@@ -895,8 +953,10 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                     type="button"
                     className={`wf-option-btn ${annotType === "text" ? "active" : ""}`}
                     onClick={() => setAnnotType("text")}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
                   >
-                    📝 Text Note
+                    <FileText size={13} />
+                    <span>Text Note</span>
                   </button>
                   <button
                     type="button"
@@ -1063,8 +1123,9 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                           type="button"
                           className="wf-mini-btn danger"
                           onClick={() => onRemoveAnnotation(annot.id)}
+                          style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                         >
-                          ✕
+                          <X size={11} />
                         </button>
                       </div>
                     ))}
@@ -1099,7 +1160,7 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                   <button
                     type="button"
                     className="wf-primary-btn"
-                    style={{ flex: 1, padding: "8px" }}
+                    style={{ flex: 1, padding: "8px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     onClick={() =>
                       exportWaveformCsv(
                         xVarName,
@@ -1111,15 +1172,17 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                       )
                     }
                   >
-                    📊 Export Plotted Data to CSV
+                    <FileSpreadsheet size={15} />
+                    <span>Export Plotted Data to CSV</span>
                   </button>
                   <button
                     type="button"
                     className="wf-primary-btn"
-                    style={{ flex: 1, padding: "8px" }}
+                    style={{ flex: 1, padding: "8px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     onClick={() => exportWaveformPng(canvasRef.current, "criticalpath_plot")}
                   >
-                    🖼️ Save High-Res PNG Image
+                    <Camera size={15} />
+                    <span>Save High-Res PNG Image</span>
                   </button>
                 </div>
               </div>
@@ -1134,18 +1197,20 @@ export const WaveformSettingsModal: React.FC<WaveformSettingsModalProps> = ({
                   <button
                     type="button"
                     className="wf-secondary-btn"
-                    style={{ flex: 1, padding: "8px" }}
+                    style={{ flex: 1, padding: "8px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     onClick={onExportSettings}
                   >
-                    💾 Save Configuration (.json)
+                    <Save size={14} />
+                    <span>Save Configuration (.json)</span>
                   </button>
                   <button
                     type="button"
                     className="wf-secondary-btn"
-                    style={{ flex: 1, padding: "8px" }}
+                    style={{ flex: 1, padding: "8px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                     onClick={onImportSettingsClick}
                   >
-                    📂 Load Configuration (.json)
+                    <FolderOpen size={14} />
+                    <span>Load Configuration (.json)</span>
                   </button>
                 </div>
               </div>

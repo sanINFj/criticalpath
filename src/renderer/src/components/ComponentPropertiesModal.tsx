@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { X } from "lucide-react"
 import type { Node } from "reactflow"
 import {
   type SchematicComponentType,
@@ -511,6 +512,11 @@ export function getFriendlyTypeName(type: SchematicComponentType | "junction"): 
     case "mux-2to1": return "2:1 Multiplexer"
     case "counter-4bit": return "4-Bit Binary Counter"
     case "net-label": return "Net Label"
+    case "port-in": return "Input Port"
+    case "port-out": return "Output Port"
+    case "port-bi": return "Bi-directional Port"
+    case "spice-directive": return "SPICE Directive"
+    case "schematic-text": return "Text Annotation"
     case "junction": return "Junction Dot"
     default: return type
   }
@@ -518,7 +524,19 @@ export function getFriendlyTypeName(type: SchematicComponentType | "junction"): 
 
 export function getComponentCategory(type: SchematicComponentType | "junction"): string {
   if (type === "junction") return "Wiring"
-  if (type === "ground" || type === "vcc" || type === "net-label") return "Power & Ports"
+  if (
+    type === "ground" ||
+    type === "vcc" ||
+    type === "net-label" ||
+    type === "port-in" ||
+    type === "port-out" ||
+    type === "port-bi"
+  ) {
+    return "Power & Ports"
+  }
+  if (type === "spice-directive" || type === "schematic-text") {
+    return "Directives & Annotations"
+  }
   if (
     type === "resistor" ||
     type === "capacitor" ||
@@ -570,6 +588,9 @@ export interface ComponentPropertiesModalProps {
       label?: string
       value?: string
       rotation?: number
+      type?: SchematicComponentType
+      directiveType?: "spice" | "comment"
+      portType?: "none" | "input" | "output" | "bidirectional"
     },
   ) => void
   pinNetMap?: Record<string, string>
@@ -595,6 +616,11 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
   const [rotation, setRotation] = useState<number>(0)
   const [isDirty, setIsDirty] = useState(false)
 
+  // Directives, text and ports states
+  const [directiveText, setDirectiveText] = useState("")
+  const [directiveType, setDirectiveType] = useState<"spice" | "comment">("spice")
+  const [netName, setNetName] = useState("")
+
   // Initialize draft when node opens or changes
   useEffect(() => {
     if (!node || !isOpen) return
@@ -606,7 +632,23 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
     setRotation(initialRotation)
 
     const rawVal = node.data?.value ?? ""
-    if (compType !== "junction" && compType !== "ground") {
+
+    if (compType === "spice-directive") {
+      setDirectiveText(rawVal || ".op")
+      setDirectiveType(
+        node.data?.directiveType ||
+          (rawVal.startsWith("*") || rawVal.startsWith(";") ? "comment" : "spice"),
+      )
+    } else if (compType === "schematic-text") {
+      setDirectiveText(rawVal || initialLabel || "Annotation")
+    } else if (
+      compType === "net-label" ||
+      compType === "port-in" ||
+      compType === "port-out" ||
+      compType === "port-bi"
+    ) {
+      setNetName(rawVal || initialLabel || "NET1")
+    } else if (compType !== "junction" && compType !== "ground") {
       const parsed = parseComponentValue(compType as SchematicComponentType, rawVal)
       setMagnitude(parsed.magnitude)
       setUnit(parsed.unit)
@@ -640,11 +682,39 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
   // Handle Save
   const handleSave = (shouldClose: boolean) => {
     if (!node) return
-    onApply(node.id, {
-      label: label.trim() || node.id,
-      value: computedValue,
-      rotation,
-    })
+    if (compType === "spice-directive") {
+      onApply(node.id, {
+        label: directiveType === "comment" ? "; Comment" : ".SPICE",
+        value: directiveText.trim() || ".op",
+        directiveType,
+        rotation,
+      })
+    } else if (compType === "schematic-text") {
+      onApply(node.id, {
+        label: "Text",
+        value: directiveText.trim() || "Annotation",
+        rotation,
+      })
+    } else if (
+      compType === "net-label" ||
+      compType === "port-in" ||
+      compType === "port-out" ||
+      compType === "port-bi"
+    ) {
+      const cleanNet = (netName.trim() || "NET").toUpperCase()
+      onApply(node.id, {
+        label: cleanNet,
+        value: cleanNet,
+        type: compType as SchematicComponentType,
+        rotation,
+      })
+    } else {
+      onApply(node.id, {
+        label: label.trim() || node.id,
+        value: computedValue,
+        rotation,
+      })
+    }
     setIsDirty(false)
     if (shouldClose) {
       onClose()
@@ -719,142 +789,315 @@ export const ComponentPropertiesModal: React.FC<ComponentPropertiesModalProps> =
             onClick={onClose}
             aria-label={t('actions.close')}
             title="Cancel (Esc)"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
 
         {/* Dialog Body */}
         <div className="comp-prop-win-body">
-          {/* Section 1: Identification */}
-          <fieldset className="comp-prop-win-fieldset">
-            <legend className="comp-prop-win-legend">{t('componentProperties.identification')}</legend>
-            <div className="comp-prop-win-form-grid">
-              <label className="comp-prop-win-label" htmlFor="prop-ref-input">
-                {t('componentProperties.refDesignator')}
-              </label>
-              <div className="comp-prop-win-control-col">
-                <input
-                  id="prop-ref-input"
-                  type="text"
-                  className="comp-prop-win-input"
-                  value={label}
-                  onChange={(e) => {
-                    setLabel(e.target.value)
-                    setIsDirty(true)
-                  }}
-                  placeholder="e.g. R1, V1, C1"
-                  autoFocus
-                />
-              </div>
-
-              <span className="comp-prop-win-label">{t('componentProperties.compType')}</span>
-              <div className="comp-prop-win-control-col">
-                <span className="comp-prop-win-static-text">{friendlyName}</span>
-              </div>
-
-              <span className="comp-prop-win-label">{t('componentProperties.category')}</span>
-              <div className="comp-prop-win-control-col">
-                <span className="comp-prop-win-static-text">{categoryName}</span>
-              </div>
-            </div>
-          </fieldset>
-
-          {/* Section 2: Parameters & SPICE Values */}
-          {compType !== "junction" && compType !== "ground" && (
+          {/* SPICE DIRECTIVE EDITOR */}
+          {compType === "spice-directive" && (
             <fieldset className="comp-prop-win-fieldset">
-              <legend className="comp-prop-win-legend">Electrical Parameters & Value</legend>
-              <div className="comp-prop-win-form-grid">
-                {isModelType ? (
-                  <>
-                    <label className="comp-prop-win-label" htmlFor="prop-model-select">
-                      Device Model / Preset:
-                    </label>
-                    <div className="comp-prop-win-control-col">
-                      <select
-                        id="prop-model-select"
-                        className="comp-prop-win-select"
-                        value={unit}
-                        onChange={(e) => {
-                          const newU = e.target.value
-                          setUnit(newU)
-                          if (newU !== "Custom") {
-                            setCustomModel(newU)
-                          }
+              <legend className="comp-prop-win-legend">SPICE Directive / Code Block</legend>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "4px 2px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="directiveType"
+                      checked={directiveType === "spice"}
+                      onChange={() => {
+                        setDirectiveType("spice")
+                        setIsDirty(true)
+                      }}
+                    />
+                    <strong>SPICE Directive</strong> (executed by simulation engine)
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, cursor: "pointer" }}>
+                    <input
+                      type="radio"
+                      name="directiveType"
+                      checked={directiveType === "comment"}
+                      onChange={() => {
+                        setDirectiveType("comment")
+                        setIsDirty(true)
+                      }}
+                    />
+                    <strong>Comment</strong> (unsimulated text note)
+                  </label>
+                </div>
+
+                <div>
+                  <textarea
+                    id="prop-directive-textarea"
+                    className="comp-prop-win-input"
+                    style={{
+                      width: "100%",
+                      height: 105,
+                      fontFamily: 'Consolas, "JetBrains Mono", monospace',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: directiveType === "comment" ? "#166534" : "#1e40af",
+                      background: directiveType === "comment" ? "#f0fdf4" : "#f8fafc",
+                      resize: "vertical",
+                      padding: 8,
+                      boxSizing: "border-box",
+                    }}
+                    value={directiveText}
+                    onChange={(e) => {
+                      setDirectiveText(e.target.value)
+                      setIsDirty(true)
+                    }}
+                    placeholder="Enter SPICE directive (e.g. .tran 10m, .ac dec 10 1 100k, .op, .include mylib.lib)"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600, display: "block", marginBottom: 4 }}>
+                    Quick Insert Templates:
+                  </span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                    {[
+                      { label: ".tran 1u 10m", snippet: ".tran 1u 10m" },
+                      { label: ".ac dec 10 1 100k", snippet: ".ac dec 10 1 100k" },
+                      { label: ".op", snippet: ".op" },
+                      { label: ".dc V1 0 5 0.1", snippet: ".dc V1 0 5 0.1" },
+                      { label: ".param R1=1k", snippet: ".param R1=1k" },
+                      { label: ".include lib", snippet: ".include mymodel.lib" },
+                      { label: ".model D1 D(...)", snippet: ".model 1N4148 D(Is=2.52n Rs=0.568 N=1.75)" },
+                    ].map((tpl) => (
+                      <button
+                        key={tpl.label}
+                        type="button"
+                        className="comp-prop-win-btn comp-prop-win-inline-btn"
+                        style={{
+                          padding: "2px 7px",
+                          fontSize: 10.5,
+                          fontFamily: 'Consolas, monospace',
+                          fontWeight: 600,
+                        }}
+                        onClick={() => {
+                          setDirectiveText((prev) => (prev ? `${prev}\n${tpl.snippet}` : tpl.snippet))
+                          setDirectiveType("spice")
                           setIsDirty(true)
                         }}
                       >
-                        {unitOptions.map((opt) => (
-                          <option key={opt.unit} value={opt.unit}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <label className="comp-prop-win-label" htmlFor="prop-custom-model-input">
-                      SPICE Model / Value:
-                    </label>
-                    <div className="comp-prop-win-control-col">
-                      <input
-                        id="prop-custom-model-input"
-                        type="text"
-                        className="comp-prop-win-input"
-                        value={customModel}
-                        onChange={(e) => {
-                          setCustomModel(e.target.value)
-                          setIsDirty(true)
-                        }}
-                        placeholder="e.g. 1N4148, 2N2222, LM741"
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <label className="comp-prop-win-label" htmlFor="prop-mag-input">
-                      Nominal Value:
-                    </label>
-                    <div className="comp-prop-win-control-col comp-prop-win-dual-control">
-                      <input
-                        id="prop-mag-input"
-                        type="text"
-                        className="comp-prop-win-input"
-                        style={{ flex: 1 }}
-                        value={magnitude}
-                        onChange={(e) => {
-                          setMagnitude(e.target.value)
-                          setIsDirty(true)
-                        }}
-                        placeholder="e.g. 10, 4.7, 100"
-                      />
-                      <select
-                        className="comp-prop-win-select"
-                        style={{ width: "135px" }}
-                        value={unit}
-                        onChange={(e) => {
-                          setUnit(e.target.value)
-                          setIsDirty(true)
-                        }}
-                      >
-                        {unitOptions.map((opt) => (
-                          <option key={opt.unit} value={opt.unit}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <span className="comp-prop-win-label">Generated SPICE String:</span>
-                    <div className="comp-prop-win-control-col">
-                      <code className="comp-prop-win-preview-code">
-                        {computedValue || "(None)"}
-                      </code>
-                    </div>
-                  </>
-                )}
+                        + {tpl.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </fieldset>
           )}
+
+          {/* SCHEMATIC TEXT ANNOTATION EDITOR */}
+          {compType === "schematic-text" && (
+            <fieldset className="comp-prop-win-fieldset">
+              <legend className="comp-prop-win-legend">Schematic Text Annotation</legend>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "4px 2px" }}>
+                <textarea
+                  className="comp-prop-win-input"
+                  style={{
+                    width: "100%",
+                    height: 90,
+                    fontFamily: '"Segoe UI", sans-serif',
+                    fontSize: 12.5,
+                    padding: 8,
+                    boxSizing: "border-box",
+                  }}
+                  value={directiveText}
+                  onChange={(e) => {
+                    setDirectiveText(e.target.value)
+                    setIsDirty(true)
+                  }}
+                  placeholder="Enter text annotation or comments..."
+                  autoFocus
+                />
+              </div>
+            </fieldset>
+          )}
+
+          {/* NET LABEL & PORT PROPERTIES */}
+          {(compType === "net-label" ||
+            compType === "port-in" ||
+            compType === "port-out" ||
+            compType === "port-bi") && (
+            <fieldset className="comp-prop-win-fieldset">
+              <legend className="comp-prop-win-legend">
+                {compType === "net-label" ? "Net Label Properties" : "Port Properties"}
+              </legend>
+              <div className="comp-prop-win-form-grid">
+                <label className="comp-prop-win-label" htmlFor="prop-net-name-input">
+                  {compType === "net-label" ? "Net Name:" : "Port Name:"}
+                </label>
+                <div className="comp-prop-win-control-col">
+                  <input
+                    id="prop-net-name-input"
+                    type="text"
+                    className="comp-prop-win-input"
+                    value={netName}
+                    onChange={(e) => {
+                      setNetName(e.target.value)
+                      setIsDirty(true)
+                    }}
+                    placeholder="e.g. VIN, VOUT, CLK, RESET"
+                    autoFocus
+                  />
+                </div>
+
+                <span className="comp-prop-win-label">Electrical Connectivity:</span>
+                <div className="comp-prop-win-control-col">
+                  <span className="comp-prop-win-static-text" style={{ color: "#2563eb", fontWeight: 600 }}>
+                    Assigns net name &quot;{netName.trim().toUpperCase() || "NET"}&quot; to connected wire
+                  </span>
+                </div>
+              </div>
+            </fieldset>
+          )}
+
+          {/* STANDARD COMPONENT IDENTIFICATION & PARAMETERS */}
+          {compType !== "spice-directive" &&
+            compType !== "schematic-text" &&
+            compType !== "net-label" &&
+            compType !== "port-in" &&
+            compType !== "port-out" &&
+            compType !== "port-bi" && (
+              <>
+                {/* Section 1: Identification */}
+                <fieldset className="comp-prop-win-fieldset">
+                  <legend className="comp-prop-win-legend">{t('componentProperties.identification')}</legend>
+                  <div className="comp-prop-win-form-grid">
+                    <label className="comp-prop-win-label" htmlFor="prop-ref-input">
+                      {t('componentProperties.refDesignator')}
+                    </label>
+                    <div className="comp-prop-win-control-col">
+                      <input
+                        id="prop-ref-input"
+                        type="text"
+                        className="comp-prop-win-input"
+                        value={label}
+                        onChange={(e) => {
+                          setLabel(e.target.value)
+                          setIsDirty(true)
+                        }}
+                        placeholder="e.g. R1, V1, C1"
+                        autoFocus
+                      />
+                    </div>
+
+                    <span className="comp-prop-win-label">{t('componentProperties.compType')}</span>
+                    <div className="comp-prop-win-control-col">
+                      <span className="comp-prop-win-static-text">{friendlyName}</span>
+                    </div>
+
+                    <span className="comp-prop-win-label">{t('componentProperties.category')}</span>
+                    <div className="comp-prop-win-control-col">
+                      <span className="comp-prop-win-static-text">{categoryName}</span>
+                    </div>
+                  </div>
+                </fieldset>
+
+                {/* Section 2: Parameters & SPICE Values */}
+                {compType !== "junction" && compType !== "ground" && (
+                  <fieldset className="comp-prop-win-fieldset">
+                    <legend className="comp-prop-win-legend">Electrical Parameters & Value</legend>
+                    <div className="comp-prop-win-form-grid">
+                      {isModelType ? (
+                        <>
+                          <label className="comp-prop-win-label" htmlFor="prop-model-select">
+                            Device Model / Preset:
+                          </label>
+                          <div className="comp-prop-win-control-col">
+                            <select
+                              id="prop-model-select"
+                              className="comp-prop-win-select"
+                              value={unit}
+                              onChange={(e) => {
+                                const newU = e.target.value
+                                setUnit(newU)
+                                if (newU !== "Custom") {
+                                  setCustomModel(newU)
+                                }
+                                setIsDirty(true)
+                              }}
+                            >
+                              {unitOptions.map((opt) => (
+                                <option key={opt.unit} value={opt.unit}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <label className="comp-prop-win-label" htmlFor="prop-custom-model-input">
+                            SPICE Model / Value:
+                          </label>
+                          <div className="comp-prop-win-control-col">
+                            <input
+                              id="prop-custom-model-input"
+                              type="text"
+                              className="comp-prop-win-input"
+                              value={customModel}
+                              onChange={(e) => {
+                                setCustomModel(e.target.value)
+                                setIsDirty(true)
+                              }}
+                              placeholder="e.g. 1N4148, 2N2222, LM741"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <label className="comp-prop-win-label" htmlFor="prop-mag-input">
+                            Nominal Value:
+                          </label>
+                          <div className="comp-prop-win-control-col comp-prop-win-dual-control">
+                            <input
+                              id="prop-mag-input"
+                              type="text"
+                              className="comp-prop-win-input"
+                              style={{ flex: 1 }}
+                              value={magnitude}
+                              onChange={(e) => {
+                                setMagnitude(e.target.value)
+                                setIsDirty(true)
+                              }}
+                              placeholder="e.g. 10, 4.7, 100"
+                            />
+                            <select
+                              className="comp-prop-win-select"
+                              style={{ width: "135px" }}
+                              value={unit}
+                              onChange={(e) => {
+                                setUnit(e.target.value)
+                                setIsDirty(true)
+                              }}
+                            >
+                              {unitOptions.map((opt) => (
+                                <option key={opt.unit} value={opt.unit}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <span className="comp-prop-win-label">Generated SPICE String:</span>
+                          <div className="comp-prop-win-control-col">
+                            <code className="comp-prop-win-preview-code">
+                              {computedValue || "(None)"}
+                            </code>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </fieldset>
+                )}
+              </>
+            )}
 
           {/* Section 3: Orientation & Geometry */}
           <fieldset className="comp-prop-win-fieldset">

@@ -1,0 +1,9 @@
+* Test OP with Diode and BJT
+V1 1 0 10
+R1 1 2 1k
+D1 2 0 D1N4148
+.model D1N4148 D(Is=2.52n Rs=0.568 N=1.752 Cjo=4p M=0.4 tt=20n)
+.options savecurrents
+.save all
+.op
+.end
