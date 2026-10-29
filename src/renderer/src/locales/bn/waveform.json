@@ -1,0 +1,79 @@
+{
+  "modalTitle": "ওয়েভফর্ম ভিউয়ার সেটিংস",
+  "tabs": {
+    "traces": "ট্রেস ও রঙ",
+    "axes": "অক্ষ ও সীমা",
+    "appearance": "ভিউ ও প্যান",
+    "math": "গণিত (Math)",
+    "annotations": "টীকা (Annotations)",
+    "measurements": "পরিমাপ (Measurements)",
+    "export": "এক্সপোর্ট ও প্রোফাইল"
+  },
+  "traces": {
+    "availableSignals": "উপলব্ধ সিগন্যাল",
+    "all": "সব",
+    "none": "কিছুই নয়",
+    "traceConfig": "ট্রেস কনফিগারেশন",
+    "selectToConfigure": "রূপরেখা কনফিগার করতে বাম তালিকা থেকে একটি ট্রেস নির্বাচন করুন।",
+    "color": "রঙ",
+    "style": "রেখার ধরন",
+    "width": "রেখার প্রস্থ",
+    "axisSide": "Y-অক্ষ বিন্যাস",
+    "leftAxis": "বাম Y-অক্ষ",
+    "rightAxis": "ডান Y-অক্ষ",
+    "assignedPane": "নির্ধারিত প্যান (Pane)",
+    "showHide": "প্লটে দেখান"
+  },
+  "axes": {
+    "xAxis": "X-অক্ষ (সময় / কম্পাঙ্ক)",
+    "yLeftAxis": "বাম Y-অক্ষ",
+    "yRightAxis": "ডান Y-অক্ষ",
+    "autoScale": "স্বয়ংক্রিয় স্কেল",
+    "min": "সর্বনিম্ন",
+    "max": "সর্বোচ্চ",
+    "logScale": "লগ স্কেল (Logarithmic)",
+    "applyLimits": "সীমা প্রয়োগ করুন",
+    "resetAuto": "স্বয়ংক্রিয়তে রিসেট"
+  },
+  "appearance": {
+    "theme": "থিম",
+    "darkTheme": "ডার্ক (অসিলোস্কোপ)",
+    "lightTheme": "লাইট (EDA পেপার)",
+    "highContrast": "উচ্চ বৈসাদৃশ্য",
+    "grid": "গ্রিড শৈলী",
+    "fullGrid": "সম্পূর্ণ গ্রিড",
+    "majorGrid": "কেবল প্রধান রেখা",
+    "dotsGrid": "বিন্দু গ্রিড",
+    "noGrid": "নেই",
+    "panesCount": "প্যানের সংখ্যা",
+    "showLegend": "লেজেন্ড দেখান",
+    "showCursors": "কার্সার দেখান",
+    "cursorMode": "কার্সার মোড"
+  },
+  "math": {
+    "title": "গাণিতিক এক্সপ্রেশন ট্রেস যোগ করুন",
+    "expression": "এক্সপ্রেশন (যেমন V(out)-V(in))",
+    "traceName": "ট্রেসের নাম",
+    "preview": "সূত্র প্রিভিউ",
+    "addTrace": "ম্যাথ ট্রেস যোগ করুন",
+    "valid": "বৈধ এক্সপ্রেশন",
+    "invalid": "সিনট্যাক্স ত্রুটি বা অজানা ভেরিয়েবল"
+  },
+  "annotations": {
+    "title": "প্লট টীকা ও মার্কার",
+    "type": "ধরন",
+    "text": "টেক্সট লেবেল",
+    "refLineH": "অনুভূমিক রেফারেন্স রেখা",
+    "refLineV": "উল্লম্ব রেফারেন্স রেখা",
+    "arrow": "তীর নির্দেশক",
+    "add": "টীকা যোগ করুন",
+    "clearAll": "সব টীকা মুছুন"
+  },
+  "export": {
+    "title": "এক্সপোর্ট ও প্রোফাইল",
+    "exportCsv": "CSV হিসেবে ডেটা এক্সপোর্ট",
+    "exportPng": "উচ্চ রেজোলিউশন PNG এক্সপোর্ট",
+    "saveProfile": "সেটিংস প্রোফাইল সংরক্ষণ",
+    "loadProfile": "সেটিংস প্রোফাইল লোড"
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "modalTitle": "तरंगरूप दर्शक सेटिंग्ज",
+  "tabs": {
+    "traces": "ट्रेस आणि रंग",
+    "axes": "अक्ष आणि मर्यादा",
+    "appearance": "दृश्य आणि पॅन",
+    "math": "गणित (Math)",
+    "annotations": "नोंदी (Annotations)",
+    "measurements": "मोजमापे (Measurements)",
+    "export": "निर्यात आणि प्रोफाइल"
+  },
+  "traces": {
+    "availableSignals": "उपलब्ध सिग्नल्स",
+    "all": "सर्व",
+    "none": "काहीही नाही",
+    "traceConfig": "ट्रेस कॉन्फिगरेशन",
+    "selectToConfigure": "देखावा कॉन्फिगर करण्यासाठी डाव्या सूचीमधून ट्रेस निवडा.",
+    "color": "रंग",
+    "style": "रेषा शैली",
+    "width": "रेषेची रुंदी",
+    "axisSide": "Y-अक्ष संरेखन",
+    "leftAxis": "डावा Y-अक्ष",
+    "rightAxis": "उजवा Y-अक्ष",
+    "assignedPane": "नियुक्त पॅन (Pane)",
+    "showHide": "आलेखावर दाखवा"
+  },
+  "axes": {
+    "xAxis": "X-अक्ष (वेळ / वारंवारता)",
+    "yLeftAxis": "डावा Y-अक्ष",
+    "yRightAxis": "उजवा Y-अक्ष",
+    "autoScale": "स्वयं-प्रमाण (Auto-scale)",
+    "min": "किमान",
+    "max": "कमाल",
+    "logScale": "लॉगरिदमिक प्रमाण",
+    "applyLimits": "मर्यादा लागू करा",
+    "resetAuto": "स्वयंवर रीसेट करा"
+  },
+  "appearance": {
+    "theme": "थीम",
+    "darkTheme": "गडद (ऑसिलोस्कोप)",
+    "lightTheme": "प्रकाश (EDA पेपर)",
+    "highContrast": "उच्च कॉन्ट्रास्ट",
+    "grid": "ग्रीड शैली",
+    "fullGrid": "पूर्ण ग्रीड",
+    "majorGrid": "फक्त मुख्य रेषा",
+    "dotsGrid": "ठिपके ग्रीड",
+    "noGrid": "काहीही नाही",
+    "panesCount": "पॅनची संख्या",
+    "showLegend": "लेजेंड दाखवा",
+    "showCursors": "कर्सर दाखवा",
+    "cursorMode": "कर्सर मोड"
+  },
+  "math": {
+    "title": "गणितीय समीकरण ट्रेस जोडा",
+    "expression": "समीकरण (उदा. V(out)-V(in))",
+    "traceName": "ट्रेसचे नाव",
+    "preview": "सूत्र पूर्वावलोकन",
+    "addTrace": "मॅथ ट्रेस जोडा",
+    "valid": "वैध समीकरण",
+    "invalid": "वाक्यरचना त्रुटी किंवा अज्ञात चल"
+  },
+  "annotations": {
+    "title": "आलेख नोंदी आणि मार्कर",
+    "type": "प्रकार",
+    "text": "मजकूर लेबल",
+    "refLineH": "आडवी संदर्भ रेषा",
+    "refLineV": "उभी संदर्भ रेषा",
+    "arrow": "बाण दर्शक",
+    "add": "नोंद जोडा",
+    "clearAll": "सर्व नोंदी साफ करा"
+  },
+  "export": {
+    "title": "निर्यात आणि प्रोफाईल",
+    "exportCsv": "CSV स्वरूपात डेटा निर्यात करा",
+    "exportPng": "उच्च-गुणवत्तेची PNG निर्यात करा",
+    "saveProfile": "सेटिंग्ज प्रोफाइल जतन करा",
+    "loadProfile": "सेटिंग्ज प्रोफाइल लोड करा"
+  }
+}

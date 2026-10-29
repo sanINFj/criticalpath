@@ -1,0 +1,79 @@
+{
+  "modalTitle": "તરંગરૂપ દર્શક સેટિંગ્સ",
+  "tabs": {
+    "traces": "ટ્રેસ અને રંગો",
+    "axes": "અક્ષ અને મર્યાદાઓ",
+    "appearance": "દૃશ્ય અને પેન",
+    "math": "ગણિત (Math)",
+    "annotations": "નોંધો (Annotations)",
+    "measurements": "માપન (Measurements)",
+    "export": "નિકાસ અને પ્રોફાઇલ"
+  },
+  "traces": {
+    "availableSignals": "ઉપલબ્ધ સિગ્નલો",
+    "all": "બધા",
+    "none": "કોઈ નહીં",
+    "traceConfig": "ટ્રેસ રૂપરેખાંકન",
+    "selectToConfigure": "દેખાવ રૂપરેખાંકિત કરવા માટે ડાબી સૂચિમાંથી ટ્રેસ પસંદ કરો.",
+    "color": "રંગ",
+    "style": "લાઇન શૈલી",
+    "width": "લાઇનની પહોળાઈ",
+    "axisSide": "Y-અક્ષ ગોઠવણી",
+    "leftAxis": "ડાબો Y-અક્ષ",
+    "rightAxis": "જમણો Y-અક્ષ",
+    "assignedPane": "સોંપેલ પેન (Pane)",
+    "showHide": "પ્લોટ પર બતાવો"
+  },
+  "axes": {
+    "xAxis": "X-અક્ષ (સમય / આવર્તન)",
+    "yLeftAxis": "ડાબો Y-અક્ષ",
+    "yRightAxis": "જમણો Y-અક્ષ",
+    "autoScale": "સ્વચાલિત સ્કેલ",
+    "min": "ન્યૂનતમ",
+    "max": "મહત્તમ",
+    "logScale": "લોગ સ્કેલ (Logarithmic)",
+    "applyLimits": "મર્યાદા લાગુ કરો",
+    "resetAuto": "સ્વચાલિત પર રીસેટ"
+  },
+  "appearance": {
+    "theme": "થીમ",
+    "darkTheme": "ડાર્ક (ઓસિલોસ્કોપ)",
+    "lightTheme": "લાઇટ (EDA પેપર)",
+    "highContrast": "હાઇ કોન્ટ્રાસ્ટ",
+    "grid": "ગ્રીડ શૈલી",
+    "fullGrid": "સંપૂર્ણ ગ્રીડ",
+    "majorGrid": "માત્ર મુખ્ય રેખાઓ",
+    "dotsGrid": "ડોટ્સ ગ્રીડ",
+    "noGrid": "કોઈ નહીં",
+    "panesCount": "પેનની સંખ્યા",
+    "showLegend": "લેજેન્ડ બતાવો",
+    "showCursors": "કર્સર બતાવો",
+    "cursorMode": "કર્સર મોડ"
+  },
+  "math": {
+    "title": "ગાણિતિક સમીકરણ ટ્રેસ ઉમેરો",
+    "expression": "સમીકરણ (દા.ત. V(out)-V(in))",
+    "traceName": "ટ્રેસ નામ",
+    "preview": "ફોર્મ્યુલા પૂર્વાવલોકન",
+    "addTrace": "મેથ ટ્રેસ ઉમેરો",
+    "valid": "માન્ય સમીકરણ",
+    "invalid": "સિન્ટેક્સ ભૂલ અથવા અજ્ઞાત ચલ"
+  },
+  "annotations": {
+    "title": "પ્લોટ નોંધો અને માર્કર્સ",
+    "type": "પ્રકાર",
+    "text": "ટેક્સ્ટ લેબલ",
+    "refLineH": "આડી સંદર્ભ રેખા",
+    "refLineV": "ઊભી સંદર્ભ રેખા",
+    "arrow": "તીર નિર્દેશક",
+    "add": "નોંધ ઉમેરો",
+    "clearAll": "બધી નોંધો સાફ કરો"
+  },
+  "export": {
+    "title": "નિકાસ અને પ્રોફાઇલ",
+    "exportCsv": "CSV તરીકે ડેટા નિકાસ કરો",
+    "exportPng": "હાઇ-રિઝોલ્યુશન PNG નિકાસ કરો",
+    "saveProfile": "સેટિંગ્સ પ્રોફાઇલ સાચવો",
+    "loadProfile": "સેટિંગ્સ પ્રોફાઇલ લોડ કરો"
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "modalTitle": "Waveform Viewer Settings",
+  "tabs": {
+    "traces": "Traces & Colors",
+    "axes": "Axes & Limits",
+    "appearance": "View & Panes",
+    "math": "Math",
+    "annotations": "Annotations",
+    "measurements": "Measurements",
+    "export": "Export & CFG"
+  },
+  "traces": {
+    "availableSignals": "Available Signals",
+    "all": "All",
+    "none": "None",
+    "traceConfig": "Trace Configuration",
+    "selectToConfigure": "Select a trace from the left list to configure its appearance.",
+    "color": "Color",
+    "style": "Line Style",
+    "width": "Line Width",
+    "axisSide": "Y-Axis Alignment",
+    "leftAxis": "Left Y-Axis",
+    "rightAxis": "Right Y-Axis",
+    "assignedPane": "Assigned Pane",
+    "showHide": "Show on Plot"
+  },
+  "axes": {
+    "xAxis": "X-Axis (Time / Frequency)",
+    "yLeftAxis": "Left Y-Axis",
+    "yRightAxis": "Right Y-Axis",
+    "autoScale": "Auto-scale",
+    "min": "Min",
+    "max": "Max",
+    "logScale": "Logarithmic Scale",
+    "applyLimits": "Apply Limits",
+    "resetAuto": "Reset to Auto"
+  },
+  "appearance": {
+    "theme": "Theme",
+    "darkTheme": "Dark (Oscilloscope)",
+    "lightTheme": "Light (EDA Paper)",
+    "highContrast": "High Contrast",
+    "grid": "Grid Style",
+    "fullGrid": "Full Grid",
+    "majorGrid": "Major Lines Only",
+    "dotsGrid": "Dotted Grid",
+    "noGrid": "None",
+    "panesCount": "Number of Panes",
+    "showLegend": "Show Legend",
+    "showCursors": "Show Cursors",
+    "cursorMode": "Cursor Mode"
+  },
+  "math": {
+    "title": "Add Mathematical Expression Trace",
+    "expression": "Expression (e.g. V(out)-V(in))",
+    "traceName": "Trace Name",
+    "preview": "Formula Preview",
+    "addTrace": "Add Math Trace",
+    "valid": "Valid expression",
+    "invalid": "Syntax error or unknown variable"
+  },
+  "annotations": {
+    "title": "Plot Annotations & Markers",
+    "type": "Type",
+    "text": "Text Label",
+    "refLineH": "Horizontal Ref Line",
+    "refLineV": "Vertical Ref Line",
+    "arrow": "Arrow Pointer",
+    "add": "Add Annotation",
+    "clearAll": "Clear All Annotations"
+  },
+  "export": {
+    "title": "Export & Profiles",
+    "exportCsv": "Export Data as CSV",
+    "exportPng": "Export High-Res PNG",
+    "saveProfile": "Save Settings Profile",
+    "loadProfile": "Load Settings Profile"
+  }
+}
