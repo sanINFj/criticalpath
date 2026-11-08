@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { useTranslation, Trans } from "react-i18next"
+/* eslint-disable @typescript-eslint/explicit-function-return-type, react-hooks/set-state-in-effect */
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import {
   ZoomIn,
   Move,
@@ -8,14 +9,12 @@ import {
   Activity,
   Settings,
   Zap,
-} from "lucide-react"
-import type { SimulationRunResult } from "../../../shared/simulation"
-import { formatEngineering } from "../utils/engineeringFormat"
-import {
-  evaluateWaveformExpression,
-  type MathTraceDefinition,
-} from "../utils/waveformMath"
-import { computeWaveformFft, type FftResult } from "../utils/waveformFft"
+  BarChart2
+} from 'lucide-react'
+import type { SimulationRunResult } from '../../../shared/simulation'
+import { formatEngineering } from '../utils/engineeringFormat'
+import { evaluateWaveformExpression, type MathTraceDefinition } from '../utils/waveformMath'
+import { computeWaveformFft, type FftResult } from '../utils/waveformFft'
 import {
   type PlotSettings,
   type TraceConfig,
@@ -23,14 +22,14 @@ import {
   loadPlotSettings,
   savePlotSettings,
   exportPlotSettingsJson,
-  importPlotSettingsJson,
-} from "../utils/waveformSettings"
-import { PALETTE_COLORS } from "./waveform/TraceConfigModal"
-import WaveformSettingsModal, { type WaveformSettingsTab } from "./waveform/WaveformSettingsModal"
+  importPlotSettingsJson
+} from '../utils/waveformSettings'
+import { PALETTE_COLORS } from './waveform/TraceConfigModal'
+import WaveformSettingsModal, { type WaveformSettingsTab } from './waveform/WaveformSettingsModal'
 import {
   calculateAutomaticMeasurements,
-  type MeasurementsReport,
-} from "../utils/automaticMeasurements"
+  type MeasurementsReport
+} from '../utils/automaticMeasurements'
 
 // Distinct, vibrant LTspice trace color palette defaults
 const TRACE_COLORS = PALETTE_COLORS
@@ -55,6 +54,8 @@ export interface WaveformViewerProps {
   onToggleMaximize?: () => void
   availableNets?: CircuitNetInfo[]
   activeProbedSignal?: string | null
+  selectedTraces?: string[]
+  onSelectedTracesChange?: (traces: string[]) => void
   onProbeSignal?: (signalName: string, netName?: string) => void
   isProbeToolActive?: boolean
   onToggleProbeTool?: () => void
@@ -101,10 +102,12 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   onToggleMaximize,
   availableNets = [],
   activeProbedSignal,
+  selectedTraces: propSelectedTraces,
+  onSelectedTracesChange,
   onProbeSignal,
   isProbeToolActive = false,
   onToggleProbeTool,
-  onHighlightNet,
+  onHighlightNet
 }) => {
   const { t } = useTranslation()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -126,32 +129,50 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     savePlotSettings(plotSettings)
   }, [plotSettings])
 
-  // Traces selected for display
-  const [selectedTraces, setSelectedTraces] = useState<string[]>([])
+  // Traces selected for display (controlled from App or internal)
+  const [internalSelectedTraces, setInternalSelectedTraces] = useState<string[]>([])
+  const selectedTraces =
+    propSelectedTraces !== undefined ? propSelectedTraces : internalSelectedTraces
+
+  const setSelectedTraces = useCallback(
+    (updater: string[] | ((prev: string[]) => string[])) => {
+      const next = typeof updater === 'function' ? updater(selectedTraces) : updater
+      if (onSelectedTracesChange) {
+        onSelectedTracesChange(next)
+      } else {
+        setInternalSelectedTraces(next)
+      }
+    },
+    [selectedTraces, onSelectedTracesChange]
+  )
   const [useLogX, setUseLogX] = useState(false)
 
   // Interactive Tools: "zoom" (box/wheel zoom) vs "pan" (drag canvas)
-  const [activeTool, setActiveTool] = useState<"zoom" | "pan">("zoom")
+  const [activeTool, setActiveTool] = useState<'zoom' | 'pan'>('zoom')
 
   // Modes
   const [cursorsEnabled, setCursorsEnabled] = useState(false)
   const [fftMode, setFftMode] = useState(false)
 
   // Probed node / wire interactive calculations state
-  const [currentProbedSignal, setCurrentProbedSignal] = useState<string | null>(activeProbedSignal || null)
-  const [isProbedHudVisible, setIsProbedHudVisible] = useState(true)
-  const [isProbedHudCollapsed, setIsProbedHudCollapsed] = useState(false)
+  const [currentProbedSignal, setCurrentProbedSignal] = useState<string | null>(
+    activeProbedSignal || null
+  )
+  const [isProbedHudVisible, setIsProbedHudVisible] = useState(false)
   const [isNetDropdownOpen, setIsNetDropdownOpen] = useState(false)
-  const [netSearchQuery, setNetSearchQuery] = useState("")
+  const [netSearchQuery, setNetSearchQuery] = useState('')
 
   // Sync external probed signal from schematic clicks
   useEffect(() => {
     if (activeProbedSignal) {
       setCurrentProbedSignal(activeProbedSignal)
-      setIsProbedHudVisible(true)
-      setSelectedTraces((prev) => (prev.includes(activeProbedSignal) ? prev : [...prev, activeProbedSignal]))
+      if (propSelectedTraces === undefined) {
+        setSelectedTraces((prev) =>
+          prev.includes(activeProbedSignal) ? prev : [...prev, activeProbedSignal]
+        )
+      }
     }
-  }, [activeProbedSignal])
+  }, [activeProbedSignal, propSelectedTraces, setSelectedTraces])
 
   // Close probe dropdown on outside click
   useEffect(() => {
@@ -161,16 +182,14 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       }
     }
     if (isNetDropdownOpen) {
-      document.addEventListener("mousedown", handleOutsideClick)
+      document.addEventListener('mousedown', handleOutsideClick)
     }
-    return () => document.removeEventListener("mousedown", handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [isNetDropdownOpen])
-
-
 
   // Consolidated Plot Settings & Tools Modal
   const [settingsModalOpen, setSettingsModalOpen] = useState(false)
-  const [settingsModalTab, setSettingsModalTab] = useState<WaveformSettingsTab>("traces")
+  const [settingsModalTab, setSettingsModalTab] = useState<WaveformSettingsTab>('traces')
 
   // Cursor locations in data space (X coordinate)
   const [cursor1X, setCursor1X] = useState<number | null>(null)
@@ -190,9 +209,19 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   const [boxZoomCurrent, setBoxZoomCurrent] = useState<{ x: number; y: number } | null>(null)
 
   const [isPanning, setIsPanning] = useState(false)
-  const [panStart, setPanStart] = useState<{ x: number; y: number; xMin: number; xMax: number } | null>(null)
+  const [panStart, setPanStart] = useState<{
+    x: number
+    y: number
+    xMin: number
+    xMax: number
+  } | null>(null)
 
-  const [mousePos, setMousePos] = useState<{ x: number; y: number; dataX: number; dataY: number } | null>(null)
+  const [mousePos, setMousePos] = useState<{
+    x: number
+    y: number
+    dataX: number
+    dataY: number
+  } | null>(null)
 
   // Resizing state
   const [isResizing, setIsResizing] = useState(false)
@@ -201,10 +230,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
   // Extract variables & independent sweep vector
   const xVarName = useMemo(() => {
-    if (!simulationResult) return ""
+    if (!simulationResult) return ''
     if (simulationResult.xVariable) return simulationResult.xVariable
     if (simulationResult.variables.length > 0) return simulationResult.variables[0].name
-    return "time"
+    return 'time'
   }, [simulationResult])
 
   const xData = useMemo(() => {
@@ -223,10 +252,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     }
 
     // Ensure Ground reference (0 / v(0)) has a valid 0V array
-    if (xData.length > 0 && !map["0"]) {
+    if (xData.length > 0 && !map['0']) {
       const zeroArr = new Array(xData.length).fill(0)
-      map["0"] = zeroArr
-      map["v(0)"] = zeroArr
+      map['0'] = zeroArr
+      map['v(0)'] = zeroArr
     }
 
     // Evaluate custom math traces
@@ -250,8 +279,8 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           list.push({
             name: v.name,
             type: v.type,
-            unit: v.unit || (v.name.startsWith("i(") ? "A" : "V"),
-            isMath: false,
+            unit: v.unit || (v.name.startsWith('i(') ? 'A' : 'V'),
+            isMath: false
           })
         }
       })
@@ -260,41 +289,54 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     plotSettings.customMathTraces.forEach((mt) => {
       list.push({
         name: mt.name,
-        type: "math",
-        unit: mt.unit || "V",
-        isMath: true,
+        type: 'math',
+        unit: mt.unit || 'V',
+        isMath: true
       })
     })
 
     return list
   }, [simulationResult, xVarName, plotSettings.customMathTraces])
 
-
-
   // Analysis type & X-unit
   const xUnit = useMemo(() => {
-    if (fftMode) return "Hz"
-    if (xVarName === "time") return "s"
-    if (xVarName === "frequency") return "Hz"
-    if (xVarName.startsWith("v(") || xVarName.includes("sweep")) return "V"
-    if (xVarName.startsWith("i(")) return "A"
-    return ""
+    if (fftMode) return 'Hz'
+    if (xVarName === 'time') return 's'
+    if (xVarName === 'frequency') return 'Hz'
+    if (xVarName.startsWith('v(') || xVarName.includes('sweep')) return 'V'
+    if (xVarName.startsWith('i(')) return 'A'
+    return ''
   }, [xVarName, fftMode])
 
-  const isAcSweep = simulationResult?.analysisType === "ac" || xVarName === "frequency"
+  const isAcSweep = simulationResult?.analysisType === 'ac' || xVarName === 'frequency'
 
   // Automatically select primary traces when a new simulation run completes
   useEffect(() => {
     if (allAvailableTraces.length > 0 && selectedTraces.length === 0) {
-      const defaultTraces = allAvailableTraces
-        .filter((t) => {
-          if (isAcSweep) {
-            return t.name.includes("out") || (!t.name.endsWith("_phase") && t.name.startsWith("v("))
-          }
-          return t.name.startsWith("v(")
-        })
-        .slice(0, 3)
+      // Prioritize input and output port signals if present
+      const inTraces = allAvailableTraces
+        .filter((t) => /v\(.*(in|vin|input).*\)/i.test(t.name))
         .map((t) => t.name)
+      const outTraces = allAvailableTraces
+        .filter((t) => /v\(.*(out|vout|output).*\)/i.test(t.name))
+        .map((t) => t.name)
+      const portTraces = [...new Set([...inTraces, ...outTraces])]
+
+      const defaultTraces =
+        portTraces.length > 0
+          ? portTraces
+          : allAvailableTraces
+              .filter((t) => {
+                if (isAcSweep) {
+                  return (
+                    t.name.includes('out') ||
+                    (!t.name.endsWith('_phase') && t.name.startsWith('v('))
+                  )
+                }
+                return t.name.startsWith('v(')
+              })
+              .slice(0, 3)
+              .map((t) => t.name)
 
       if (defaultTraces.length > 0) {
         setSelectedTraces(defaultTraces)
@@ -306,7 +348,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       setViewXRange(null)
       setPaneYRanges({})
     }
-  }, [simulationResult, isAcSweep, allAvailableTraces, selectedTraces.length])
+  }, [simulationResult, isAcSweep, allAvailableTraces, selectedTraces.length, setSelectedTraces])
 
   // FFT spectrum data calculated for currently selected traces
   const fftResultsMap = useMemo<Record<string, FftResult | null>>(() => {
@@ -315,37 +357,58 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     selectedTraces.forEach((name) => {
       const yArr = combinedDataMap[name] || combinedDataMap[name.toLowerCase()]
       if (yArr && yArr.length >= 8) {
-        map[name] = computeWaveformFft(xData, yArr, 1024, "hanning")
+        map[name] = computeWaveformFft(xData, yArr, 1024, 'hanning')
       }
     })
     return map
   }, [fftMode, selectedTraces, xData, combinedDataMap])
 
+  // Unified trace color resolution: matches selectedTraces order, plot curves, chips, HUD & schematic
+  const getTraceColor = useCallback(
+    (name: string): string => {
+      const saved = plotSettings.traceConfigs[name]
+      if (saved?.color) return saved.color
+      const selIdx = selectedTraces.findIndex((t) => t.toLowerCase() === name.toLowerCase())
+      if (selIdx >= 0) {
+        return TRACE_COLORS[selIdx % TRACE_COLORS.length]
+      }
+      const availIdx = allAvailableTraces.findIndex(
+        (t) => t.name.toLowerCase() === name.toLowerCase()
+      )
+      return TRACE_COLORS[(availIdx >= 0 ? availIdx : 0) % TRACE_COLORS.length]
+    },
+    [plotSettings.traceConfigs, selectedTraces, allAvailableTraces]
+  )
+
   // Helper to get trace configuration
   const getTraceConfig = useCallback(
-    (name: string, index: number): TraceConfig => {
+    (name: string, index?: number): TraceConfig => {
       const saved = plotSettings.traceConfigs[name]
-      const defaultColor = TRACE_COLORS[index % TRACE_COLORS.length]
+      const color =
+        saved?.color ||
+        (index !== undefined && selectedTraces.length === 0
+          ? TRACE_COLORS[index % TRACE_COLORS.length]
+          : getTraceColor(name))
       return {
-        color: saved?.color || defaultColor,
+        color,
         lineWidth: saved?.lineWidth ?? 2,
-        lineStyle: saved?.lineStyle || "solid",
+        lineStyle: saved?.lineStyle || 'solid',
         pane: saved?.pane ?? 0,
-        visible: saved?.visible ?? true,
+        visible: saved?.visible ?? true
       }
     },
-    [plotSettings.traceConfigs],
+    [plotSettings.traceConfigs, getTraceColor, selectedTraces.length]
   )
 
   // List of available circuit nets and signals for dropdown
   const resolvedNetsList: CircuitNetInfo[] = useMemo(() => {
     if (availableNets && availableNets.length > 0) return availableNets
     return allAvailableTraces.map((t) => ({
-      netName: t.name.replace(/^v\(|\)$/gi, ""),
+      netName: t.name.replace(/^v\(|\)$/gi, ''),
       signalName: t.name,
       displayName: t.name.toUpperCase(),
       pinCount: 1,
-      connectedComponents: [],
+      connectedComponents: []
     }))
   }, [availableNets, allAvailableTraces])
 
@@ -356,78 +419,79 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       (n) =>
         n.netName.toLowerCase().includes(q) ||
         n.displayName.toLowerCase().includes(q) ||
-        n.connectedComponents.some((c) => c.toLowerCase().includes(q)),
+        n.connectedComponents.some((c) => c.toLowerCase().includes(q))
     )
   }, [resolvedNetsList, netSearchQuery])
 
   // Active probed trace identifier (explicitly probed or first selected trace)
-  const activeProbedTrace = currentProbedSignal || (selectedTraces.length > 0 ? selectedTraces[0] : null)
+  const activeProbedTrace =
+    currentProbedSignal || (selectedTraces.length > 0 ? selectedTraces[0] : null)
 
   // Calculate live electrical measurements for the active probed wire/node
   const probedReport: MeasurementsReport | null = useMemo(() => {
     if (!activeProbedTrace || !simulationResult || !simulationResult.data) return null
-    if (activeProbedTrace === "0") {
+    if (activeProbedTrace === '0') {
       return {
-        signalName: "0 (GND)",
-        analysisType: simulationResult.analysisType || "TRAN",
+        signalName: '0 (GND)',
+        analysisType: simulationResult.analysisType || 'TRAN',
         pointCount: simulationResult.pointCount,
         measurements: [
           {
-            id: "v_max",
-            name: "Maximum Voltage",
-            symbol: "Vmax",
-            category: "transient",
-            valueFormatted: "0.000 V",
+            id: 'v_max',
+            name: 'Maximum Voltage',
+            symbol: 'Vmax',
+            category: 'transient',
+            valueFormatted: '0.000 V',
             numericValue: 0,
-            unit: "V",
-            definition: "Ground Reference",
-            status: "valid",
+            unit: 'V',
+            definition: 'Ground Reference',
+            status: 'valid'
           },
           {
-            id: "v_min",
-            name: "Minimum Voltage",
-            symbol: "Vmin",
-            category: "transient",
-            valueFormatted: "0.000 V",
+            id: 'v_min',
+            name: 'Minimum Voltage',
+            symbol: 'Vmin',
+            category: 'transient',
+            valueFormatted: '0.000 V',
             numericValue: 0,
-            unit: "V",
-            definition: "Ground Reference",
-            status: "valid",
+            unit: 'V',
+            definition: 'Ground Reference',
+            status: 'valid'
           },
           {
-            id: "v_peak_to_peak",
-            name: "Peak-to-Peak Voltage",
-            symbol: "Vp-p",
-            category: "transient",
-            valueFormatted: "0.000 V",
+            id: 'v_peak_to_peak',
+            name: 'Peak-to-Peak Voltage',
+            symbol: 'Vp-p',
+            category: 'transient',
+            valueFormatted: '0.000 V',
             numericValue: 0,
-            unit: "V",
-            definition: "Ground Reference",
-            status: "valid",
+            unit: 'V',
+            definition: 'Ground Reference',
+            status: 'valid'
           },
           {
-            id: "v_avg",
-            name: "Average DC Voltage",
-            symbol: "Vavg",
-            category: "transient",
-            valueFormatted: "0.000 V",
+            id: 'v_avg',
+            name: 'Average DC Voltage',
+            symbol: 'Vavg',
+            category: 'transient',
+            valueFormatted: '0.000 V',
             numericValue: 0,
-            unit: "V",
-            definition: "Ground Reference",
-            status: "valid",
+            unit: 'V',
+            definition: 'Ground Reference',
+            status: 'valid'
           },
           {
-            id: "v_rms",
-            name: "RMS Voltage",
-            symbol: "Vrms",
-            category: "transient",
-            valueFormatted: "0.000 V",
+            id: 'v_rms',
+            name: 'RMS Voltage',
+            symbol: 'Vrms',
+            category: 'transient',
+            valueFormatted: '0.000 V',
             numericValue: 0,
-            unit: "V",
-            definition: "Ground Reference",
-            status: "valid",
-          },
-        ],
+            unit: 'V',
+            definition: 'Ground Reference',
+            status: 'valid'
+          }
+        ]
       }
     }
     return calculateAutomaticMeasurements(simulationResult, activeProbedTrace)
@@ -438,28 +502,39 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     if (!probedReport || probedReport.measurements.length === 0) return null
 
     const findVal = (idPrefix: string) => {
-      const m = probedReport.measurements.find((x) => x.id.toLowerCase().includes(idPrefix.toLowerCase()))
-      return m ? m.valueFormatted : "N/A"
+      const m = probedReport.measurements.find((x) =>
+        x.id.toLowerCase().includes(idPrefix.toLowerCase())
+      )
+      return m ? m.valueFormatted : 'N/A'
     }
 
-    const vpp = findVal("peak_to_peak") || findVal("v_pp")
-    const vmax = findVal("max")
-    const vmin = findVal("min")
-    const vavg = findVal("avg") || findVal("dc")
-    const vrms = findVal("rms")
-    const freq = findVal("freq")
-    const period = findVal("period")
+    const vpp = findVal('peak_to_peak') || findVal('v_pp')
+    const vmax = findVal('max')
+    const vmin = findVal('min')
+    const vavg = findVal('avg') || findVal('dc')
+    const vrms = findVal('rms')
+    const freq = findVal('freq')
+    const period = findVal('period')
 
     return { vpp, vmax, vmin, vavg, vrms, freq, period }
   }, [probedReport])
 
   // Real-time instantaneous value at mouse cursor
   const instantaneousProbedVal = useMemo(() => {
-    if (!activeProbedTrace || !mousePos || !combinedDataMap[activeProbedTrace.toLowerCase()] || !xData.length) {
+    if (
+      !activeProbedTrace ||
+      !mousePos ||
+      !combinedDataMap[activeProbedTrace.toLowerCase()] ||
+      !xData.length
+    ) {
       return null
     }
-    const val = interpolateAtX(xData, combinedDataMap[activeProbedTrace.toLowerCase()], mousePos.dataX)
-    const unit = activeProbedTrace.toLowerCase().startsWith("i(") ? "A" : "V"
+    const val = interpolateAtX(
+      xData,
+      combinedDataMap[activeProbedTrace.toLowerCase()],
+      mousePos.dataX
+    )
+    const unit = activeProbedTrace.toLowerCase().startsWith('i(') ? 'A' : 'V'
     return formatEngineering(val, unit)
   }, [activeProbedTrace, mousePos, combinedDataMap, xData])
 
@@ -470,20 +545,15 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       (n) =>
         n.signalName.toLowerCase() === activeProbedTrace.toLowerCase() ||
         n.netName.toLowerCase() === activeProbedTrace.toLowerCase() ||
-        `v(${n.netName.toLowerCase()})` === activeProbedTrace.toLowerCase(),
+        `v(${n.netName.toLowerCase()})` === activeProbedTrace.toLowerCase()
     )
   }, [activeProbedTrace, availableNets])
 
   // Color matching trace on graph
   const activeProbedTraceColor = useMemo(() => {
-    if (!activeProbedTrace) return "#38bdf8"
-    const idx = allAvailableTraces.findIndex((t) => t.name.toLowerCase() === activeProbedTrace.toLowerCase())
-    if (idx >= 0) {
-      const cfg = getTraceConfig(activeProbedTrace, idx)
-      return cfg.color || TRACE_COLORS[idx % TRACE_COLORS.length]
-    }
-    return "#38bdf8"
-  }, [activeProbedTrace, allAvailableTraces, getTraceConfig])
+    if (!activeProbedTrace) return '#38bdf8'
+    return getTraceColor(activeProbedTrace)
+  }, [activeProbedTrace, getTraceColor])
 
   const handleSelectNet = (net: CircuitNetInfo) => {
     const signalName = net.signalName
@@ -530,7 +600,14 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   const naturalPaneBounds = useMemo(() => {
     const panes: Record<
       number,
-      { minLeftY: number; maxLeftY: number; hasLeft: boolean; minRightY: number; maxRightY: number; hasRight: boolean }
+      {
+        minLeftY: number
+        maxLeftY: number
+        hasLeft: boolean
+        minRightY: number
+        maxRightY: number
+        hasRight: boolean
+      }
     > = {}
 
     for (let p = 0; p < plotSettings.panesCount; p++) {
@@ -540,7 +617,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         hasLeft: false,
         minRightY: Infinity,
         maxRightY: -Infinity,
-        hasRight: false,
+        hasRight: false
       }
     }
 
@@ -553,7 +630,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           hasLeft: true,
           minRightY: 0,
           maxRightY: 1,
-          hasRight: false,
+          hasRight: false
         }
       }
       return panes
@@ -565,7 +642,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       const arr = combinedDataMap[name] || combinedDataMap[name.toLowerCase()]
       if (!arr || arr.length === 0) return
 
-      const isRightAxis = name.startsWith("i(") || name.endsWith("_phase")
+      const isRightAxis = name.startsWith('i(') || name.endsWith('_phase')
       const targetPane = panes[paneIdx]
 
       for (let i = 0; i < arr.length; i++) {
@@ -609,8 +686,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   }, [plotSettings.panesCount, selectedTraces, combinedDataMap, getTraceConfig, fftMode])
 
   // Active X Range (synchronized across all panes)
-  const activeXRange: [number, number] =
-    viewXRange || [naturalXBounds.minX, naturalXBounds.maxX]
+  const activeXRange: [number, number] = viewXRange || [naturalXBounds.minX, naturalXBounds.maxX]
 
   // Initialize cursor positions when cursors are turned on
   useEffect(() => {
@@ -633,7 +709,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return
       const delta = resizeStartY.current - e.clientY
-      const newHeight = Math.max(180, Math.min(window.innerHeight - 150, resizeStartHeight.current + delta))
+      const newHeight = Math.max(
+        180,
+        Math.min(window.innerHeight - 150, resizeStartHeight.current + delta)
+      )
       onHeightChange?.(newHeight)
     }
 
@@ -642,19 +721,19 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     }
 
     if (isResizing) {
-      window.addEventListener("mousemove", handleMouseMove)
-      window.addEventListener("mouseup", handleMouseUp)
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
     }
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mouseup", handleMouseUp)
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
     }
   }, [isResizing, onHeightChange])
 
   // Trace actions
   const toggleTrace = (name: string) => {
     setSelectedTraces((prev) =>
-      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name],
+      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name]
     )
     setCurrentProbedSignal(name)
     setIsProbedHudVisible(true)
@@ -683,7 +762,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   const handleAddMathTrace = (trace: MathTraceDefinition) => {
     setPlotSettings((prev) => ({
       ...prev,
-      customMathTraces: [...prev.customMathTraces, trace],
+      customMathTraces: [...prev.customMathTraces, trace]
     }))
     setSelectedTraces((prev) => (prev.includes(trace.name) ? prev : [...prev, trace.name]))
   }
@@ -692,7 +771,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     const target = plotSettings.customMathTraces.find((t) => t.id === id)
     setPlotSettings((prev) => ({
       ...prev,
-      customMathTraces: prev.customMathTraces.filter((t) => t.id !== id),
+      customMathTraces: prev.customMathTraces.filter((t) => t.id !== id)
     }))
     if (target) {
       setSelectedTraces((prev) => prev.filter((t) => t !== target.name))
@@ -703,21 +782,21 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   const handleAddAnnotation = (annotation: PlotAnnotation) => {
     setPlotSettings((prev) => ({
       ...prev,
-      annotations: [...prev.annotations, annotation],
+      annotations: [...prev.annotations, annotation]
     }))
   }
 
   const handleRemoveAnnotation = (id: string) => {
     setPlotSettings((prev) => ({
       ...prev,
-      annotations: prev.annotations.filter((a) => a.id !== id),
+      annotations: prev.annotations.filter((a) => a.id !== id)
     }))
   }
 
   const handleClearAnnotations = () => {
     setPlotSettings((prev) => ({
       ...prev,
-      annotations: [],
+      annotations: []
     }))
   }
 
@@ -736,12 +815,12 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       try {
         const loaded = await importPlotSettingsJson(file)
         setPlotSettings(loaded)
-        alert("Plot configuration loaded successfully.")
-      } catch (err: any) {
-        alert("Failed to load plot settings: " + (err.message || String(err)))
+        alert('Plot configuration loaded successfully.')
+      } catch (err: unknown) {
+        alert('Failed to load plot settings: ' + (err instanceof Error ? err.message : String(err)))
       }
     }
-    e.target.value = ""
+    e.target.value = ''
   }
 
   // Monitor panel container resizing dynamically
@@ -787,7 +866,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   }
 
   const handleHeaderDoubleClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest("button")) return
+    if ((e.target as HTMLElement).closest('button')) return
     if (isMinimized) {
       setIsMinimized(false)
     } else {
@@ -801,7 +880,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const ctx = canvas.getContext("2d")
+    const ctx = canvas.getContext('2d')
     if (!ctx) return
 
     const dpr = window.devicePixelRatio || 1
@@ -815,13 +894,13 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
     // Classic LTspice-style palette: white background, grey grid
     const palette = {
-      appBg: "#ffffff",
-      plotBg: "#ffffff",
-      grid: "#cccccc",
-      zeroLine: "#888888",
-      axisText: "#000000",
-      border: "#888888",
-      crosshair: "rgba(0,0,0,0.5)",
+      appBg: '#ffffff',
+      plotBg: '#ffffff',
+      grid: '#cccccc',
+      zeroLine: '#888888',
+      axisText: '#000000',
+      border: '#888888',
+      crosshair: 'rgba(0,0,0,0.5)'
     }
 
     // Outer viewer canvas background
@@ -853,7 +932,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     // Multi-pane vertical partitioning
     const panesCount = plotSettings.panesCount
     const paneGap = panesCount > 1 ? 14 : 0
-    const totalPanesH = Math.max(10, heightPx - marginTop - marginBottom - (panesCount - 1) * paneGap)
+    const totalPanesH = Math.max(
+      10,
+      heightPx - marginTop - marginBottom - (panesCount - 1) * paneGap
+    )
     const paneH = totalPanesH / panesCount
 
     // Draw each pane
@@ -865,7 +947,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         hasLeft: true,
         minRightY: 0,
         maxRightY: 1,
-        hasRight: false,
+        hasRight: false
       }
 
       // Check for user-defined manual or zoom ranges on this pane
@@ -900,12 +982,12 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         const sy = paneTop + (1 - frac) * paneH
 
         // Grid line
-        if (plotSettings.gridStyle !== "none") {
+        if (plotSettings.gridStyle !== 'none') {
           ctx.beginPath()
           ctx.strokeStyle = palette.grid
           ctx.lineWidth = 1
-          if (plotSettings.gridStyle === "dotted") ctx.setLineDash([2, 3])
-          else if (plotSettings.gridStyle === "dashed") ctx.setLineDash([5, 4])
+          if (plotSettings.gridStyle === 'dotted') ctx.setLineDash([2, 3])
+          else if (plotSettings.gridStyle === 'dashed') ctx.setLineDash([5, 4])
           else ctx.setLineDash([])
 
           ctx.moveTo(marginLeft, sy)
@@ -916,17 +998,21 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
         // Left axis label
         ctx.fillStyle = palette.axisText
-        ctx.textAlign = "right"
-        ctx.textBaseline = "middle"
-        const leftUnit = fftMode ? "dB" : isAcSweep && selectedTraces.some((t) => t.endsWith("_db")) ? "dB" : "V"
+        ctx.textAlign = 'right'
+        ctx.textBaseline = 'middle'
+        const leftUnit = fftMode
+          ? 'dB'
+          : isAcSweep && selectedTraces.some((t) => t.endsWith('_db'))
+            ? 'dB'
+            : 'V'
         ctx.fillText(formatEngineering(yVal, leftUnit), marginLeft - 8, sy)
 
         // Right axis label (Currents/Phase if present)
         if (paneBounds.hasRight && !fftMode) {
           const yRVal = yRightMin + frac * (yRightMax - yRightMin)
-          ctx.fillStyle = "#38bdf8"
-          ctx.textAlign = "left"
-          const rUnit = selectedTraces.some((t) => t.endsWith("_phase")) ? "°" : "A"
+          ctx.fillStyle = '#38bdf8'
+          ctx.textAlign = 'left'
+          const rUnit = selectedTraces.some((t) => t.endsWith('_phase')) ? '°' : 'A'
           ctx.fillText(formatEngineering(yRVal, rUnit), marginLeft + plotW + 8, sy)
         }
       }
@@ -945,10 +1031,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
       // 3. Pane Label (if multi-pane)
       if (panesCount > 1) {
-        ctx.fillStyle = "rgba(0,0,0,0.35)"
+        ctx.fillStyle = 'rgba(0,0,0,0.35)'
         ctx.font = "bold 9px 'Segoe UI', Tahoma, Arial, sans-serif"
-        ctx.textAlign = "right"
-        ctx.textBaseline = "top"
+        ctx.textAlign = 'right'
+        ctx.textBaseline = 'top'
         ctx.fillText(`PANE ${paneIdx + 1}`, marginLeft + plotW - 6, paneTop + 6)
       }
 
@@ -964,18 +1050,18 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       ctx.clip()
 
       // Traces assigned to this pane
-      selectedTraces.forEach((traceName, idx) => {
-        const cfg = getTraceConfig(traceName, idx)
+      selectedTraces.forEach((traceName) => {
+        const cfg = getTraceConfig(traceName)
         if (cfg.visible === false) return
         const assignedPane = Math.min(panesCount - 1, Math.max(0, cfg.pane ?? 0))
         if (assignedPane !== paneIdx) return
 
-        ctx.strokeStyle = cfg.color || TRACE_COLORS[idx % TRACE_COLORS.length]
+        ctx.strokeStyle = cfg.color || getTraceColor(traceName)
         ctx.lineWidth = cfg.lineWidth || 2
-        ctx.lineJoin = "round"
+        ctx.lineJoin = 'round'
 
-        if (cfg.lineStyle === "dashed") ctx.setLineDash([6, 4])
-        else if (cfg.lineStyle === "dotted") ctx.setLineDash([2, 3])
+        if (cfg.lineStyle === 'dashed') ctx.setLineDash([6, 4])
+        else if (cfg.lineStyle === 'dotted') ctx.setLineDash([2, 3])
         else ctx.setLineDash([])
 
         // Check if rendering FFT mode
@@ -1006,7 +1092,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         const yArr = combinedDataMap[traceName] || combinedDataMap[traceName.toLowerCase()]
         if (!yArr || yArr.length === 0 || xData.length === 0) return
 
-        const isRightAxis = traceName.startsWith("i(") || traceName.endsWith("_phase")
+        const isRightAxis = traceName.startsWith('i(') || traceName.endsWith('_phase')
         const yFunc = isRightAxis ? yRightToScreen : yLeftToScreen
 
         ctx.beginPath()
@@ -1046,9 +1132,9 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       // 6. Draw Annotations assigned to this pane
       plotSettings.annotations.forEach((annot) => {
         if (annot.pane !== paneIdx) return
-        const aColor = annot.color || "#f59e0b"
+        const aColor = annot.color || '#f59e0b'
 
-        if (annot.type === "refLineH") {
+        if (annot.type === 'refLineH') {
           // Horizontal reference line
           const sy = yLeftToScreen(annot.y)
           ctx.beginPath()
@@ -1063,11 +1149,11 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           if (annot.text) {
             ctx.fillStyle = aColor
             ctx.font = "bold 10px 'Segoe UI', sans-serif"
-            ctx.textAlign = "left"
-            ctx.textBaseline = "bottom"
+            ctx.textAlign = 'left'
+            ctx.textBaseline = 'bottom'
             ctx.fillText(annot.text, marginLeft + 8, sy - 2)
           }
-        } else if (annot.type === "refLineV") {
+        } else if (annot.type === 'refLineV') {
           // Vertical reference line
           const sx = xToScreen(annot.x)
           ctx.beginPath()
@@ -1082,29 +1168,29 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           if (annot.text) {
             ctx.fillStyle = aColor
             ctx.font = "bold 10px 'Segoe UI', sans-serif"
-            ctx.textAlign = "left"
-            ctx.textBaseline = "top"
+            ctx.textAlign = 'left'
+            ctx.textBaseline = 'top'
             ctx.fillText(annot.text, sx + 4, paneTop + 6)
           }
-        } else if (annot.type === "text") {
+        } else if (annot.type === 'text') {
           // Text note badge
           const sx = xToScreen(annot.x)
           const sy = yLeftToScreen(annot.y)
-          const label = annot.text || "Note"
+          const label = annot.text || 'Note'
 
           ctx.font = "bold 10.5px 'Segoe UI', sans-serif"
           const tw = ctx.measureText(label).width
 
-          ctx.fillStyle = "rgba(15, 23, 42, 0.85)"
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'
           ctx.fillRect(sx, sy - 14, tw + 10, 16)
           ctx.strokeStyle = aColor
           ctx.strokeRect(sx, sy - 14, tw + 10, 16)
 
           ctx.fillStyle = aColor
-          ctx.textAlign = "left"
-          ctx.textBaseline = "middle"
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
           ctx.fillText(label, sx + 5, sy - 6)
-        } else if (annot.type === "arrow" && annot.x2 !== undefined && annot.y2 !== undefined) {
+        } else if (annot.type === 'arrow' && annot.x2 !== undefined && annot.y2 !== undefined) {
           // Arrow annotation
           const x1 = xToScreen(annot.x)
           const y1 = yLeftToScreen(annot.y)
@@ -1124,8 +1210,14 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           ctx.fillStyle = aColor
           ctx.beginPath()
           ctx.moveTo(x2, y2)
-          ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6))
-          ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6))
+          ctx.lineTo(
+            x2 - headLen * Math.cos(angle - Math.PI / 6),
+            y2 - headLen * Math.sin(angle - Math.PI / 6)
+          )
+          ctx.lineTo(
+            x2 - headLen * Math.cos(angle + Math.PI / 6),
+            y2 - headLen * Math.sin(angle + Math.PI / 6)
+          )
           ctx.closePath()
           ctx.fill()
 
@@ -1144,9 +1236,9 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         const bw = Math.abs(boxZoomCurrent.x - boxZoomStart.x)
         const bh = Math.abs(boxZoomCurrent.y - boxZoomStart.y)
 
-        ctx.fillStyle = "rgba(59, 130, 246, 0.18)"
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.18)'
         ctx.fillRect(bx, by, bw, bh)
-        ctx.strokeStyle = "#3b82f6"
+        ctx.strokeStyle = '#3b82f6'
         ctx.lineWidth = 1
         ctx.setLineDash([3, 3])
         ctx.strokeRect(bx, by, bw, bh)
@@ -1173,12 +1265,12 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       }
 
       // Vertical grid lines across all panes
-      if (plotSettings.gridStyle !== "none") {
+      if (plotSettings.gridStyle !== 'none') {
         ctx.beginPath()
         ctx.strokeStyle = palette.grid
         ctx.lineWidth = 1
-        if (plotSettings.gridStyle === "dotted") ctx.setLineDash([2, 3])
-        else if (plotSettings.gridStyle === "dashed") ctx.setLineDash([5, 4])
+        if (plotSettings.gridStyle === 'dotted') ctx.setLineDash([2, 3])
+        else if (plotSettings.gridStyle === 'dashed') ctx.setLineDash([5, 4])
         else ctx.setLineDash([])
 
         ctx.moveTo(sx, marginTop)
@@ -1189,8 +1281,8 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
       // X tick label at bottom
       ctx.fillStyle = palette.axisText
-      ctx.textAlign = "center"
-      ctx.textBaseline = "top"
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
       ctx.fillText(formatEngineering(xVal, xUnit), sx, totalPlotBottom + 7)
     }
 
@@ -1199,7 +1291,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       // Cursor 1 (Cyan)
       if (cursor1X !== null) {
         const c1ScreenX = xToScreen(cursor1X)
-        ctx.strokeStyle = "#06b6d4"
+        ctx.strokeStyle = '#06b6d4'
         ctx.lineWidth = 1.5
         ctx.setLineDash([5, 3])
         ctx.beginPath()
@@ -1209,7 +1301,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         ctx.setLineDash([])
 
         // Top grab handle
-        ctx.fillStyle = "#06b6d4"
+        ctx.fillStyle = '#06b6d4'
         ctx.beginPath()
         ctx.arc(c1ScreenX, marginTop + 6, 5, 0, Math.PI * 2)
         ctx.fill()
@@ -1218,7 +1310,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       // Cursor 2 (Amber)
       if (cursor2X !== null) {
         const c2ScreenX = xToScreen(cursor2X)
-        ctx.strokeStyle = "#f59e0b"
+        ctx.strokeStyle = '#f59e0b'
         ctx.lineWidth = 1.5
         ctx.setLineDash([5, 3])
         ctx.beginPath()
@@ -1228,7 +1320,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         ctx.setLineDash([])
 
         // Bottom grab handle
-        ctx.fillStyle = "#f59e0b"
+        ctx.fillStyle = '#f59e0b'
         ctx.beginPath()
         ctx.arc(c2ScreenX, totalPlotBottom - 6, 5, 0, Math.PI * 2)
         ctx.fill()
@@ -1276,7 +1368,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     mousePos,
     fftMode,
     fftResultsMap,
-    getTraceConfig,
+    getTraceConfig
   ])
 
   // Mouse event handlers for Zoom & Pan & Cursors
@@ -1295,9 +1387,11 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     // Check if clicking near Cursor 1 or Cursor 2
     if (cursorsEnabled && cursor1X !== null && cursor2X !== null) {
       const c1ScreenX =
-        marginLeft + ((cursor1X - activeXRange[0]) / (activeXRange[1] - activeXRange[0] || 1)) * plotW
+        marginLeft +
+        ((cursor1X - activeXRange[0]) / (activeXRange[1] - activeXRange[0] || 1)) * plotW
       const c2ScreenX =
-        marginLeft + ((cursor2X - activeXRange[0]) / (activeXRange[1] - activeXRange[0] || 1)) * plotW
+        marginLeft +
+        ((cursor2X - activeXRange[0]) / (activeXRange[1] - activeXRange[0] || 1)) * plotW
 
       if (Math.abs(x - c1ScreenX) < 12) {
         setActiveCursorDrag(1)
@@ -1310,7 +1404,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     }
 
     // Pan Tool Mode
-    if (activeTool === "pan" || e.button === 1 || e.shiftKey) {
+    if (activeTool === 'pan' || e.button === 1 || e.shiftKey) {
       setIsPanning(true)
       setPanStart({ x, y, xMin: activeXRange[0], xMax: activeXRange[1] })
       return
@@ -1455,7 +1549,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
     }
 
     return {
-      traceName: primaryTrace || "Trace",
+      traceName: primaryTrace || 'Trace',
       x1: cursor1X,
       y1,
       x2: cursor2X,
@@ -1463,7 +1557,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       dx,
       invDx,
       dy,
-      slope,
+      slope
     }
   }, [cursorsEnabled, cursor1X, cursor2X, selectedTraces, combinedDataMap, xData])
 
@@ -1472,16 +1566,16 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
   return (
     <section
       ref={containerRef}
-      className={`waveform-panel ${isMaximized ? "maximized" : ""} ${isMinimized ? "minimized" : ""}`}
-      style={{ height: isMaximized ? "100%" : isMinimized ? "38px" : `${height}px` }}
-      aria-label="Interactive Waveform Viewer"
+      className={`waveform-panel ${isMaximized ? 'maximized' : ''} ${isMinimized ? 'minimized' : ''}`}
+      style={{ height: isMaximized ? '100%' : isMinimized ? '38px' : `${height}px` }}
+      aria-label={t('toolbar.waveformViewer')}
     >
       {/* Hidden file input for importing settings JSON */}
       <input
         ref={fileInputRef}
         type="file"
         accept=".json"
-        style={{ display: "none" }}
+        style={{ display: 'none' }}
         onChange={handleFileChange}
       />
 
@@ -1490,7 +1584,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         <div
           className="waveform-resize-handle"
           onMouseDown={handleResizeMouseDown}
-          title="Drag up/down to resize waveform panel"
+          title={t('waveformToolbar.resizeHint')}
         >
           <div className="resize-handle-bar" />
         </div>
@@ -1500,21 +1594,21 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       <header
         className="waveform-header"
         onDoubleClick={handleHeaderDoubleClick}
-        title={isMinimized ? "Double-click to restore" : "Double-click to maximize/restore"}
+        title={isMinimized ? t('waveformToolbar.restore') : t('waveformToolbar.maximize')}
       >
         <div className="waveform-header-left">
           <div className="waveform-title-badge">
             <span className="waveform-pulse-dot" />
-            <span className="waveform-title">Waveform Viewer</span>
+            <span className="waveform-title">{t('menu.waveformViewer')}</span>
           </div>
 
           {isMinimized && (
             <span
               className="waveform-minimized-badge"
               onClick={handleToggleMinimize}
-              title="Click to restore waveform viewer"
+              title={t('waveformToolbar.restore')}
             >
-              Minimized (Click to restore)
+              {t('waveformToolbar.restore')}
             </span>
           )}
 
@@ -1523,12 +1617,8 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
               <span className="waveform-chip waveform-chip-analysis">
                 .{simulationResult.analysisType.toUpperCase()}
               </span>
-              <span className="waveform-chip">
-                {simulationResult.pointCount} pts
-              </span>
-              <span className="waveform-chip">
-                {simulationResult.elapsedMs}ms
-              </span>
+              <span className="waveform-chip">{simulationResult.pointCount} pts</span>
+              <span className="waveform-chip">{simulationResult.elapsedMs}ms</span>
             </div>
           )}
         </div>
@@ -1537,22 +1627,22 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
         <div className="waveform-header-actions">
           {/* Pan Tool vs Zoom Tool */}
           <button
-            className={`waveform-tool-btn ${activeTool === "zoom" ? "active" : ""}`}
-            onClick={() => setActiveTool("zoom")}
-            title="Box Zoom Tool (Click and drag box to zoom)"
+            className={`waveform-tool-btn ${activeTool === 'zoom' ? 'active' : ''}`}
+            onClick={() => setActiveTool('zoom')}
+            title={t('waveformToolbar.boxZoomTooltip')}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <ZoomIn size={13} />
               {t('waveformToolbar.zoom')}
             </span>
           </button>
 
           <button
-            className={`waveform-tool-btn ${activeTool === "pan" ? "active" : ""}`}
-            onClick={() => setActiveTool("pan")}
-            title="Pan Tool (Click and drag canvas to move viewport)"
+            className={`waveform-tool-btn ${activeTool === 'pan' ? 'active' : ''}`}
+            onClick={() => setActiveTool('pan')}
+            title={t('waveformToolbar.panTooltip')}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Move size={13} />
               {t('waveformToolbar.pan')}
             </span>
@@ -1562,9 +1652,9 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           <button
             className="waveform-tool-btn"
             onClick={resetZoom}
-            title="Autoscale / Fit all waveforms to view (Home)"
+            title={t('waveformToolbar.fitTooltip')}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Maximize2 size={13} />
               {t('waveformToolbar.fit')}
             </span>
@@ -1575,13 +1665,13 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           {/* Probe Wire / Node Dropdown */}
           <div className="waveform-probe-dropdown-container" ref={probeDropdownRef}>
             <button
-              className={`waveform-tool-btn ${isNetDropdownOpen ? "active" : ""}`}
+              className={`waveform-tool-btn ${isNetDropdownOpen ? 'active' : ''}`}
               onClick={() => setIsNetDropdownOpen(!isNetDropdownOpen)}
-              title="Select a circuit wire or node to plot and calculate its values on the graph"
+              title={t('waveformToolbar.selectWireTooltip')}
             >
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <Crosshair size={13} style={{ color: "#0284c7" }} />
-                <span>Probe Node/Wire</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <Crosshair size={13} style={{ color: '#0284c7' }} />
+                <span>{t('waveformToolbar.probeNodeWire')}</span>
                 <span style={{ fontSize: 9, opacity: 0.7 }}>▼</span>
               </span>
             </button>
@@ -1591,14 +1681,16 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
                 <input
                   type="text"
                   className="waveform-probe-search-input"
-                  placeholder="Filter nodes or wires..."
+                  placeholder={t('waveformToolbar.filterNodes')}
                   value={netSearchQuery}
                   onChange={(e) => setNetSearchQuery(e.target.value)}
                   autoFocus
                   onClick={(e) => e.stopPropagation()}
                 />
 
-                <div className="waveform-probe-menu-section-title">Circuit Nets & Wires</div>
+                <div className="waveform-probe-menu-section-title">
+                  {t('waveformToolbar.circuitNets')}
+                </div>
                 {filteredAvailableNets.map((net) => {
                   const isProbed =
                     activeProbedTrace?.toLowerCase() === net.signalName.toLowerCase() ||
@@ -1606,26 +1698,26 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
                   return (
                     <button
                       key={net.netName}
-                      className={`waveform-probe-menu-item ${isProbed ? "active" : ""}`}
+                      className={`waveform-probe-menu-item ${isProbed ? 'active' : ''}`}
                       onClick={() => handleSelectNet(net)}
                     >
                       <span>
                         <strong>{net.displayName}</strong>
                         {net.connectedComponents.length > 0 && (
                           <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.8 }}>
-                            ({net.connectedComponents.slice(0, 3).join(", ")})
+                            ({net.connectedComponents.slice(0, 3).join(', ')})
                           </span>
                         )}
                       </span>
                       <span className="probe-item-sub">
-                        {net.pinCount} {net.pinCount === 1 ? "pin" : "pins"}
+                        {net.pinCount} {net.pinCount === 1 ? 'pin' : 'pins'}
                       </span>
                     </button>
                   )
                 })}
 
                 {filteredAvailableNets.length === 0 && (
-                  <div style={{ padding: "6px 8px", fontSize: 11, opacity: 0.6 }}>
+                  <div style={{ padding: '6px 8px', fontSize: 11, opacity: 0.6 }}>
                     No matching nets found
                   </div>
                 )}
@@ -1635,13 +1727,17 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
           {/* Interactive Schematic Probe Mode Toggle */}
           <button
-            className={`waveform-tool-btn ${isProbeToolActive ? "active probe-mode-active" : ""}`}
+            className={`waveform-tool-btn ${isProbeToolActive ? 'active probe-mode-active' : ''}`}
             onClick={onToggleProbeTool}
-            title="Toggle Schematic Probe Mode (P): Click any wire or node directly on the schematic to plot and calculate its values"
+            title={t('waveformToolbar.schematicProbeTooltip')}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <span style={{ fontSize: 12 }}>🎯</span>
-              <span>{isProbeToolActive ? "Probe: Active" : "Probe Tool (P)"}</span>
+              <span>
+                {isProbeToolActive
+                  ? t('waveformToolbar.probeToolActive')
+                  : t('waveformToolbar.probeToolBtn')}
+              </span>
             </span>
           </button>
 
@@ -1649,11 +1745,11 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
           {/* Cursors Toggle */}
           <button
-            className={`waveform-tool-btn ${cursorsEnabled ? "active" : ""}`}
+            className={`waveform-tool-btn ${cursorsEnabled ? 'active' : ''}`}
             onClick={() => setCursorsEnabled(!cursorsEnabled)}
-            title="Toggle Dual Cursors with Delta Measurements (ΔX, ΔY, 1/ΔX, Slope)"
+            title={t('waveformToolbar.toggleCursorsTooltip')}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Crosshair size={13} />
               {t('waveformToolbar.cursors')}
             </span>
@@ -1661,13 +1757,25 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
 
           {/* FFT Spectrum Toggle */}
           <button
-            className={`waveform-tool-btn ${fftMode ? "active" : ""}`}
+            className={`waveform-tool-btn ${fftMode ? 'active' : ''}`}
             onClick={() => setFftMode(!fftMode)}
-            title="Toggle Fast Fourier Transform (FFT) Power Spectrum View (dB vs Hz)"
+            title={t('waveformToolbar.fftTooltip')}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Activity size={13} />
               {t('waveformToolbar.fft')}
+            </span>
+          </button>
+
+          {/* Scope Measurements Docked Bar Toggle */}
+          <button
+            className={`waveform-tool-btn ${isProbedHudVisible ? 'active' : ''}`}
+            onClick={() => setIsProbedHudVisible(!isProbedHudVisible)}
+            title={t('waveformToolbar.measuresTooltip')}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <BarChart2 size={13} />
+              <span>{t('waveformToolbar.measures')}</span>
             </span>
           </button>
 
@@ -1678,12 +1786,12 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             className="waveform-tool-btn"
             style={{ fontWeight: 700 }}
             onClick={() => {
-              setSettingsModalTab("traces")
+              setSettingsModalTab('traces')
               setSettingsModalOpen(true)
             }}
-            title="Open Waveform Plot Settings (Traces, Axes, Appearance, Math Expressions, Annotations, Export)"
+            title={t('waveformToolbar.plotSettingsTooltip')}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <Settings size={13} />
               {t('waveformToolbar.plotSettings')}
             </span>
@@ -1696,7 +1804,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
               clearSelectedTraces()
               onClear()
             }}
-            title="Clear all waveforms"
+            title={t('waveformToolbar.clearPlotTooltip')}
           >
             <span>{t('waveformToolbar.clear')}</span>
           </button>
@@ -1704,32 +1812,64 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
           <div className="waveform-header-divider" />
 
           {/* Classic Windows Title Bar Control Buttons: Minimize, Maximize/Restore, Close */}
-          <div className="waveform-window-controls" role="group" aria-label="Window Controls">
+          <div
+            className="waveform-window-controls"
+            role="group"
+            aria-label={t('waveformToolbar.windowControlsAria')}
+          >
             <button
-              className={`waveform-win-btn ${isMinimized ? "active" : ""}`}
+              className={`waveform-win-btn ${isMinimized ? 'active' : ''}`}
               onClick={handleToggleMinimize}
               title={isMinimized ? t('waveformToolbar.restore') : t('waveformToolbar.minimize')}
-              aria-label={isMinimized ? t('waveformToolbar.restore') : t('waveformToolbar.minimize')}
+              aria-label={
+                isMinimized ? t('waveformToolbar.restore') : t('waveformToolbar.minimize')
+              }
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <line x1="1" y1="8" x2="9" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <line
+                  x1="1"
+                  y1="8"
+                  x2="9"
+                  y2="8"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
               </svg>
             </button>
 
             <button
-              className={`waveform-win-btn ${isMaximized ? "active" : ""}`}
+              className={`waveform-win-btn ${isMaximized ? 'active' : ''}`}
               onClick={handleToggleMaximize}
               title={isMaximized ? t('waveformToolbar.restore') : t('waveformToolbar.maximize')}
-              aria-label={isMaximized ? t('waveformToolbar.restore') : t('waveformToolbar.maximize')}
+              aria-label={
+                isMaximized ? t('waveformToolbar.restore') : t('waveformToolbar.maximize')
+              }
             >
               {isMaximized ? (
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                   <path d="M3.5 1.5H8.5V6.5" stroke="currentColor" strokeWidth="1.2" />
-                  <rect x="1.5" y="3.5" width="5" height="5" stroke="currentColor" strokeWidth="1.2" fill="none" />
+                  <rect
+                    x="1.5"
+                    y="3.5"
+                    width="5"
+                    height="5"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    fill="none"
+                  />
                 </svg>
               ) : (
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <rect x="1.5" y="1.5" width="7" height="7" stroke="currentColor" strokeWidth="1.2" fill="none" />
+                  <rect
+                    x="1.5"
+                    y="1.5"
+                    width="7"
+                    height="7"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    fill="none"
+                  />
                 </svg>
               )}
             </button>
@@ -1738,11 +1878,27 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
               className="waveform-win-btn win-close"
               onClick={onClose}
               title={t('waveformToolbar.closeTooltip')}
-              aria-label="Close"
+              aria-label={t('actions.close')}
             >
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-                <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                <line
+                  x1="1.5"
+                  y1="1.5"
+                  x2="8.5"
+                  y2="8.5"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                />
+                <line
+                  x1="8.5"
+                  y1="1.5"
+                  x2="1.5"
+                  y2="8.5"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                />
               </svg>
             </button>
           </div>
@@ -1750,37 +1906,47 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
       </header>
 
       {/* Main Plot Body */}
-      <div className="waveform-body-container" style={{ display: isMinimized ? "none" : "flex" }}>
+      <div className="waveform-body-container" style={{ display: isMinimized ? 'none' : 'flex' }}>
         {/* Left / Top: Interactive Trace Selectors */}
         {/* Left / Top: Folder-based Signal Selector Bar */}
         <div className="waveform-trace-bar">
           {/* Active Plotted Trace Chips */}
           <div className="trace-chips-scroll">
             {selectedTraces.map((traceName) => {
-              const traceMeta = allAvailableTraces.find((t) => t.name.toLowerCase() === traceName.toLowerCase())
-              const idx = allAvailableTraces.findIndex((t) => t.name.toLowerCase() === traceName.toLowerCase())
-              const cfg = getTraceConfig(traceName, idx >= 0 ? idx : 0)
-              const color = cfg.color || TRACE_COLORS[0]
+              const traceMeta = allAvailableTraces.find(
+                (t) => t.name.toLowerCase() === traceName.toLowerCase()
+              )
+              const cfg = getTraceConfig(traceName)
+              const color = cfg.color
               const isProbed = activeProbedTrace?.toLowerCase() === traceName.toLowerCase()
-              const isCurrent = traceName.toLowerCase().startsWith("i(") || traceMeta?.unit === "A"
+              const isCurrent = traceName.toLowerCase().startsWith('i(') || traceMeta?.unit === 'A'
 
               return (
                 <div
                   key={traceName}
-                  className={`trace-chip selected ${isProbed ? "probed" : ""}`}
+                  className={`trace-chip selected ${isProbed ? 'probed' : ''}`}
                   onClick={() => {
                     setCurrentProbedSignal(traceName)
                     setIsProbedHudVisible(true)
                   }}
-                  title={`Active trace ${traceName.toUpperCase()} (${isCurrent ? "Current A" : "Voltage V"}). Click to calculate on HUD.`}
+                  title={`Active trace ${traceName.toUpperCase()} (${isCurrent ? 'Current A' : 'Voltage V'}). Click to calculate on HUD.`}
                 >
                   <span className="trace-color-dot" style={{ background: color }} />
                   <span className="trace-chip-name">
                     {isProbed ? `🎯 ${traceName.toUpperCase()}` : traceName.toUpperCase()}
                   </span>
-                  <span className="trace-chip-unit">{traceMeta?.unit || (isCurrent ? "A" : "V")}</span>
+                  <span className="trace-chip-unit">
+                    {traceMeta?.unit || (isCurrent ? 'A' : 'V')}
+                  </span>
                   {cfg.pane !== undefined && plotSettings.panesCount > 1 && (
-                    <span style={{ fontSize: "9px", background: "rgba(255,255,255,0.15)", padding: "0 3px", borderRadius: "2px" }}>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        background: 'rgba(255,255,255,0.15)',
+                        padding: '0 3px',
+                        borderRadius: '2px'
+                      }}
+                    >
                       P{cfg.pane + 1}
                     </span>
                   )}
@@ -1790,7 +1956,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
                       e.stopPropagation()
                       toggleTrace(traceName)
                     }}
-                    title={`Unplot ${traceName.toUpperCase()}`}
+                    title={t('waveformToolbar.unplot', { trace: traceName.toUpperCase() })}
                   >
                     ✕
                   </button>
@@ -1799,8 +1965,8 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             })}
 
             {selectedTraces.length === 0 && (
-              <span className="no-traces-hint" style={{ fontSize: 11, color: "#666666" }}>
-                Probe nets or components on the schematic to plot waveforms
+              <span className="no-traces-hint" style={{ fontSize: 11, color: '#666666' }}>
+                {t('waveformToolbar.noTracesHint')}
               </span>
             )}
           </div>
@@ -1812,7 +1978,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             <canvas
               ref={canvasRef}
               className="waveform-canvas"
-              style={{ cursor: activeTool === "pan" ? "grab" : "crosshair" }}
+              style={{ cursor: activeTool === 'pan' ? 'grab' : 'crosshair' }}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
@@ -1827,7 +1993,10 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             />
           ) : (
             <div className="waveform-empty-state">
-              <div className="empty-state-icon" style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <div
+                className="empty-state-icon"
+                style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}
+              >
                 <Zap size={36} strokeWidth={1.5} color="var(--accent, #38bdf8)" />
               </div>
               <div className="empty-state-title">{t('waveformToolbar.noDataTitle')}</div>
@@ -1840,134 +2009,39 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             </div>
           )}
 
-          {/* Interactive Probed Node / Wire Calculated Values HUD Overlay (Top-Left) */}
-          {isProbedHudVisible && activeProbedTrace && probedReport && probedKeyMetrics && (
-            <div className={`waveform-node-calc-hud ${isProbedHudCollapsed ? "collapsed" : ""}`}>
-              <div className="node-hud-header">
-                <div className="node-hud-title-wrap">
-                  <span className="node-hud-dot" style={{ background: activeProbedTraceColor }} />
-                  <span className="node-hud-title" title={`Signal: ${activeProbedTrace}`}>
-                    🎯 {activeProbedTrace.toUpperCase()}
-                  </span>
-                  {matchedNetInfo && (
-                    <span
-                      className="node-hud-net-badge"
-                      title={`Net: ${matchedNetInfo.netName} (${matchedNetInfo.pinCount} pins: ${matchedNetInfo.connectedComponents.join(", ")})`}
-                    >
-                      {matchedNetInfo.netName} ({matchedNetInfo.pinCount}p)
-                    </span>
-                  )}
-                </div>
-
-                <div className="node-hud-controls">
-                  <button
-                    className="node-hud-btn"
-                    onClick={() => setIsProbedHudCollapsed(!isProbedHudCollapsed)}
-                    title={isProbedHudCollapsed ? "Expand Calculated Values" : "Collapse HUD"}
-                  >
-                    {isProbedHudCollapsed ? "▼" : "▲"}
-                  </button>
-                  <button
-                    className="node-hud-btn"
-                    onClick={() => setIsProbedHudVisible(false)}
-                    title="Dismiss Calculated Values HUD"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              {!isProbedHudCollapsed && (
-                <>
-                  <div className="node-hud-metrics-grid">
-                    <div className="node-hud-metric-item">
-                      <span className="node-hud-metric-label">Vp-p</span>
-                      <span className="node-hud-metric-val highlight-vpp">{probedKeyMetrics.vpp}</span>
-                    </div>
-                    <div className="node-hud-metric-item">
-                      <span className="node-hud-metric-label">Vmax</span>
-                      <span className="node-hud-metric-val">{probedKeyMetrics.vmax}</span>
-                    </div>
-                    <div className="node-hud-metric-item">
-                      <span className="node-hud-metric-label">Vmin</span>
-                      <span className="node-hud-metric-val">{probedKeyMetrics.vmin}</span>
-                    </div>
-                    <div className="node-hud-metric-item">
-                      <span className="node-hud-metric-label">Vavg (DC)</span>
-                      <span className="node-hud-metric-val">{probedKeyMetrics.vavg}</span>
-                    </div>
-                    <div className="node-hud-metric-item">
-                      <span className="node-hud-metric-label">Vrms</span>
-                      <span className="node-hud-metric-val">{probedKeyMetrics.vrms}</span>
-                    </div>
-                    {probedKeyMetrics.freq && probedKeyMetrics.freq !== "N/A" && (
-                      <div className="node-hud-metric-item">
-                        <span className="node-hud-metric-label">Frequency</span>
-                        <span className="node-hud-metric-val">{probedKeyMetrics.freq}</span>
-                      </div>
-                    )}
-                    {probedKeyMetrics.period && probedKeyMetrics.period !== "N/A" && (
-                      <div className="node-hud-metric-item">
-                        <span className="node-hud-metric-label">Period</span>
-                        <span className="node-hud-metric-val">{probedKeyMetrics.period}</span>
-                      </div>
-                    )}
-                    {instantaneousProbedVal && (
-                      <div className="node-hud-metric-item">
-                        <span className="node-hud-metric-label">V(cursor)</span>
-                        <span className="node-hud-metric-val highlight-cursor">{instantaneousProbedVal}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="node-hud-footer">
-                    {matchedNetInfo && (
-                      <button
-                        className="node-hud-action-btn"
-                        onClick={() => onHighlightNet?.(matchedNetInfo.netName)}
-                        title="Highlight this net and its wires in the schematic canvas"
-                      >
-                        Highlight Wire
-                      </button>
-                    )}
-                    <span style={{ fontSize: 9, opacity: 0.65 }}>
-                      {probedReport.pointCount} pts · {probedReport.analysisType}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
           {/* Interactive Dual Cursor Readout HUD Overlay */}
           {cursorsEnabled && cursorReadout && (
             <div className="waveform-cursor-hud">
               <div className="hud-header">
-                <span className="hud-title">{t('waveformToolbar.cursorsReadout', { trace: cursorReadout.traceName.toUpperCase() })}</span>
+                <span className="hud-title">
+                  {t('waveformToolbar.cursorsReadout', {
+                    trace: cursorReadout.traceName.toUpperCase()
+                  })}
+                </span>
               </div>
               <div className="hud-grid">
                 <div className="hud-col cursor-1">
                   <span className="hud-label">{t('waveformToolbar.cursor1')}</span>
                   <span className="hud-val">X₁: {formatEngineering(cursorReadout.x1, xUnit)}</span>
-                  <span className="hud-val">Y₁: {formatEngineering(cursorReadout.y1, "V")}</span>
+                  <span className="hud-val">Y₁: {formatEngineering(cursorReadout.y1, 'V')}</span>
                 </div>
                 <div className="hud-col cursor-2">
                   <span className="hud-label">{t('waveformToolbar.cursor2')}</span>
                   <span className="hud-val">X₂: {formatEngineering(cursorReadout.x2, xUnit)}</span>
-                  <span className="hud-val">Y₂: {formatEngineering(cursorReadout.y2, "V")}</span>
+                  <span className="hud-val">Y₂: {formatEngineering(cursorReadout.y2, 'V')}</span>
                 </div>
                 <div className="hud-col delta">
                   <span className="hud-label">{t('waveformToolbar.delta')}</span>
                   <span className="hud-val">ΔX: {formatEngineering(cursorReadout.dx, xUnit)}</span>
-                  <span className="hud-val">ΔY: {formatEngineering(cursorReadout.dy, "V")}</span>
-                  {xUnit === "s" && cursorReadout.invDx > 0 && (
+                  <span className="hud-val">ΔY: {formatEngineering(cursorReadout.dy, 'V')}</span>
+                  {xUnit === 's' && cursorReadout.invDx > 0 && (
                     <span className="hud-val f-val">
-                      1/ΔX: {formatEngineering(cursorReadout.invDx, "Hz")}
+                      1/ΔX: {formatEngineering(cursorReadout.invDx, 'Hz')}
                     </span>
                   )}
                   {cursorReadout.slope !== 0 && (
                     <span className="hud-val">
-                      {t('waveformToolbar.slope')} {formatEngineering(cursorReadout.slope, "V/s")}
+                      {t('waveformToolbar.slope')} {formatEngineering(cursorReadout.slope, 'V/s')}
                     </span>
                   )}
                 </div>
@@ -1982,6 +2056,94 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             </div>
           )}
         </div>
+
+        {/* Scope Measurements Docked Bar (Below Canvas, Zero Obstruction) */}
+        {isProbedHudVisible && activeProbedTrace && probedReport && probedKeyMetrics && (
+          <div
+            className="waveform-measurements-strip"
+            role="region"
+            aria-label={t('waveformToolbar.measures')}
+          >
+            <div className="meas-strip-left">
+              <span className="meas-strip-dot" style={{ background: activeProbedTraceColor }} />
+              <span className="meas-strip-title" title={`Signal: ${activeProbedTrace}`}>
+                {activeProbedTrace.toUpperCase()}
+              </span>
+              {matchedNetInfo && (
+                <span
+                  className="meas-strip-badge"
+                  title={`Net: ${matchedNetInfo.netName} (${matchedNetInfo.pinCount} pins: ${matchedNetInfo.connectedComponents.join(', ')})`}
+                >
+                  {matchedNetInfo.netName} ({matchedNetInfo.pinCount}p)
+                </span>
+              )}
+            </div>
+
+            <div className="meas-strip-metrics">
+              <div className="meas-item">
+                <span className="meas-lbl">Vp-p:</span>
+                <span className="meas-val highlight-vpp">{probedKeyMetrics.vpp}</span>
+              </div>
+              <div className="meas-item">
+                <span className="meas-lbl">{t('waveformToolbar.vmax')}:</span>
+                <span className="meas-val">{probedKeyMetrics.vmax}</span>
+              </div>
+              <div className="meas-item">
+                <span className="meas-lbl">{t('waveformToolbar.vmin')}:</span>
+                <span className="meas-val">{probedKeyMetrics.vmin}</span>
+              </div>
+              <div className="meas-item">
+                <span className="meas-lbl">{t('waveformToolbar.vavg')}:</span>
+                <span className="meas-val">{probedKeyMetrics.vavg}</span>
+              </div>
+              <div className="meas-item">
+                <span className="meas-lbl">{t('waveformToolbar.vrms')}:</span>
+                <span className="meas-val">{probedKeyMetrics.vrms}</span>
+              </div>
+              {probedKeyMetrics.freq && probedKeyMetrics.freq !== 'N/A' && (
+                <div className="meas-item">
+                  <span className="meas-lbl">{t('waveformToolbar.freq')}:</span>
+                  <span className="meas-val">{probedKeyMetrics.freq}</span>
+                </div>
+              )}
+              {probedKeyMetrics.period && probedKeyMetrics.period !== 'N/A' && (
+                <div className="meas-item">
+                  <span className="meas-lbl">{t('waveformToolbar.period')}:</span>
+                  <span className="meas-val">{probedKeyMetrics.period}</span>
+                </div>
+              )}
+              {instantaneousProbedVal && (
+                <div className="meas-item">
+                  <span className="meas-lbl">{t('waveformToolbar.cursor')}:</span>
+                  <span className="meas-val highlight-cursor">{instantaneousProbedVal}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="meas-strip-right">
+              {matchedNetInfo && (
+                <button
+                  className="meas-strip-action-btn"
+                  onClick={() => onHighlightNet?.(matchedNetInfo.netName)}
+                  title={t('waveformToolbar.highlightNetCanvas')}
+                >
+                  {t('waveformToolbar.highlightWire')}
+                </button>
+              )}
+              <span className="meas-strip-pts">
+                {probedReport.pointCount} pts · {probedReport.analysisType}
+              </span>
+              <button
+                className="meas-strip-close-btn"
+                onClick={() => setIsProbedHudVisible(false)}
+                title={t('waveformToolbar.closeMeasures')}
+                aria-label={t('actions.close')}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Unified Waveform Plot Settings & Tools Modal */}
@@ -2012,7 +2174,7 @@ export const WaveformViewer: React.FC<WaveformViewerProps> = ({
             if (limits.yLeftRange || limits.yRightRange) {
               setPaneYRanges((prev) => ({
                 ...prev,
-                0: { left: limits.yLeftRange, right: limits.yRightRange },
+                0: { left: limits.yLeftRange, right: limits.yRightRange }
               }))
             }
             setUseLogX(limits.useLogX)

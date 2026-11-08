@@ -1,7 +1,7 @@
-import React, { useEffect } from "react"
-import { useTranslation } from "react-i18next"
-import { X } from "lucide-react"
-import type { NetlistValidationError } from "../utils/spiceNetlist"
+import React, { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { X } from 'lucide-react'
+import type { NetlistValidationError } from '../utils/spiceNetlist'
 
 export interface ValidationBlockedModalProps {
   isOpen: boolean
@@ -16,7 +16,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
   onClose,
   errors,
   onLocateError,
-  onViewDiagnostics,
+  onViewDiagnostics
 }) => {
   const { t } = useTranslation('common')
   // Close on Escape or Enter keyboard shortcuts
@@ -24,10 +24,10 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
     if (!isOpen) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault()
         onClose()
-      } else if (e.key === "Enter" && !e.shiftKey) {
+      } else if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         if (errors.length > 0 && (errors[0].componentId || errors[0].netName)) {
           onLocateError(errors[0].componentId, errors[0].netName)
@@ -37,8 +37,8 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, errors, onClose, onLocateError, onViewDiagnostics])
 
   if (!isOpen || errors.length === 0) return null
@@ -48,7 +48,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
   const affectedLabel =
     primaryError.componentLabel ||
     primaryError.componentId ||
-    (primaryError.netName ? `Net: ${primaryError.netName}` : "Circuit Topology")
+    (primaryError.netName ? `Net: ${primaryError.netName}` : 'Circuit Topology')
 
   return (
     <div
@@ -60,17 +60,19 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
       aria-modal="true"
       aria-labelledby="sim-error-modal-title"
     >
-      <div
-        className="sim-error-win-dialog"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="sim-error-win-dialog" onClick={(e) => e.stopPropagation()}>
         {/* Compact Windows Titlebar */}
         <div className="sim-error-win-titlebar">
           <div className="sim-error-win-title">
             <span className="sim-error-win-title-icon" aria-hidden="true">
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
                 <circle cx="8" cy="8" r="7" fill="#e81123" />
-                <path d="M5 5L11 11M11 5L5 11" stroke="#ffffff" strokeWidth="1.8" strokeLinecap="round" />
+                <path
+                  d="M5 5L11 11M11 5L5 11"
+                  stroke="#ffffff"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
               </svg>
             </span>
             <span id="sim-error-modal-title">{t('validation.title')}</span>
@@ -80,9 +82,9 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
             type="button"
             className="sim-error-win-close-btn"
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={t('validation.closeDialog')}
             title={`${t('actions.close')} (Esc)`}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <X size={14} />
           </button>
@@ -95,17 +97,21 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
             <div className="sim-error-win-icon" aria-hidden="true">
               <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
                 <circle cx="16" cy="16" r="14" fill="#e81123" />
-                <path d="M10 10L22 22M22 10L10 22" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round" />
+                <path
+                  d="M10 10L22 22M22 10L10 22"
+                  stroke="#ffffff"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                />
               </svg>
             </div>
 
             <div className="sim-error-win-header-text">
               <h2 className="sim-error-win-heading">
-                {t('validation.heading')} ({errors.length} {errors.length === 1 ? "Error" : "Errors"})
+                {t('validation.heading')} ({errors.length}{' '}
+                {errors.length === 1 ? 'Error' : 'Errors'})
               </h2>
-              <p className="sim-error-win-subtext">
-                {t('validation.subtext')}
-              </p>
+              <p className="sim-error-win-subtext">{t('validation.subtext')}</p>
             </div>
           </div>
 
@@ -122,9 +128,7 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
               </div>
             </div>
 
-            <div className="sim-error-win-explanation">
-              {primaryError.message}
-            </div>
+            <div className="sim-error-win-explanation">{primaryError.message}</div>
 
             {primaryError.suggestion && (
               <div className="sim-error-win-suggestion">
@@ -134,7 +138,8 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
 
             {errors.length > 1 && (
               <div className="sim-error-win-additional">
-                +{errors.length - 1} additional validation {errors.length > 2 ? "errors" : "error"} logged in the Diagnostics panel.
+                +{errors.length - 1} additional validation {errors.length > 2 ? 'errors' : 'error'}{' '}
+                logged in the Diagnostics panel.
               </div>
             )}
           </div>
@@ -144,13 +149,13 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
         <div className="sim-error-win-footer">
           <button
             type="button"
-            className={`sim-error-win-btn ${canLocate ? "sim-error-win-btn-default" : ""}`}
+            className={`sim-error-win-btn ${canLocate ? 'sim-error-win-btn-default' : ''}`}
             onClick={() => onLocateError(primaryError.componentId, primaryError.netName)}
             disabled={!canLocate}
             title={
               canLocate
-                ? "Pan and zoom schematic to the problematic component or net"
-                : "No specific schematic component or net to locate"
+                ? 'Pan and zoom schematic to the problematic component or net'
+                : 'No specific schematic component or net to locate'
             }
           >
             {t('validation.locateError')}
@@ -160,20 +165,15 @@ export const ValidationBlockedModal: React.FC<ValidationBlockedModalProps> = ({
             type="button"
             className="sim-error-win-btn"
             onClick={onViewDiagnostics}
-            title="Open simulation diagnostics panel"
+            title={t('validation.openDiagnostics')}
           >
             {t('validation.viewDiagnostics')}
           </button>
 
-          <button
-            type="button"
-            className="sim-error-win-btn"
-            onClick={onClose}
-          >
+          <button type="button" className="sim-error-win-btn" onClick={onClose}>
             {t('actions.close')}
           </button>
         </div>
-
       </div>
     </div>
   )

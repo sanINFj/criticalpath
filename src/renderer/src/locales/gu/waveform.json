@@ -22,7 +22,15 @@
     "leftAxis": "ડાબો Y-અક્ષ",
     "rightAxis": "જમણો Y-અક્ષ",
     "assignedPane": "સોંપેલ પેન (Pane)",
-    "showHide": "પ્લોટ પર બતાવો"
+    "showHide": "પ્લોટ પર બતાવો",
+    "visible": "દૃશ્યમાન",
+    "hidden": "છુપાયેલું",
+    "solo": "એકલું (Solo)",
+    "soloTooltip": "આ સિગ્નલને અલગ કરો (solo)",
+    "lineThickness": "રેખાની જાડાઈ:",
+    "colorLabel": "ટ્રેસ રંગ:",
+    "paneLabel": "સોંપાયેલ પેનલ (Pane):",
+    "selectHint": "ડાબી યાદીમાંથી એક ટ્રેસ પસંદ કરો."
   },
   "axes": {
     "xAxis": "X-અક્ષ (સમય / આવર્તન)",
@@ -31,9 +39,18 @@
     "autoScale": "સ્વચાલિત સ્કેલ",
     "min": "ન્યૂનતમ",
     "max": "મહત્તમ",
-    "logScale": "લોગ સ્કેલ (Logarithmic)",
+    "logScale": "લઘુગણકીય સ્કેલ (Log10)",
     "applyLimits": "મર્યાદા લાગુ કરો",
-    "resetAuto": "સ્વચાલિત પર રીસેટ"
+    "resetAuto": "સ્વચાલિત પર રીસેટ",
+    "autoScaleX": "X નું સ્વતઃ-સ્કેલ",
+    "minX": "ન્યૂનતમ X:",
+    "maxX": "મહત્તમ X:",
+    "autoScaleLeftY": "ડાબા Y નું સ્વતઃ-સ્કેલ",
+    "minY": "ન્યૂનતમ Y:",
+    "maxY": "મહત્તમ Y:",
+    "autoScaleRightY": "જમણા Y નું સ્વતઃ-સ્કેલ",
+    "minRightY": "ન્યૂનતમ જમણું Y:",
+    "maxRightY": "મહત્તમ જમણું Y:"
   },
   "appearance": {
     "theme": "થીમ",
@@ -48,7 +65,10 @@
     "panesCount": "પેનની સંખ્યા",
     "showLegend": "લેજેન્ડ બતાવો",
     "showCursors": "કર્સર બતાવો",
-    "cursorMode": "કર્સર મોડ"
+    "cursorMode": "કર્સર મોડ",
+    "plotThemeTitle": "પ્લોટ પૃષ્ઠભૂમિ થીમ",
+    "gridStyleTitle": "ગ્રીડ લાઇન શૈલી",
+    "splitPanesTitle": "બહુવિધ પ્લોટ પેન (LTspice સ્પ્લિટ પેન)"
   },
   "math": {
     "title": "ગાણિતિક સમીકરણ ટ્રેસ ઉમેરો",
@@ -57,7 +77,15 @@
     "preview": "ફોર્મ્યુલા પૂર્વાવલોકન",
     "addTrace": "મેથ ટ્રેસ ઉમેરો",
     "valid": "માન્ય સમીકરણ",
-    "invalid": "સિન્ટેક્સ ભૂલ અથવા અજ્ઞાત ચલ"
+    "invalid": "સિન્ટેક્સ ભૂલ અથવા અજ્ઞાત ચલ",
+    "expressionLabel": "ગાણિતિક અભિવ્યક્તિ:",
+    "displayLabel": "ડિસ્પ્લે ટ્રેસ લેબલ:",
+    "pane": "પેન:",
+    "traceColor": "ટ્રેસ રંગ:",
+    "removeTrace": "ગણિત ટ્રેસ દૂર કરો",
+    "close": "બંધ કરો",
+    "placeholderExpr": "દા.ત. V(out) - V(in)  અથવા  d(V(out))/dt  અથવા  V(out)*I(R1)",
+    "placeholderName": "દા.ત. Diff_Out"
   },
   "annotations": {
     "title": "પ્લોટ નોંધો અને માર્કર્સ",
@@ -67,13 +95,28 @@
     "refLineV": "ઊભી સંદર્ભ રેખા",
     "arrow": "તીર નિર્દેશક",
     "add": "નોંધ ઉમેરો",
-    "clearAll": "બધી નોંધો સાફ કરો"
+    "clearAll": "બધી નોંધો સાફ કરો",
+    "typeLabel": "ટીકા પ્રકાર:",
+    "textNote": "ટેક્સ્ટ નોંધ",
+    "endX": "અંતિમ X (તીર શીર્ષ):",
+    "endY": "અંતિમ Y (તીર શીર્ષ):",
+    "labelContent": "લેબલ / ટેક્સ્ટ સામગ્રી:",
+    "color": "રંગ:",
+    "pane": "પેન:",
+    "delete": "કાઢી નાખો",
+    "close": "બંધ કરો"
   },
   "export": {
     "title": "નિકાસ અને પ્રોફાઇલ",
     "exportCsv": "CSV તરીકે ડેટા નિકાસ કરો",
     "exportPng": "હાઇ-રિઝોલ્યુશન PNG નિકાસ કરો",
     "saveProfile": "સેટિંગ્સ પ્રોફાઇલ સાચવો",
-    "loadProfile": "સેટિંગ્સ પ્રોફાઇલ લોડ કરો"
+    "loadProfile": "સેટિંગ્સ પ્રોફાઇલ લોડ કરો",
+    "dataExportTitle": "વેવફોર્મ ડેટા અને છબી નિકાસ",
+    "exportCsvBtn": "પ્લોટ કરેલ ડેટા CSV માં નિકાસ કરો",
+    "savePngBtn": "હાઇ-રિઝોલ્યુશન PNG છબી સાચવો",
+    "configTitle": "પ્લોટ સેટિંગ્સ ગોઠવણી (JSON)",
+    "saveConfigBtn": "ગોઠવણી સાચવો (.json)",
+    "loadConfigBtn": "ગોઠવણી લોડ કરો (.json)"
   }
 }

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react"
-import { useTranslation } from "react-i18next"
-import { Settings, X } from "lucide-react"
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Settings, X } from 'lucide-react'
 
 export interface SolverSettings {
-  integrationMethod: "trap" | "gear" | "modified-trap"
+  integrationMethod: 'trap' | 'gear' | 'modified-trap'
   reltol: string
   vntol: string
   abstol: string
@@ -12,12 +12,12 @@ export interface SolverSettings {
 }
 
 export const DEFAULT_SOLVER_SETTINGS: SolverSettings = {
-  integrationMethod: "trap",
-  reltol: "0.001",
-  vntol: "1e-6",
-  abstol: "1e-12",
-  temp: "27",
-  maxIterations: "100",
+  integrationMethod: 'trap',
+  reltol: '0.001',
+  vntol: '1e-6',
+  abstol: '1e-12',
+  temp: '27',
+  maxIterations: '100'
 }
 
 interface SimulationSettingsModalProps {
@@ -31,7 +31,7 @@ export default function SimulationSettingsModal({
   isOpen,
   onClose,
   currentSettings,
-  onApplySettings,
+  onApplySettings
 }: SimulationSettingsModalProps) {
   const { t } = useTranslation('common')
   const [settings, setSettings] = useState<SolverSettings>(currentSettings)
@@ -45,16 +45,16 @@ export default function SimulationSettingsModal({
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault()
         onClose()
-      } else if (e.key === "Enter" && !e.shiftKey) {
+      } else if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         handleSave()
       }
     }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, settings])
 
   if (!isOpen) return null
@@ -76,19 +76,25 @@ export default function SimulationSettingsModal({
       >
         <div className="analysis-modal-header">
           <div className="analysis-modal-title-wrap">
-            <span className="analysis-modal-icon" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span
+              className="analysis-modal-icon"
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
               <Settings size={18} />
             </span>
             <div>
               <h2 id="sim-settings-title" className="analysis-modal-title">
                 {t('simSettings.title')}
               </h2>
-              <span className="analysis-modal-subtitle">
-                {t('simSettings.subtitle')}
-              </span>
+              <span className="analysis-modal-subtitle">{t('simSettings.subtitle')}</span>
             </div>
           </div>
-          <button className="analysis-modal-close-btn" onClick={onClose} aria-label={t('actions.close')} style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button
+            className="analysis-modal-close-btn"
+            onClick={onClose}
+            aria-label={t('actions.close')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <X size={15} />
           </button>
         </div>
@@ -107,7 +113,7 @@ export default function SimulationSettingsModal({
                   onChange={(e) =>
                     setSettings((prev) => ({
                       ...prev,
-                      integrationMethod: e.target.value as "trap" | "gear" | "modified-trap",
+                      integrationMethod: e.target.value as 'trap' | 'gear' | 'modified-trap'
                     }))
                   }
                 >
@@ -128,9 +134,7 @@ export default function SimulationSettingsModal({
                   type="text"
                   className="analysis-input"
                   value={settings.reltol}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, reltol: e.target.value }))
-                  }
+                  onChange={(e) => setSettings((prev) => ({ ...prev, reltol: e.target.value }))}
                   placeholder="0.001"
                 />
                 <span className="analysis-input-hint">{t('simSettings.reltolHint')}</span>
@@ -147,9 +151,7 @@ export default function SimulationSettingsModal({
                   type="text"
                   className="analysis-input"
                   value={settings.vntol}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, vntol: e.target.value }))
-                  }
+                  onChange={(e) => setSettings((prev) => ({ ...prev, vntol: e.target.value }))}
                   placeholder="1e-6"
                 />
                 <span className="analysis-input-hint">{t('simSettings.vntolHint')}</span>
@@ -166,9 +168,7 @@ export default function SimulationSettingsModal({
                   type="text"
                   className="analysis-input"
                   value={settings.abstol}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, abstol: e.target.value }))
-                  }
+                  onChange={(e) => setSettings((prev) => ({ ...prev, abstol: e.target.value }))}
                   placeholder="1e-12"
                 />
                 <span className="analysis-input-hint">{t('simSettings.abstolHint')}</span>
@@ -185,9 +185,7 @@ export default function SimulationSettingsModal({
                   type="text"
                   className="analysis-input"
                   value={settings.temp}
-                  onChange={(e) =>
-                    setSettings((prev) => ({ ...prev, temp: e.target.value }))
-                  }
+                  onChange={(e) => setSettings((prev) => ({ ...prev, temp: e.target.value }))}
                   placeholder="27"
                 />
                 <span className="analysis-input-hint">{t('simSettings.tempHint')}</span>
@@ -201,7 +199,7 @@ export default function SimulationSettingsModal({
             className="analysis-cancel-btn"
             onClick={() => setSettings(DEFAULT_SOLVER_SETTINGS)}
             type="button"
-            style={{ marginRight: "auto" }}
+            style={{ marginRight: 'auto' }}
           >
             {t('actions.reset')}
           </button>

@@ -11,7 +11,7 @@ export const AiCopilotLogo: React.FC<AiCopilotLogoProps> = ({
   size = 15,
   active = false,
   className,
-  glow = false,
+  glow = false
 }) => {
   const gradId = `ai-logo-grad-${size}-${active ? 'act' : 'inact'}`
 
@@ -26,8 +26,11 @@ export const AiCopilotLogo: React.FC<AiCopilotLogoProps> = ({
       style={{
         display: 'inline-block',
         verticalAlign: 'middle',
-        filter: active || glow ? 'drop-shadow(0 0 3px rgba(168, 85, 247, 0.6))' : 'drop-shadow(0 0 1px rgba(139, 92, 246, 0.3))',
-        transition: 'filter 0.2s ease',
+        filter:
+          active || glow
+            ? 'drop-shadow(0 0 3px rgba(168, 85, 247, 0.6))'
+            : 'drop-shadow(0 0 1px rgba(139, 92, 246, 0.3))',
+        transition: 'filter 0.2s ease'
       }}
     >
       <defs>

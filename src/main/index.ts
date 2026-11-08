@@ -5,11 +5,7 @@ import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
-import {
-  runNgspiceSimulation,
-  stopNgspiceSimulation,
-  getNgspiceStatus,
-} from './spiceRunner'
+import { runNgspiceSimulation, stopNgspiceSimulation, getNgspiceStatus } from './spiceRunner'
 import { executeAiChat } from './aiRunner'
 
 function createWindow(): void {
@@ -65,9 +61,9 @@ app.whenReady().then(() => {
   // Native SPICE Simulation Engine IPC Handlers
   ipcMain.handle(
     'simulation:run',
-    async (_event, payload: { netlist: string; analysisType?: string }) => {
-      return runNgspiceSimulation(payload.netlist, payload.analysisType)
-    },
+    async (_event, payload: { netlist: string; analysisType?: string; workingDir?: string }) => {
+      return runNgspiceSimulation(payload.netlist, payload.analysisType, 30000, payload.workingDir)
+    }
   )
 
   ipcMain.handle('simulation:stop', async () => {
@@ -92,8 +88,8 @@ app.whenReady().then(() => {
       filters: [
         { name: 'CriticalPath Schematic (*.qsch, *.json)', extensions: ['qsch', 'json'] },
         { name: 'LTspice Schematic (*.asc)', extensions: ['asc'] },
-        { name: 'All Files (*.*)', extensions: ['*'] },
-      ],
+        { name: 'All Files (*.*)', extensions: ['*'] }
+      ]
     })
     if (result.canceled || result.filePaths.length === 0) {
       return { canceled: true }
@@ -124,7 +120,7 @@ app.whenReady().then(() => {
         filePath?: string | null
         content: string
         defaultPath?: string
-      },
+      }
     ) => {
       const win = BrowserWindow.fromWebContents(event.sender)
       let targetPath = payload.filePath
@@ -135,8 +131,8 @@ app.whenReady().then(() => {
           filters: [
             { name: 'CriticalPath Schematic (*.qsch)', extensions: ['qsch'] },
             { name: 'JSON Schematic (*.json)', extensions: ['json'] },
-            { name: 'All Files (*.*)', extensions: ['*'] },
-          ],
+            { name: 'All Files (*.*)', extensions: ['*'] }
+          ]
         })
         if (result.canceled || !result.filePath) {
           return { canceled: true }
@@ -149,7 +145,7 @@ app.whenReady().then(() => {
       } catch (err: any) {
         return { canceled: false, error: err?.message || 'Failed to write file' }
       }
-    },
+    }
   )
 
   ipcMain.handle('file:confirmClose', async (event, filename: string) => {
@@ -161,10 +157,10 @@ app.whenReady().then(() => {
       cancelId: 2,
       title: 'CriticalPath - Unsaved Changes',
       message: `Do you want to save the changes you made to "${filename}"?`,
-      detail: "Your changes will be lost if you don't save them.",
+      detail: "Your changes will be lost if you don't save them."
     })
     return {
-      action: result.response === 0 ? 'save' : result.response === 1 ? 'discard' : 'cancel',
+      action: result.response === 0 ? 'save' : result.response === 1 ? 'discard' : 'cancel'
     }
   })
 

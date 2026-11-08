@@ -38,7 +38,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   fr: 'French (Français)',
   de: 'German (Deutsch)',
   zh: 'Chinese (中文)',
-  ja: 'Japanese (日本語)',
+  ja: 'Japanese (日本語)'
 }
 
 export function buildSystemPrompt(language?: string): string {
@@ -56,14 +56,15 @@ Technical Terms & Symbols Rule:
 }
 
 export async function executeAiChat(request: AiChatRequest): Promise<AiChatResponse> {
-  const apiKey = request.apiKey?.trim() || process.env.GEMINI_API_KEY || process.env.CRITICALPATH_AI_KEY
+  const apiKey =
+    request.apiKey?.trim() || process.env.GEMINI_API_KEY || process.env.CRITICALPATH_AI_KEY
 
   // If no user API key is configured
   if (!apiKey) {
     return {
       success: false,
       error:
-        'No API Key configured. Please enter a free Google Gemini API key in the AI Assistant settings to enable instant AI circuit analysis.',
+        'No API Key configured. Please enter a free Google Gemini API key in the AI Assistant settings to enable instant AI circuit analysis.'
     }
   }
 
@@ -82,7 +83,8 @@ export async function executeAiChat(request: AiChatRequest): Promise<AiChatRespo
     if (ctx.netlist) {
       let netlistText = ctx.netlist.trim()
       if (netlistText.length > 3000) {
-        netlistText = netlistText.slice(0, 3000) + '\n... [Netlist truncated to save tokens] ...\n.end'
+        netlistText =
+          netlistText.slice(0, 3000) + '\n... [Netlist truncated to save tokens] ...\n.end'
       }
       parts.push(`Generated SPICE Netlist:\n\`\`\`spice\n${netlistText}\n\`\`\``)
     }
@@ -105,9 +107,14 @@ async function callGeminiApi(
   apiKey: string,
   messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
   contextBlock: string,
-  language?: string,
+  language?: string
 ): Promise<AiChatResponse> {
-  const candidateModels = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
+  const candidateModels = [
+    'gemini-3.8-flash',
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
+  ]
   const promptToUse = buildSystemPrompt(language)
 
   // Format messages for Gemini API
@@ -119,7 +126,7 @@ async function callGeminiApi(
     }
     return {
       role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text }],
+      parts: [{ text }]
     }
   })
 
@@ -132,14 +139,14 @@ async function callGeminiApi(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: promptToUse }],
+            parts: [{ text: promptToUse }]
           },
           contents,
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 2048,
-          },
-        }),
+            maxOutputTokens: 2048
+          }
+        })
       })
 
       if (res.status === 404 || res.status === 503 || res.status === 429) {
@@ -162,15 +169,16 @@ async function callGeminiApi(
         if (res.status === 429) {
           return {
             success: false,
-            error: 'Rate limit reached (15 requests/minute). Please wait a few seconds and try again.',
-            providerUsed: model,
+            error:
+              'Rate limit reached (15 requests/minute). Please wait a few seconds and try again.',
+            providerUsed: model
           }
         }
 
         return {
           success: false,
           error: `Gemini API error (${res.status}): ${parsedMessage}`,
-          providerUsed: model,
+          providerUsed: model
         }
       }
 
@@ -179,7 +187,7 @@ async function callGeminiApi(
       return {
         success: true,
         reply,
-        providerUsed: model,
+        providerUsed: model
       }
     } catch (err: any) {
       lastError = err.message
@@ -189,7 +197,7 @@ async function callGeminiApi(
   return {
     success: false,
     error: `Network error reaching Gemini: ${lastError || 'No available Gemini model responded.'}`,
-    providerUsed: 'Gemini',
+    providerUsed: 'Gemini'
   }
 }
 
@@ -199,13 +207,17 @@ const GROQ_CACHE_TTL_MS = 1000 * 60 * 60 // 1 hour cache
 
 async function getLiveGroqModels(apiKey: string): Promise<string[]> {
   const now = Date.now()
-  if (cachedGroqModels && cachedGroqModels.length > 0 && now - lastGroqModelsFetchTime < GROQ_CACHE_TTL_MS) {
+  if (
+    cachedGroqModels &&
+    cachedGroqModels.length > 0 &&
+    now - lastGroqModelsFetchTime < GROQ_CACHE_TTL_MS
+  ) {
     return cachedGroqModels
   }
 
   try {
     const res = await fetch('https://api.groq.com/openai/v1/models', {
-      headers: { Authorization: `Bearer ${apiKey}` },
+      headers: { Authorization: `Bearer ${apiKey}` }
     })
     if (res.ok) {
       const data = await res.json()
@@ -239,7 +251,7 @@ async function getLiveGroqModels(apiKey: string): Promise<string[]> {
     'llama-3.1-8b-instant',
     'openai/gpt-oss-120b',
     'openai/gpt-oss-20b',
-    'qwen/qwen3.8-27b',
+    'qwen/qwen3.8-27b'
   ]
   cachedGroqModels = fallbackModels
   lastGroqModelsFetchTime = now
@@ -250,7 +262,7 @@ async function callGroqApi(
   apiKey: string,
   messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
   contextBlock: string,
-  language?: string,
+  language?: string
 ): Promise<AiChatResponse> {
   const url = 'https://api.groq.com/openai/v1/chat/completions'
   const promptToUse = buildSystemPrompt(language)
@@ -266,7 +278,7 @@ async function callGroqApi(
         content = `${contextBlock}User question: ${content}`
       }
       return { role: m.role, content }
-    }),
+    })
   ]
 
   const groqCandidates = await getLiveGroqModels(apiKey)
@@ -280,14 +292,14 @@ async function callGroqApi(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`
         },
         body: JSON.stringify({
           model,
           messages: formattedMessages,
           temperature: 0.4,
-          max_tokens: 1536,
-        }),
+          max_tokens: 1536
+        })
       })
 
       // Rate limit (429) handling: automatically fall back to next model (e.g., 70B -> 8B-instant)
@@ -316,7 +328,7 @@ async function callGroqApi(
         return {
           success: false,
           error: `Groq API error (${res.status}): ${errText}`,
-          providerUsed: `Groq (${model})`,
+          providerUsed: `Groq (${model})`
         }
       }
 
@@ -324,7 +336,7 @@ async function callGroqApi(
         return {
           success: false,
           error: 'Invalid Groq API Key. Please verify your key at console.groq.com.',
-          providerUsed: 'Groq',
+          providerUsed: 'Groq'
         }
       }
 
@@ -333,7 +345,7 @@ async function callGroqApi(
         return {
           success: false,
           error: `Groq API error (${res.status}): ${errText}`,
-          providerUsed: `Groq (${model})`,
+          providerUsed: `Groq (${model})`
         }
       }
 
@@ -342,20 +354,23 @@ async function callGroqApi(
       return {
         success: true,
         reply,
-        providerUsed: `Groq (${model})`,
+        providerUsed: `Groq (${model})`
       }
     } catch (err: any) {
       lastError = err.message
     }
   }
 
-  const rateLimitMsg = retryAfterSeconds > 0
-    ? `Groq rate limit reached (TPM). Please wait ${retryAfterSeconds}s or switch to Gemini in settings.`
-    : `Groq rate limit reached. Please wait a few seconds or switch to Gemini in settings.`
+  const rateLimitMsg =
+    retryAfterSeconds > 0
+      ? `Groq rate limit reached (TPM). Please wait ${retryAfterSeconds}s or switch to Gemini in settings.`
+      : `Groq rate limit reached. Please wait a few seconds or switch to Gemini in settings.`
 
   return {
     success: false,
-    error: lastError.includes('429') ? rateLimitMsg : `Groq API error: ${lastError || 'No accessible model found.'}`,
-    providerUsed: 'Groq',
+    error: lastError.includes('429')
+      ? rateLimitMsg
+      : `Groq API error: ${lastError || 'No accessible model found.'}`,
+    providerUsed: 'Groq'
   }
 }

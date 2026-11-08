@@ -1,0 +1,121 @@
+* ============================================================
+* TSMC 180nm CMOS Technology Library (BSIM3v3.2 Model)
+* Suitable for ngspice / ASAP EDA IC Simulation
+* Corners: TT (Typical-Typical), SS (Slow-Slow), FF (Fast-Fast)
+* ============================================================
+
+.LIB TT
+* Typical-Typical Corner (Nominal Vth, Nominal Mobility)
+.model NMOS_180N NMOS (
++ Level = 8
++ Version = 3.2.4
++ Mobmod = 1
++ Capmod = 2
++ Tox = 4.0n
++ Xj = 1.0e-7
++ Vth0 = 0.40
++ K1 = 0.58
++ K2 = 0.02
++ K3 = 1.0e-3
++ U0 = 450
++ Vsatt = 1.0e5
++ Rd = 0
++ Rs = 0
++ Cj = 1.0m
++ Cjsw = 2.0e-10
++ Cgso = 3.0e-10
++ Cgdo = 3.0e-10
++ Cgbo = 1.0e-11
++ Tnom = 27
++ )
+
+.model PMOS_180N PMOS (
++ Level = 8
++ Version = 3.2.4
++ Mobmod = 1
++ Capmod = 2
++ Tox = 4.0n
++ Xj = 1.0e-7
++ Vth0 = -0.42
++ K1 = 0.55
++ K2 = 0.02
++ K3 = 1.0e-3
++ U0 = 150
++ Vsatt = 8.0e4
++ Rd = 0
++ Rs = 0
++ Cj = 1.2m
++ Cjsw = 2.5e-10
++ Cgso = 3.2e-10
++ Cgdo = 3.2e-10
++ Cgbo = 1.0e-11
++ Tnom = 27
++ )
+.ENDL TT
+
+.LIB SS
+* Slow-Slow Corner (High Vth, Low Mobility)
+.model NMOS_180N NMOS (
++ Level = 8
++ Version = 3.2.4
++ Tox = 4.2n
++ Vth0 = 0.48
++ K1 = 0.60
++ K2 = 0.02
++ U0 = 380
++ Vsatt = 9.0e4
++ Cj = 1.1m
++ Cjsw = 2.2e-10
++ Cgso = 3.0e-10
++ Cgdo = 3.0e-10
++ )
+
+.model PMOS_180N PMOS (
++ Level = 8
++ Version = 3.2.4
++ Tox = 4.2n
++ Vth0 = -0.50
++ K1 = 0.58
++ K2 = 0.02
++ U0 = 120
++ Vsatt = 7.2e4
++ Cj = 1.3m
++ Cjsw = 2.7e-10
++ Cgso = 3.2e-10
++ Cgdo = 3.2e-10
++ )
+.ENDL SS
+
+.LIB FF
+* Fast-Fast Corner (Low Vth, High Mobility)
+.model NMOS_180N NMOS (
++ Level = 8
++ Version = 3.2.4
++ Tox = 3.8n
++ Vth0 = 0.32
++ K1 = 0.56
++ K2 = 0.02
++ U0 = 520
++ Vsatt = 1.1e5
++ Cj = 0.9m
++ Cjsw = 1.8e-10
++ Cgso = 3.0e-10
++ Cgdo = 3.0e-10
++ )
+
+.model PMOS_180N PMOS (
++ Level = 8
++ Version = 3.2.4
++ Tox = 3.8n
++ Vth0 = -0.34
++ K1 = 0.52
++ K2 = 0.02
++ U0 = 180
++ Vsatt = 8.8e4
++ Cj = 1.1m
++ Cjsw = 2.3e-10
++ Cgso = 3.2e-10
++ Cgdo = 3.2e-10
++ )
+.ENDL FF
+

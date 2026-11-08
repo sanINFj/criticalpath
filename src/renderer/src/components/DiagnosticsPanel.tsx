@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react"
-import { useTranslation } from "react-i18next"
+import React, { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   CheckCircle2,
   AlertCircle,
@@ -8,17 +8,17 @@ import {
   Lightbulb,
   ArrowRight,
   Maximize2,
-  Minimize2,
-} from "lucide-react"
-import type { NetlistValidationError } from "../utils/spiceNetlist"
-import type { SimulationRunResult, NgspiceEngineStatus } from "../../../shared/simulation"
+  Minimize2
+} from 'lucide-react'
+import type { NetlistValidationError } from '../utils/spiceNetlist'
+import type { SimulationRunResult, NgspiceEngineStatus } from '../../../shared/simulation'
 
 export interface DiagnosticsPanelProps {
   isOpen: boolean
   onClose: () => void
   onClear: () => void
   simResult: SimulationRunResult | null
-  simStatus: "idle" | "running" | "paused"
+  simStatus: 'idle' | 'running' | 'paused'
   analysisCommand: string
   validationErrors: NetlistValidationError[]
   validationWarnings: NetlistValidationError[]
@@ -40,36 +40,36 @@ export interface DiagnosticsPanelProps {
 const getTranslatedErrorMessage = (
   err: NetlistValidationError,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  t: (key: any, options?: any) => string,
+  t: (key: any, options?: any) => string
 ): string => {
   switch (err.code) {
-    case "EMPTY_CIRCUIT":
-      return t("validationRules.emptyCircuitMsg")
-    case "MISSING_GROUND":
-      if (err.message.toLowerCase().includes("not connected")) {
-        return t("validationRules.groundNotConnectedMsg")
+    case 'EMPTY_CIRCUIT':
+      return t('validationRules.emptyCircuitMsg')
+    case 'MISSING_GROUND':
+      if (err.message.toLowerCase().includes('not connected')) {
+        return t('validationRules.groundNotConnectedMsg')
       }
-      return t("validationRules.missingGroundMsg")
-    case "UNSUPPORTED_COMPONENT":
-      return t("validationRules.unsupportedCompMsg", {
-        label: err.componentLabel || err.componentId || "",
+      return t('validationRules.missingGroundMsg')
+    case 'UNSUPPORTED_COMPONENT':
+      return t('validationRules.unsupportedCompMsg', {
+        label: err.componentLabel || err.componentId || ''
       })
-    case "DISCONNECTED_PIN":
-      return t("validationRules.disconnectedPinMsg", {
-        pin: err.pinName || "",
-        label: err.componentLabel || err.componentId || "",
+    case 'DISCONNECTED_PIN':
+      return t('validationRules.disconnectedPinMsg', {
+        pin: err.pinName || '',
+        label: err.componentLabel || err.componentId || ''
       })
-    case "SHORT_CIRCUIT":
-      return t("validationRules.shortCircuitMsg", {
-        label: err.componentLabel || err.componentId || "",
+    case 'SHORT_CIRCUIT':
+      return t('validationRules.shortCircuitMsg', {
+        label: err.componentLabel || err.componentId || ''
       })
-    case "DANGLING_NET":
-      return t("validationRules.danglingNetMsg", {
-        net: err.netName || "",
+    case 'DANGLING_NET':
+      return t('validationRules.danglingNetMsg', {
+        net: err.netName || ''
       })
-    case "INVALID_VALUE":
-      return t("validationRules.invalidValueMsg", {
-        label: err.componentLabel || err.componentId || "",
+    case 'INVALID_VALUE':
+      return t('validationRules.invalidValueMsg', {
+        label: err.componentLabel || err.componentId || ''
       })
     default:
       return err.message
@@ -79,28 +79,28 @@ const getTranslatedErrorMessage = (
 const getTranslatedErrorSuggestion = (
   err: NetlistValidationError,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  t: (key: any, options?: any) => string,
+  t: (key: any, options?: any) => string
 ): string => {
   switch (err.code) {
-    case "EMPTY_CIRCUIT":
-      return t("validationRules.emptyCircuitSugg")
-    case "MISSING_GROUND":
-      if (err.message.toLowerCase().includes("not connected")) {
-        return t("validationRules.groundNotConnectedSugg")
+    case 'EMPTY_CIRCUIT':
+      return t('validationRules.emptyCircuitSugg')
+    case 'MISSING_GROUND':
+      if (err.message.toLowerCase().includes('not connected')) {
+        return t('validationRules.groundNotConnectedSugg')
       }
-      return t("validationRules.missingGroundSugg")
-    case "UNSUPPORTED_COMPONENT":
-      return t("validationRules.unsupportedCompSugg")
-    case "DISCONNECTED_PIN":
-      return t("validationRules.disconnectedPinSugg")
-    case "SHORT_CIRCUIT":
-      return t("validationRules.shortCircuitSugg")
-    case "DANGLING_NET":
-      return t("validationRules.danglingNetSugg")
-    case "INVALID_VALUE":
-      return t("validationRules.invalidValueSugg")
+      return t('validationRules.missingGroundSugg')
+    case 'UNSUPPORTED_COMPONENT':
+      return t('validationRules.unsupportedCompSugg')
+    case 'DISCONNECTED_PIN':
+      return t('validationRules.disconnectedPinSugg')
+    case 'SHORT_CIRCUIT':
+      return t('validationRules.shortCircuitSugg')
+    case 'DANGLING_NET':
+      return t('validationRules.danglingNetSugg')
+    case 'INVALID_VALUE':
+      return t('validationRules.invalidValueSugg')
     default:
-      return err.suggestion || ""
+      return err.suggestion || ''
   }
 }
 
@@ -120,10 +120,10 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
   height = 240,
   onHeightChange,
   isMaximized: propIsMaximized,
-  onToggleMaximize,
+  onToggleMaximize
 }) => {
   const { t } = useTranslation('common')
-  const [filterTab, setFilterTab] = useState<"all" | "errors" | "warnings" | "info">("all")
+  const [filterTab, setFilterTab] = useState<'all' | 'errors' | 'warnings' | 'info'>('all')
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [internalMaximized, setInternalMaximized] = useState(false)
   const isMaximized = propIsMaximized !== undefined ? propIsMaximized : internalMaximized
@@ -143,7 +143,10 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return
       const delta = resizeStartY.current - e.clientY
-      const newHeight = Math.max(140, Math.min(window.innerHeight - 150, resizeStartHeight.current + delta))
+      const newHeight = Math.max(
+        140,
+        Math.min(window.innerHeight - 150, resizeStartHeight.current + delta)
+      )
       onHeightChange?.(newHeight)
     }
 
@@ -152,12 +155,12 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
     }
 
     if (isResizing) {
-      window.addEventListener("mousemove", handleMouseMove)
-      window.addEventListener("mouseup", handleMouseUp)
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
     }
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mouseup", handleMouseUp)
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
     }
   }, [isResizing, onHeightChange])
 
@@ -173,9 +176,9 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
 
   return (
     <section
-      className={`diag-win-panel ${isCollapsed ? "collapsed" : ""} ${isMaximized ? "maximized" : ""}`}
-      style={{ height: isMaximized ? "100%" : isCollapsed ? "30px" : `${height}px` }}
-      aria-label="Simulation Diagnostics Window"
+      className={`diag-win-panel ${isCollapsed ? 'collapsed' : ''} ${isMaximized ? 'maximized' : ''}`}
+      style={{ height: isMaximized ? '100%' : isCollapsed ? '30px' : `${height}px` }}
+      aria-label={t('toolbar.diagnostics')}
     >
       {/* Resizing Splitter (Top Edge) */}
       {!isCollapsed && !isMaximized && (
@@ -197,7 +200,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             onClick={() => setIsCollapsed(!isCollapsed)}
             title={isCollapsed ? t('diagnostics.expand') : t('diagnostics.collapse')}
           >
-            {isCollapsed ? "▲" : "▼"}
+            {isCollapsed ? '▲' : '▼'}
           </button>
 
           <div className="diag-win-title-group">
@@ -209,15 +212,21 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             </span>
             <span className="diag-win-title">{t('diagnostics.title')}</span>
 
-            {simStatus === "running" ? (
+            {simStatus === 'running' ? (
               <span className="diag-win-status-badge running">{t('diagnostics.running')}</span>
             ) : isSimSuccess ? (
-              <span className="diag-win-status-badge success" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span
+                className="diag-win-status-badge success"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
                 <CheckCircle2 size={12} />
                 <span>{t('diagnostics.success')}</span>
               </span>
             ) : isSimFailed || hasValidationErrors ? (
-              <span className="diag-win-status-badge error" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span
+                className="diag-win-status-badge error"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
                 <AlertCircle size={12} />
                 <span>{t('diagnostics.errorsCount', { count: errorCount })}</span>
               </span>
@@ -231,36 +240,36 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               <button
                 type="button"
                 role="tab"
-                aria-selected={filterTab === "all"}
-                className={`diag-win-tab-btn ${filterTab === "all" ? "active" : ""}`}
-                onClick={() => setFilterTab("all")}
+                aria-selected={filterTab === 'all'}
+                className={`diag-win-tab-btn ${filterTab === 'all' ? 'active' : ''}`}
+                onClick={() => setFilterTab('all')}
               >
                 {t('diagnostics.tabs.all')}
               </button>
               <button
                 type="button"
                 role="tab"
-                aria-selected={filterTab === "errors"}
-                className={`diag-win-tab-btn ${filterTab === "errors" ? "active" : ""}`}
-                onClick={() => setFilterTab("errors")}
+                aria-selected={filterTab === 'errors'}
+                className={`diag-win-tab-btn ${filterTab === 'errors' ? 'active' : ''}`}
+                onClick={() => setFilterTab('errors')}
               >
                 {t('diagnostics.tabs.errors')} ({errorCount})
               </button>
               <button
                 type="button"
                 role="tab"
-                aria-selected={filterTab === "warnings"}
-                className={`diag-win-tab-btn ${filterTab === "warnings" ? "active" : ""}`}
-                onClick={() => setFilterTab("warnings")}
+                aria-selected={filterTab === 'warnings'}
+                className={`diag-win-tab-btn ${filterTab === 'warnings' ? 'active' : ''}`}
+                onClick={() => setFilterTab('warnings')}
               >
                 {t('diagnostics.tabs.warnings')} ({warningCount})
               </button>
               <button
                 type="button"
                 role="tab"
-                aria-selected={filterTab === "info"}
-                className={`diag-win-tab-btn ${filterTab === "info" ? "active" : ""}`}
-                onClick={() => setFilterTab("info")}
+                aria-selected={filterTab === 'info'}
+                className={`diag-win-tab-btn ${filterTab === 'info' ? 'active' : ''}`}
+                onClick={() => setFilterTab('info')}
               >
                 {t('diagnostics.tabs.info')}
               </button>
@@ -276,7 +285,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               className="diag-win-action-btn diag-win-action-btn-highlight"
               onClick={onOpenWaveforms}
               title={t('diagnostics.viewWaveformsTooltip')}
-              style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
             >
               <TrendingUp size={13} />
               <span>{t('diagnostics.viewWaveforms')}</span>
@@ -292,7 +301,6 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             {t('diagnostics.clear')}
           </button>
 
-
           <button
             type="button"
             className="diag-win-close-btn"
@@ -305,7 +313,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             }}
             title={isMaximized ? t('diagnostics.restore') : t('diagnostics.maximize')}
             aria-label={isMaximized ? t('diagnostics.restore') : t('diagnostics.maximize')}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             {isMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
           </button>
@@ -316,7 +324,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             onClick={onClose}
             title={t('diagnostics.closeTooltip')}
             aria-label={t('diagnostics.closeTooltip')}
-            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <X size={14} />
           </button>
@@ -332,7 +340,10 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           {simResult && isSimSuccess && (
             <div className="diag-win-summary-box success">
               <div className="diag-win-summary-header">
-                <span className="diag-win-summary-title" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  className="diag-win-summary-title"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
                   <CheckCircle2 size={15} color="#10b981" />
                   <span>{t('diagnostics.simFinishedSuccess')}</span>
                 </span>
@@ -341,7 +352,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                     type="button"
                     className="diag-win-action-btn"
                     onClick={onOpenWaveforms}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     <span>{t('diagnostics.plotInWaveforms')}</span>
                     <ArrowRight size={13} />
@@ -351,23 +362,36 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               <div className="diag-win-summary-grid">
                 <div className="diag-win-summary-item">
                   <span className="diag-win-summary-label">{t('diagnostics.analysisLabel')}</span>
-                  <span className="diag-win-summary-val">.{simResult.analysisType.toUpperCase()} ({analysisCommand})</span>
+                  <span className="diag-win-summary-val">
+                    .{simResult.analysisType.toUpperCase()} ({analysisCommand})
+                  </span>
                 </div>
                 <div className="diag-win-summary-item">
-                  <span className="diag-win-summary-label">{t('diagnostics.executionTimeLabel')}</span>
+                  <span className="diag-win-summary-label">
+                    {t('diagnostics.executionTimeLabel')}
+                  </span>
                   <span className="diag-win-summary-val">{simResult.elapsedMs} ms</span>
                 </div>
                 <div className="diag-win-summary-item">
-                  <span className="diag-win-summary-label">{t('diagnostics.resultsCapturedLabel')}</span>
+                  <span className="diag-win-summary-label">
+                    {t('diagnostics.resultsCapturedLabel')}
+                  </span>
                   <span className="diag-win-summary-val">
                     {simResult.pointCount > 0
-                      ? t('diagnostics.dataPointsCaptured', { points: simResult.pointCount, vectors: simResult.variables.length })
+                      ? t('diagnostics.dataPointsCaptured', {
+                          points: simResult.pointCount,
+                          vectors: simResult.variables.length
+                        })
                       : t('diagnostics.opPointEvaluated', { count: simResult.variables.length })}
                   </span>
                 </div>
                 <div className="diag-win-summary-item">
-                  <span className="diag-win-summary-label">{t('diagnostics.solverEngineLabel')}</span>
-                  <span className="diag-win-summary-val">{simResult.engineVersion || engineStatus?.version || "ngspice-44.2"}</span>
+                  <span className="diag-win-summary-label">
+                    {t('diagnostics.solverEngineLabel')}
+                  </span>
+                  <span className="diag-win-summary-val">
+                    {simResult.engineVersion || engineStatus?.version || 'ngspice-44.2'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -376,7 +400,10 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
           {isSimFailed && (
             <div className="diag-win-summary-box error">
               <div className="diag-win-summary-header">
-                <span className="diag-win-summary-title" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <span
+                  className="diag-win-summary-title"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
                   <AlertCircle size={15} color="#ef4444" />
                   <span>{t('diagnostics.simFailed')}</span>
                 </span>
@@ -394,9 +421,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                   {t('diagnostics.simBlockedTitle', { count: validationErrors.length })}
                 </span>
               </div>
-              <div className="diag-win-summary-msg">
-                {t('diagnostics.simBlockedMsg')}
-              </div>
+              <div className="diag-win-summary-msg">{t('diagnostics.simBlockedMsg')}</div>
             </div>
           )}
 
@@ -405,7 +430,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               =================================================== */}
           <div className="diag-win-listview" role="list">
             {/* Validation Errors */}
-            {(filterTab === "all" || filterTab === "errors") &&
+            {(filterTab === 'all' || filterTab === 'errors') &&
               validationErrors.map((err, idx) => (
                 <div key={`err-${idx}`} className="diag-win-row error" role="listitem">
                   <span className="diag-win-tag error">{t('diagnostics.tagError')}</span>
@@ -414,13 +439,28 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                     <div className="diag-win-row-msg">{getTranslatedErrorMessage(err, t)}</div>
                     {(err.componentLabel || err.componentId || err.netName) && (
                       <div className="diag-win-row-meta">
-                        {err.componentLabel && <span>{t('diagnostics.metaComponent')} <strong>{err.componentLabel}</strong></span>}
-                        {err.pinName && <span>{t('diagnostics.metaPin')} <strong>{err.pinName}</strong></span>}
-                        {err.netName && <span>{t('diagnostics.metaNet')} <strong>{err.netName}</strong></span>}
+                        {err.componentLabel && (
+                          <span>
+                            {t('diagnostics.metaComponent')} <strong>{err.componentLabel}</strong>
+                          </span>
+                        )}
+                        {err.pinName && (
+                          <span>
+                            {t('diagnostics.metaPin')} <strong>{err.pinName}</strong>
+                          </span>
+                        )}
+                        {err.netName && (
+                          <span>
+                            {t('diagnostics.metaNet')} <strong>{err.netName}</strong>
+                          </span>
+                        )}
                       </div>
                     )}
                     {err.suggestion && (
-                      <div className="diag-win-row-suggestion" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <div
+                        className="diag-win-row-suggestion"
+                        style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+                      >
                         <Lightbulb size={13} color="#f59e0b" style={{ flexShrink: 0 }} />
                         <span>{getTranslatedErrorSuggestion(err, t)}</span>
                       </div>
@@ -440,7 +480,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               ))}
 
             {/* Non-Blocking Validation Warnings */}
-            {(filterTab === "all" || filterTab === "warnings") &&
+            {(filterTab === 'all' || filterTab === 'warnings') &&
               validationWarnings.map((warn, idx) => (
                 <div key={`warn-${idx}`} className="diag-win-row warning" role="listitem">
                   <span className="diag-win-tag warning">{t('diagnostics.tagWarning')}</span>
@@ -449,13 +489,28 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                     <div className="diag-win-row-msg">{getTranslatedErrorMessage(warn, t)}</div>
                     {(warn.componentLabel || warn.componentId || warn.netName) && (
                       <div className="diag-win-row-meta">
-                        {warn.componentLabel && <span>{t('diagnostics.metaComponent')} <strong>{warn.componentLabel}</strong></span>}
-                        {warn.pinName && <span>{t('diagnostics.metaPin')} <strong>{warn.pinName}</strong></span>}
-                        {warn.netName && <span>{t('diagnostics.metaNet')} <strong>{warn.netName}</strong></span>}
+                        {warn.componentLabel && (
+                          <span>
+                            {t('diagnostics.metaComponent')} <strong>{warn.componentLabel}</strong>
+                          </span>
+                        )}
+                        {warn.pinName && (
+                          <span>
+                            {t('diagnostics.metaPin')} <strong>{warn.pinName}</strong>
+                          </span>
+                        )}
+                        {warn.netName && (
+                          <span>
+                            {t('diagnostics.metaNet')} <strong>{warn.netName}</strong>
+                          </span>
+                        )}
                       </div>
                     )}
                     {warn.suggestion && (
-                      <div className="diag-win-row-suggestion" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <div
+                        className="diag-win-row-suggestion"
+                        style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+                      >
                         <Lightbulb size={13} color="#f59e0b" style={{ flexShrink: 0 }} />
                         <span>{getTranslatedErrorSuggestion(warn, t)}</span>
                       </div>
@@ -475,7 +530,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
               ))}
 
             {/* Run Info & Circuit Statistics */}
-            {(filterTab === "all" || filterTab === "info") && (
+            {(filterTab === 'all' || filterTab === 'info') && (
               <div className="diag-win-row info" role="listitem">
                 <span className="diag-win-tag info">{t('diagnostics.tagInfo')}</span>
                 <span className="diag-win-code">CIRCUIT_STATS</span>
@@ -484,12 +539,12 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                     {t('diagnostics.activeTopologyMsg', {
                       components: stats?.componentCount ?? 0,
                       nets: stats?.netCount ?? 0,
-                      wires: stats?.wireCount ?? 0,
+                      wires: stats?.wireCount ?? 0
                     })}
                   </div>
                   <div className="diag-win-row-meta">
                     <span>
-                      {t('diagnostics.groundConnectedLabel')}{" "}
+                      {t('diagnostics.groundConnectedLabel')}{' '}
                       <strong>
                         {stats?.groundConnected
                           ? t('diagnostics.groundConnectedYes')
@@ -497,7 +552,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                       </strong>
                     </span>
                     <span>
-                      {t('diagnostics.engineStatusLabel')}{" "}
+                      {t('diagnostics.engineStatusLabel')}{' '}
                       <strong>
                         {engineStatus?.available
                           ? t('diagnostics.engineOnline')
@@ -506,7 +561,7 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
                     </span>
                     {engineStatus?.executablePath && (
                       <span title={engineStatus.executablePath}>
-                        {t('diagnostics.metaBinary')}{" "}
+                        {t('diagnostics.metaBinary')}{' '}
                         <strong>{engineStatus.executablePath.split(/[/\\]/).pop()}</strong>
                       </span>
                     )}
@@ -516,15 +571,21 @@ export const DiagnosticsPanel: React.FC<DiagnosticsPanelProps> = ({
             )}
 
             {/* Empty state when no issues found */}
-            {filterTab === "errors" && validationErrors.length === 0 && !isSimFailed && (
-              <div className="diag-win-empty-hint" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            {filterTab === 'errors' && validationErrors.length === 0 && !isSimFailed && (
+              <div
+                className="diag-win-empty-hint"
+                style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+              >
                 <CheckCircle2 size={13} color="#10b981" />
                 <span>{t('diagnostics.zeroErrors')}</span>
               </div>
             )}
 
-            {filterTab === "warnings" && validationWarnings.length === 0 && (
-              <div className="diag-win-empty-hint" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            {filterTab === 'warnings' && validationWarnings.length === 0 && (
+              <div
+                className="diag-win-empty-hint"
+                style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+              >
                 <CheckCircle2 size={13} color="#10b981" />
                 <span>{t('diagnostics.zeroWarnings')}</span>
               </div>

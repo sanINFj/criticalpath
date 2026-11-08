@@ -33,7 +33,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી' }
 ] as const
 
-export type SupportedLanguageCode = typeof SUPPORTED_LANGUAGES[number]['code']
+export type SupportedLanguageCode = (typeof SUPPORTED_LANGUAGES)[number]['code']
 
 export const resources = {
   en: { common: enCommon, waveform: enWaveform },

@@ -1,69 +1,109 @@
-import { Fragment } from "react"
-import {
-  Handle,
-  Position,
-  type NodeProps,
-} from "reactflow"
+/* eslint-disable react-refresh/only-export-components */
+import React, { Fragment } from 'react'
+import { Handle, Position, type NodeProps } from 'reactflow'
 
 export type SchematicComponentType =
   // Passives
-  | "resistor"
-  | "capacitor"
-  | "inductor"
-  | "potentiometer"
-  | "transformer"
-  | "coupled-inductor"
-  | "transmission-line"
+  | 'resistor'
+  | 'capacitor'
+  | 'inductor'
+  | 'potentiometer'
+  | 'transformer'
+  | 'coupled-inductor'
+  | 'transmission-line'
   // Sources
-  | "voltage-source"
-  | "current-source"
-  | "ac-source"
-  | "pulse-source"
-  | "vcvs"
-  | "vccs"
-  | "cccs"
-  | "ccvs"
-  | "behavioral-source"
+  | 'voltage-source'
+  | 'current-source'
+  | 'ac-source'
+  | 'pulse-source'
+  | 'vcvs'
+  | 'vccs'
+  | 'cccs'
+  | 'ccvs'
+  | 'behavioral-source'
   // Diodes
-  | "diode"
-  | "zener-diode"
-  | "schottky-diode"
-  | "led"
+  | 'diode'
+  | 'zener-diode'
+  | 'schottky-diode'
+  | 'led'
   // Transistors
-  | "npn-bjt"
-  | "pnp-bjt"
-  | "nmos"
-  | "pmos"
-  | "jfet-n"
-  | "jfet-p"
+  | 'npn-bjt'
+  | 'pnp-bjt'
+  | 'nmos'
+  | 'pmos'
+  | 'jfet-n'
+  | 'jfet-p'
   // Analog & Power
-  | "opamp"
-  | "comparator"
-  | "timer-555"
-  | "voltage-regulator"
-  | "switch"
+  | 'opamp'
+  | 'comparator'
+  | 'timer-555'
+  | 'voltage-regulator'
+  | 'switch'
   // Logic & Digital
-  | "gate-and"
-  | "gate-or"
-  | "gate-not"
-  | "gate-nand"
-  | "gate-nor"
-  | "gate-xor"
-  | "gate-xnor"
-  | "flipflop-d"
-  | "flipflop-jk"
-  | "mux-2to1"
-  | "counter-4bit"
+  | 'gate-and'
+  | 'gate-or'
+  | 'gate-not'
+  | 'gate-nand'
+  | 'gate-nor'
+  | 'gate-xor'
+  | 'gate-xnor'
+  | 'flipflop-d'
+  | 'flipflop-jk'
+  | 'mux-2to1'
+  | 'counter-4bit'
   // Power & Rail
-  | "ground"
-  | "vcc"
-  | "generic"
-  | "net-label"
-  | "port-in"
-  | "port-out"
-  | "port-bi"
-  | "spice-directive"
-  | "schematic-text"
+  | 'ground'
+  | 'vcc'
+  | 'generic'
+  | 'net-label'
+  | 'port-in'
+  | 'port-out'
+  | 'port-bi'
+  | 'spice-directive'
+  | 'schematic-text'
+
+export interface DeviceElectricalProperties {
+  // MOSFETs
+  w?: string
+  l?: string
+  m?: string
+  ad?: string
+  as?: string
+  pd?: string
+  ps?: string
+  bulk?: string
+  bulkNet?: string
+  // Passives
+  tol?: string
+  tc1?: string
+  tc2?: string
+  temp?: string
+  ic?: string
+  rser?: string
+  // Diodes & BJTs
+  area?: string
+  off?: boolean
+  model?: string
+  // Generic / Custom
+  [key: string]: unknown
+}
+
+export function isDigitalLogicComponent(type?: SchematicComponentType | string): boolean {
+  if (!type) return false
+  return (
+    type === 'gate-and' ||
+    type === 'gate-or' ||
+    type === 'gate-not' ||
+    type === 'gate-nand' ||
+    type === 'gate-nor' ||
+    type === 'gate-xor' ||
+    type === 'gate-xnor' ||
+    type === 'flipflop-d' ||
+    type === 'flipflop-jk' ||
+    type === 'mux-2to1' ||
+    type === 'counter-4bit'
+  )
+}
 
 export interface SchematicNodeData {
   label: string
@@ -71,10 +111,21 @@ export interface SchematicNodeData {
   value?: string
   rotation?: number
   highlightedPins?: string[]
-  ercIssues?: Record<string, { severity: "error" | "warning"; message: string; code: string; suggestion?: string }>
-  onErcClick?: (issue: { severity: "error" | "warning"; message: string; code: string; suggestion?: string }) => void
-  portType?: "none" | "input" | "output" | "bidirectional"
-  directiveType?: "spice" | "comment"
+  pinHighlightColors?: Record<string, string>
+  highlightColor?: string
+  ercIssues?: Record<
+    string,
+    { severity: 'error' | 'warning'; message: string; code: string; suggestion?: string }
+  >
+  onErcClick?: (issue: {
+    severity: 'error' | 'warning'
+    message: string
+    code: string
+    suggestion?: string
+  }) => void
+  portType?: 'none' | 'input' | 'output' | 'bidirectional'
+  directiveType?: 'spice' | 'comment'
+  properties?: DeviceElectricalProperties
 }
 
 export interface PinDef {
@@ -86,7 +137,7 @@ export interface PinDef {
 
 export function getRotatedPinPos(
   pin: { x: number; y: number },
-  rotation: number = 0,
+  rotation: number = 0
 ): { x: number; y: number; handlePos: Position } {
   const normRot = ((rotation % 360) + 360) % 360
   let rx = pin.x
@@ -123,277 +174,284 @@ export function getRotatedPinPos(
  */
 export function getLabelLayout(
   type: SchematicComponentType,
-  rotation: number = 0,
+  rotation: number = 0
 ): { containerStyle: React.CSSProperties } {
   const normRot = ((rotation % 360) + 360) % 360
 
   // Vertical orientation (90° or 270°)
   if (normRot === 90 || normRot === 270) {
     // If potentiometer at 90°, wiper pin is on the right (x=100, y=40), so place labels on the left
-    if (type === "potentiometer" && normRot === 90) {
+    if (type === 'potentiometer' && normRot === 90) {
       return {
         containerStyle: {
-          position: "absolute",
-          top: "50%",
-          right: "calc(50% + 22px)",
-          transform: "translateY(-50%)",
-          whiteSpace: "nowrap",
-          textAlign: "right",
-          pointerEvents: "none",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: 1,
-        },
+          position: 'absolute',
+          top: '50%',
+          right: 'calc(50% + 22px)',
+          transform: 'translateY(-50%)',
+          whiteSpace: 'nowrap',
+          textAlign: 'right',
+          pointerEvents: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: 1
+        }
       }
     }
 
     // Default vertical: Place to the right of the vertical component body, centered vertically
     return {
       containerStyle: {
-        position: "absolute",
-        top: "50%",
-        left: "calc(50% + 22px)",
-        transform: "translateY(-50%)",
-        whiteSpace: "nowrap",
-        textAlign: "left",
-        pointerEvents: "none",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: 1,
-      },
+        position: 'absolute',
+        top: '50%',
+        left: 'calc(50% + 22px)',
+        transform: 'translateY(-50%)',
+        whiteSpace: 'nowrap',
+        textAlign: 'left',
+        pointerEvents: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 1
+      }
     }
   }
 
   // Upside-down horizontal orientation (180°)
   if (normRot === 180) {
     // If potentiometer at 180°, wiper pin is at bottom (x=60, y=80), so place labels on top
-    if (type === "potentiometer") {
+    if (type === 'potentiometer') {
       return {
         containerStyle: {
-          position: "absolute",
+          position: 'absolute',
           top: -18,
-          left: "50%",
-          transform: "translateX(-50%)",
-          whiteSpace: "nowrap",
-          textAlign: "center",
-          pointerEvents: "none",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 1,
-        },
+          left: '50%',
+          transform: 'translateX(-50%)',
+          whiteSpace: 'nowrap',
+          textAlign: 'center',
+          pointerEvents: 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 1
+        }
       }
     }
     return {
       containerStyle: {
-        position: "absolute",
+        position: 'absolute',
         bottom: -18,
-        left: "50%",
-        transform: "translateX(-50%)",
-        whiteSpace: "nowrap",
-        textAlign: "center",
-        pointerEvents: "none",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 1,
-      },
+        left: '50%',
+        transform: 'translateX(-50%)',
+        whiteSpace: 'nowrap',
+        textAlign: 'center',
+        pointerEvents: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 1
+      }
     }
   }
 
   // Normal horizontal orientation (0°)
-  if (type === "vcc") {
+  if (type === 'vcc') {
     // VCC has terminal pin at bottom (60, 80), so place label above
     return {
       containerStyle: {
-        position: "absolute",
+        position: 'absolute',
         top: -18,
-        left: "50%",
-        transform: "translateX(-50%)",
-        whiteSpace: "nowrap",
-        textAlign: "center",
-        pointerEvents: "none",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 1,
-      },
+        left: '50%',
+        transform: 'translateX(-50%)',
+        whiteSpace: 'nowrap',
+        textAlign: 'center',
+        pointerEvents: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 1
+      }
     }
   }
 
   return {
     containerStyle: {
-      position: "absolute",
+      position: 'absolute',
       bottom: -18,
-      left: "50%",
-      transform: "translateX(-50%)",
-      whiteSpace: "nowrap",
-      textAlign: "center",
-      pointerEvents: "none",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 1,
-    },
+      left: '50%',
+      transform: 'translateX(-50%)',
+      whiteSpace: 'nowrap',
+      textAlign: 'center',
+      pointerEvents: 'none',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 1
+    }
   }
 }
 
 export function getComponentPins(type: SchematicComponentType): PinDef[] {
   switch (type) {
-    case "ground":
-      return [{ id: "pin1", name: "GND", x: 60, y: 0 }]
-    case "vcc":
-      return [{ id: "pin1", name: "VCC", x: 60, y: 80 }]
-    case "net-label":
-      return [{ id: "pin1", name: "NET", x: 0, y: 40 }]
-    case "port-in":
-      return [{ id: "pin1", name: "IN", x: 120, y: 40 }]
-    case "port-out":
-      return [{ id: "pin1", name: "OUT", x: 0, y: 40 }]
-    case "port-bi":
-      return [{ id: "pin1", name: "IO", x: 0, y: 40 }]
-    case "spice-directive":
-    case "schematic-text":
+    case 'ground':
+      return [{ id: 'pin1', name: 'GND', x: 60, y: 0 }]
+    case 'vcc':
+      return [{ id: 'pin1', name: 'VCC', x: 60, y: 80 }]
+    case 'net-label':
+      return [{ id: 'pin1', name: 'NET', x: 0, y: 40 }]
+    case 'port-in':
+      return [{ id: 'pin1', name: 'IN', x: 120, y: 40 }]
+    case 'port-out':
+      return [{ id: 'pin1', name: 'OUT', x: 0, y: 40 }]
+    case 'port-bi':
+      return [{ id: 'pin1', name: 'IO', x: 0, y: 40 }]
+    case 'spice-directive':
+    case 'schematic-text':
       return []
 
-    case "potentiometer":
+    case 'potentiometer':
       return [
-        { id: "pin1", name: "1", x: 0, y: 40 },
-        { id: "pin2", name: "2", x: 120, y: 40 },
-        { id: "wiper", name: "W", x: 60, y: 0 },
+        { id: 'pin1', name: '1', x: 0, y: 40 },
+        { id: 'pin2', name: '2', x: 120, y: 40 },
+        { id: 'wiper', name: 'W', x: 60, y: 0 }
       ]
 
-    case "npn-bjt":
-    case "pnp-bjt":
+    case 'npn-bjt':
+    case 'pnp-bjt':
       return [
-        { id: "base", name: "B", x: 0, y: 40 },
-        { id: "collector", name: "C", x: 120, y: 20 },
-        { id: "emitter", name: "E", x: 120, y: 60 },
+        { id: 'base', name: 'B', x: 0, y: 40 },
+        { id: 'collector', name: 'C', x: 120, y: 20 },
+        { id: 'emitter', name: 'E', x: 120, y: 60 }
       ]
 
-    case "nmos":
-    case "pmos":
-    case "jfet-n":
-    case "jfet-p":
+    case 'nmos':
+    case 'pmos':
       return [
-        { id: "gate", name: "G", x: 0, y: 40 },
-        { id: "drain", name: "D", x: 120, y: 20 },
-        { id: "source", name: "S", x: 120, y: 60 },
+        { id: 'gate', name: 'G', x: 0, y: 40 },
+        { id: 'drain', name: 'D', x: 120, y: 20 },
+        { id: 'bulk', name: 'B', x: 120, y: 40 },
+        { id: 'source', name: 'S', x: 120, y: 60 }
       ]
 
-    case "voltage-regulator":
+    case 'jfet-n':
+    case 'jfet-p':
       return [
-        { id: "in", name: "IN", x: 0, y: 40 },
-        { id: "out", name: "OUT", x: 120, y: 40 },
-        { id: "gnd", name: "GND", x: 60, y: 80 },
+        { id: 'gate', name: 'G', x: 0, y: 40 },
+        { id: 'drain', name: 'D', x: 120, y: 20 },
+        { id: 'source', name: 'S', x: 120, y: 60 }
       ]
 
-    case "opamp":
-    case "comparator":
+    case 'voltage-regulator':
       return [
-        { id: "in_inv", name: "IN-", x: 0, y: 20 },
-        { id: "in_non", name: "IN+", x: 0, y: 60 },
-        { id: "out", name: "OUT", x: 120, y: 40 },
+        { id: 'in', name: 'IN', x: 0, y: 40 },
+        { id: 'out', name: 'OUT', x: 120, y: 40 },
+        { id: 'gnd', name: 'GND', x: 60, y: 80 }
       ]
 
-    case "gate-not":
+    case 'opamp':
+    case 'comparator':
       return [
-        { id: "in", name: "IN", x: 0, y: 40 },
-        { id: "out", name: "OUT", x: 120, y: 40 },
+        { id: 'in_inv', name: 'IN-', x: 0, y: 20 },
+        { id: 'in_non', name: 'IN+', x: 0, y: 60 },
+        { id: 'out', name: 'OUT', x: 120, y: 40 }
       ]
 
-    case "gate-and":
-    case "gate-or":
-    case "gate-nand":
-    case "gate-nor":
-    case "gate-xor":
-    case "gate-xnor":
+    case 'gate-not':
       return [
-        { id: "in1", name: "A", x: 0, y: 20 },
-        { id: "in2", name: "B", x: 0, y: 60 },
-        { id: "out", name: "Y", x: 120, y: 40 },
+        { id: 'in', name: 'IN', x: 0, y: 40 },
+        { id: 'out', name: 'OUT', x: 120, y: 40 }
       ]
 
-    case "transformer":
-    case "coupled-inductor":
+    case 'gate-and':
+    case 'gate-or':
+    case 'gate-nand':
+    case 'gate-nor':
+    case 'gate-xor':
+    case 'gate-xnor':
       return [
-        { id: "p1", name: "P1", x: 0, y: 20 },
-        { id: "p2", name: "P2", x: 0, y: 60 },
-        { id: "s1", name: "S1", x: 120, y: 20 },
-        { id: "s2", name: "S2", x: 120, y: 60 },
+        { id: 'in1', name: 'A', x: 0, y: 20 },
+        { id: 'in2', name: 'B', x: 0, y: 60 },
+        { id: 'out', name: 'Y', x: 120, y: 40 }
       ]
 
-    case "transmission-line":
+    case 'transformer':
+    case 'coupled-inductor':
       return [
-        { id: "in_pos", name: "IN+", x: 0, y: 20 },
-        { id: "in_neg", name: "IN-", x: 0, y: 60 },
-        { id: "out_pos", name: "OUT+", x: 120, y: 20 },
-        { id: "out_neg", name: "OUT-", x: 120, y: 60 },
+        { id: 'p1', name: 'P1', x: 0, y: 20 },
+        { id: 'p2', name: 'P2', x: 0, y: 60 },
+        { id: 's1', name: 'S1', x: 120, y: 20 },
+        { id: 's2', name: 'S2', x: 120, y: 60 }
       ]
 
-    case "vcvs":
-    case "vccs":
-    case "cccs":
-    case "ccvs":
+    case 'transmission-line':
       return [
-        { id: "ctrl_pos", name: "IN+", x: 0, y: 20 },
-        { id: "ctrl_neg", name: "IN-", x: 0, y: 60 },
-        { id: "out_pos", name: "OUT+", x: 120, y: 20 },
-        { id: "out_neg", name: "OUT-", x: 120, y: 60 },
+        { id: 'in_pos', name: 'IN+', x: 0, y: 20 },
+        { id: 'in_neg', name: 'IN-', x: 0, y: 60 },
+        { id: 'out_pos', name: 'OUT+', x: 120, y: 20 },
+        { id: 'out_neg', name: 'OUT-', x: 120, y: 60 }
       ]
 
-    case "flipflop-d":
+    case 'vcvs':
+    case 'vccs':
+    case 'cccs':
+    case 'ccvs':
       return [
-        { id: "d", name: "D", x: 0, y: 20 },
-        { id: "clk", name: "CLK", x: 0, y: 60 },
-        { id: "q", name: "Q", x: 120, y: 20 },
-        { id: "q_bar", name: "QN", x: 120, y: 60 },
+        { id: 'ctrl_pos', name: 'IN+', x: 0, y: 20 },
+        { id: 'ctrl_neg', name: 'IN-', x: 0, y: 60 },
+        { id: 'out_pos', name: 'OUT+', x: 120, y: 20 },
+        { id: 'out_neg', name: 'OUT-', x: 120, y: 60 }
       ]
 
-    case "flipflop-jk":
+    case 'flipflop-d':
       return [
-        { id: "j", name: "J", x: 0, y: 20 },
-        { id: "clk", name: "CLK", x: 0, y: 40 },
-        { id: "k", name: "K", x: 0, y: 60 },
-        { id: "q", name: "Q", x: 120, y: 20 },
-        { id: "q_bar", name: "QN", x: 120, y: 60 },
+        { id: 'd', name: 'D', x: 0, y: 20 },
+        { id: 'clk', name: 'CLK', x: 0, y: 60 },
+        { id: 'q', name: 'Q', x: 120, y: 20 },
+        { id: 'q_bar', name: 'QN', x: 120, y: 60 }
       ]
 
-    case "mux-2to1":
+    case 'flipflop-jk':
       return [
-        { id: "in0", name: "I0", x: 0, y: 20 },
-        { id: "in1", name: "I1", x: 0, y: 60 },
-        { id: "sel", name: "S", x: 60, y: 80 },
-        { id: "out", name: "Y", x: 120, y: 40 },
+        { id: 'j', name: 'J', x: 0, y: 20 },
+        { id: 'clk', name: 'CLK', x: 0, y: 40 },
+        { id: 'k', name: 'K', x: 0, y: 60 },
+        { id: 'q', name: 'Q', x: 120, y: 20 },
+        { id: 'q_bar', name: 'QN', x: 120, y: 60 }
       ]
 
-    case "counter-4bit":
+    case 'mux-2to1':
       return [
-        { id: "clk", name: "CLK", x: 0, y: 20 },
-        { id: "rst", name: "RST", x: 0, y: 60 },
-        { id: "q0", name: "Q0", x: 120, y: 10 },
-        { id: "q1", name: "Q1", x: 120, y: 30 },
-        { id: "q2", name: "Q2", x: 120, y: 50 },
-        { id: "q3", name: "Q3", x: 120, y: 70 },
+        { id: 'in0', name: 'I0', x: 0, y: 20 },
+        { id: 'in1', name: 'I1', x: 0, y: 60 },
+        { id: 'sel', name: 'S', x: 60, y: 80 },
+        { id: 'out', name: 'Y', x: 120, y: 40 }
       ]
 
-    case "timer-555":
+    case 'counter-4bit':
       return [
-        { id: "trig", name: "TRG", x: 0, y: 20 },
-        { id: "rst", name: "RST", x: 0, y: 40 },
-        { id: "ctrl", name: "CTL", x: 0, y: 60 },
-        { id: "out", name: "OUT", x: 120, y: 20 },
-        { id: "disch", name: "DIS", x: 120, y: 60 },
-        { id: "vcc", name: "VCC", x: 60, y: 0 },
-        { id: "gnd", name: "GND", x: 60, y: 80 },
+        { id: 'clk', name: 'CLK', x: 0, y: 20 },
+        { id: 'rst', name: 'RST', x: 0, y: 60 },
+        { id: 'q0', name: 'Q0', x: 120, y: 10 },
+        { id: 'q1', name: 'Q1', x: 120, y: 30 },
+        { id: 'q2', name: 'Q2', x: 120, y: 50 },
+        { id: 'q3', name: 'Q3', x: 120, y: 70 }
+      ]
+
+    case 'timer-555':
+      return [
+        { id: 'trig', name: 'TRG', x: 0, y: 20 },
+        { id: 'rst', name: 'RST', x: 0, y: 40 },
+        { id: 'ctrl', name: 'CTL', x: 0, y: 60 },
+        { id: 'out', name: 'OUT', x: 120, y: 20 },
+        { id: 'disch', name: 'DIS', x: 120, y: 60 },
+        { id: 'vcc', name: 'VCC', x: 60, y: 0 },
+        { id: 'gnd', name: 'GND', x: 60, y: 80 }
       ]
 
     default:
       return [
-        { id: "pin1", name: "1", x: 0, y: 40 },
-        { id: "pin2", name: "2", x: 120, y: 40 },
+        { id: 'pin1', name: '1', x: 0, y: 40 },
+        { id: 'pin2', name: '2', x: 120, y: 40 }
       ]
   }
 }
@@ -403,10 +461,18 @@ export function getComponentPins(type: SchematicComponentType): PinDef[] {
    All symbols: width 120, height 80, 20px grid pitch aligned.
    ============================================================ */
 
-function ResistorSymbol() {
+function ResistorSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="30" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="30"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
       <polyline
         points="30,40 35,26 45,54 55,26 65,54 75,26 85,54 90,40"
         fill="none"
@@ -414,26 +480,74 @@ function ResistorSymbol() {
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
-      <line x1="90" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <line
+        x1="90"
+        y1="40"
+        x2="120"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
-function CapacitorSymbol() {
+function CapacitorSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="54" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="54" y1="24" x2="54" y2="56" stroke="#1f2937" strokeWidth="2.4" strokeLinecap="round" />
-      <line x1="66" y1="24" x2="66" y2="56" stroke="#1f2937" strokeWidth="2.4" strokeLinecap="round" />
-      <line x1="66" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="54"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <line
+        x1="54"
+        y1="24"
+        x2="54"
+        y2="56"
+        stroke="#1f2937"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="66"
+        y1="24"
+        x2="66"
+        y2="56"
+        stroke="#1f2937"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      <line
+        x1="66"
+        y1="40"
+        x2="120"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
-function InductorSymbol() {
+function InductorSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="30" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="30"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
       <path
         d="M30,40 C30,22 45,22 45,40 C45,22 60,22 60,40 C60,22 75,22 75,40 C75,22 90,22 90,40"
         fill="none"
@@ -441,15 +555,31 @@ function InductorSymbol() {
         strokeWidth="1.8"
         strokeLinecap="round"
       />
-      <line x1="90" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <line
+        x1="90"
+        y1="40"
+        x2="120"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
-function PotentiometerSymbol() {
+function PotentiometerSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="30" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="30"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
       <polyline
         points="30,40 35,28 45,52 55,28 65,52 75,28 85,52 90,40"
         fill="none"
@@ -457,7 +587,15 @@ function PotentiometerSymbol() {
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
-      <line x1="90" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <line
+        x1="90"
+        y1="40"
+        x2="120"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
       {/* Wiper arrow from top lead */}
       <line x1="60" y1="0" x2="60" y2="28" stroke="#1f2937" strokeWidth="1.8" />
       <polygon points="60,34 56,26 64,26" fill="#1f2937" />
@@ -465,9 +603,9 @@ function PotentiometerSymbol() {
   )
 }
 
-function TransformerSymbol() {
+function TransformerSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       {/* Primary Coil */}
       <line x1="0" y1="20" x2="42" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="42" y2="60" stroke="#1f2937" strokeWidth="1.8" />
@@ -478,8 +616,24 @@ function TransformerSymbol() {
         strokeWidth="2"
       />
       {/* Core Lines */}
-      <line x1="57" y1="14" x2="57" y2="66" stroke="#1f2937" strokeWidth="1.8" strokeDasharray="3 2" />
-      <line x1="63" y1="14" x2="63" y2="66" stroke="#1f2937" strokeWidth="1.8" strokeDasharray="3 2" />
+      <line
+        x1="57"
+        y1="14"
+        x2="57"
+        y2="66"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeDasharray="3 2"
+      />
+      <line
+        x1="63"
+        y1="14"
+        x2="63"
+        y2="66"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeDasharray="3 2"
+      />
       {/* Secondary Coil */}
       <path
         d="M78,20 C70,20 70,33 78,33 C70,33 70,47 78,47 C70,47 70,60 78,60"
@@ -493,9 +647,9 @@ function TransformerSymbol() {
   )
 }
 
-function CoupledInductorSymbol() {
+function CoupledInductorSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="42" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="42" y2="60" stroke="#1f2937" strokeWidth="1.8" />
       <path
@@ -514,28 +668,43 @@ function CoupledInductorSymbol() {
         strokeWidth="2"
       />
       <circle cx="84" cy="14" r="3" fill="#1f2937" />
-      <text x="60" y="44" fontSize="10" fontWeight="700" textAnchor="middle" fill="#1f2937">k</text>
+      <text x="60" y="44" fontSize="10" fontWeight="700" textAnchor="middle" fill="#1f2937">
+        k
+      </text>
     </svg>
   )
 }
 
-function TransmissionLineSymbol() {
+function TransmissionLineSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <rect x="36" y="14" width="48" height="52" rx="4" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="38" fontSize="10" fontWeight="700" textAnchor="middle" fill="#1f2937">T-LINE</text>
-      <text x="60" y="52" fontSize="9" fontWeight="600" textAnchor="middle" fill="#2563eb">Z₀</text>
+      <rect
+        x="36"
+        y="14"
+        width="48"
+        height="52"
+        rx="4"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+      />
+      <text x="60" y="38" fontSize="10" fontWeight="700" textAnchor="middle" fill="#1f2937">
+        T-LINE
+      </text>
+      <text x="60" y="52" fontSize="9" fontWeight="600" textAnchor="middle" fill="#2563eb">
+        Z₀
+      </text>
       <line x1="84" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="84" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function VoltageSourceSymbol() {
+function VoltageSourceSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="40" x2="38" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <circle cx="60" cy="40" r="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
@@ -546,152 +715,296 @@ function VoltageSourceSymbol() {
   )
 }
 
-function CurrentSourceSymbol() {
+function CurrentSourceSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="40" x2="38" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <circle cx="60" cy="40" r="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <line x1="50" y1="40" x2="70" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
-      <polyline points="65,35 70,40 65,45" fill="none" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <line
+        x1="50"
+        y1="40"
+        x2="70"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <polyline
+        points="65,35 70,40 65,45"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
 
-function ACSourceSymbol() {
+function ACSourceSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="40" x2="38" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <circle cx="60" cy="40" r="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <path d="M47,40 Q53,30 60,40 T73,40" fill="none" stroke="#1f2937" strokeWidth="2.2" strokeLinecap="round" />
+      <path
+        d="M47,40 Q53,30 60,40 T73,40"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
-function PulseSourceSymbol() {
+function PulseSourceSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="40" x2="38" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <circle cx="60" cy="40" r="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <path d="M48,46 L53,46 L53,34 L67,34 L67,46 L72,46" fill="none" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M48,46 L53,46 L53,34 L67,34 L67,46 L72,46"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
 
-function VCVSSymbol() {
+function VCVSSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="28" y="16" fontSize="10" fontWeight="700" fill="#1f2937">+</text>
-      <text x="28" y="72" fontSize="12" fontWeight="700" fill="#1f2937">−</text>
+      <text x="28" y="16" fontSize="10" fontWeight="700" fill="#1f2937">
+        +
+      </text>
+      <text x="28" y="72" fontSize="12" fontWeight="700" fill="#1f2937">
+        −
+      </text>
       {/* Diamond */}
-      <polygon points="60,18 82,40 60,62 38,40" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" strokeLinejoin="round" />
+      <polygon
+        points="60,18 82,40 60,62 38,40"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
       <line x1="56" y1="40" x2="64" y2="40" stroke="#1f2937" strokeWidth="1.5" />
       <line x1="60" y1="36" x2="60" y2="44" stroke="#1f2937" strokeWidth="1.5" />
       <line x1="82" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="74" fontSize="9" fontWeight="700" textAnchor="middle" fill="#2563eb">E (VCVS)</text>
+      <text x="60" y="74" fontSize="9" fontWeight="700" textAnchor="middle" fill="#2563eb">
+        E (VCVS)
+      </text>
     </svg>
   )
 }
 
-function VCCSSymbol() {
+function VCCSSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <polygon points="60,18 82,40 60,62 38,40" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" strokeLinejoin="round" />
+      <polygon
+        points="60,18 82,40 60,62 38,40"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
       <line x1="52" y1="40" x2="68" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <polyline points="64,36 68,40 64,44" fill="none" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="74" fontSize="9" fontWeight="700" textAnchor="middle" fill="#2563eb">G (VCCS)</text>
+      <text x="60" y="74" fontSize="9" fontWeight="700" textAnchor="middle" fill="#2563eb">
+        G (VCCS)
+      </text>
     </svg>
   )
 }
 
-function CCCSSymbol() {
+function CCCSSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <polygon points="60,18 82,40 60,62 38,40" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" strokeLinejoin="round" />
+      <polygon
+        points="60,18 82,40 60,62 38,40"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
       <line x1="52" y1="40" x2="68" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <polyline points="64,36 68,40 64,44" fill="none" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="74" fontSize="9" fontWeight="700" textAnchor="middle" fill="#2563eb">F (CCCS)</text>
+      <text x="60" y="74" fontSize="9" fontWeight="700" textAnchor="middle" fill="#2563eb">
+        F (CCCS)
+      </text>
     </svg>
   )
 }
 
-function CCVSSymbol() {
+function CCVSSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <polygon points="60,18 82,40 60,62 38,40" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" strokeLinejoin="round" />
+      <polygon
+        points="60,18 82,40 60,62 38,40"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
       <line x1="56" y1="40" x2="64" y2="40" stroke="#1f2937" strokeWidth="1.5" />
       <line x1="60" y1="36" x2="60" y2="44" stroke="#1f2937" strokeWidth="1.5" />
       <line x1="82" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="74" fontSize="9" fontWeight="700" textAnchor="middle" fill="#2563eb">H (CCVS)</text>
+      <text x="60" y="74" fontSize="9" fontWeight="700" textAnchor="middle" fill="#2563eb">
+        H (CCVS)
+      </text>
     </svg>
   )
 }
 
-function BehavioralSourceSymbol() {
+function BehavioralSourceSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="40" x2="38" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <circle cx="60" cy="40" r="22" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="82" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="44" fontSize="12" fontWeight="700" textAnchor="middle" fill="#1f2937" fontFamily="monospace">B</text>
+      <text
+        x="60"
+        y="44"
+        fontSize="12"
+        fontWeight="700"
+        textAnchor="middle"
+        fill="#1f2937"
+        fontFamily="monospace"
+      >
+        B
+      </text>
     </svg>
   )
 }
 
-function DiodeSymbol() {
+function DiodeSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="50" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="50"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
       <polygon points="50,26 50,54 70,40" fill="#1f2937" stroke="#1f2937" strokeWidth="1" />
-      <line x1="70" y1="26" x2="70" y2="54" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" />
-      <line x1="70" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <line
+        x1="70"
+        y1="26"
+        x2="70"
+        y2="54"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="70"
+        y1="40"
+        x2="120"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
-function ZenerDiodeSymbol() {
+function ZenerDiodeSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="50" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="50"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
       <polygon points="50,26 50,54 70,40" fill="#1f2937" stroke="#1f2937" strokeWidth="1" />
       {/* Zener bent cathode */}
-      <polyline points="66,24 70,26 70,54 74,56" fill="none" stroke="#1f2937" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="70" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <polyline
+        points="66,24 70,26 70,54 74,56"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <line
+        x1="70"
+        y1="40"
+        x2="120"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
-function SchottkyDiodeSymbol() {
+function SchottkyDiodeSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="50" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="50"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
       <polygon points="50,26 50,54 70,40" fill="#1f2937" stroke="#1f2937" strokeWidth="1" />
       {/* Schottky S-hook cathode */}
-      <polyline points="66,28 66,24 70,24 70,56 74,56 74,52" fill="none" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      <line x1="70" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <polyline
+        points="66,28 66,24 70,24 70,56 74,56 74,52"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <line
+        x1="70"
+        y1="40"
+        x2="120"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
-function LEDSymbol() {
+function LEDSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="40" x2="50" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <polygon points="50,26 50,54 70,40" fill="#1f2937" stroke="#1f2937" strokeWidth="1" />
       <line x1="70" y1="26" x2="70" y2="54" stroke="#1f2937" strokeWidth="2" />
@@ -705,13 +1018,30 @@ function LEDSymbol() {
   )
 }
 
-function NPNTransistorSymbol() {
+function NPNTransistorSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <circle cx="60" cy="40" r="24" fill="none" stroke="#1f2937" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <circle
+        cx="60"
+        cy="40"
+        r="24"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="1.5"
+        strokeDasharray="3 3"
+        opacity="0.6"
+      />
       {/* Base */}
       <line x1="0" y1="40" x2="48" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <line x1="48" y1="24" x2="48" y2="56" stroke="#1f2937" strokeWidth="2.6" strokeLinecap="round" />
+      <line
+        x1="48"
+        y1="24"
+        x2="48"
+        y2="56"
+        stroke="#1f2937"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
       {/* Collector */}
       <line x1="48" y1="32" x2="76" y2="18" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="76" y1="18" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
@@ -723,13 +1053,30 @@ function NPNTransistorSymbol() {
   )
 }
 
-function PNPTransistorSymbol() {
+function PNPTransistorSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <circle cx="60" cy="40" r="24" fill="none" stroke="#1f2937" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <circle
+        cx="60"
+        cy="40"
+        r="24"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="1.5"
+        strokeDasharray="3 3"
+        opacity="0.6"
+      />
       {/* Base */}
       <line x1="0" y1="40" x2="48" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <line x1="48" y1="24" x2="48" y2="56" stroke="#1f2937" strokeWidth="2.6" strokeLinecap="round" />
+      <line
+        x1="48"
+        y1="24"
+        x2="48"
+        y2="56"
+        stroke="#1f2937"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      />
       {/* Emitter with inward arrow */}
       <line x1="48" y1="32" x2="76" y2="18" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="76" y1="18" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
@@ -741,49 +1088,220 @@ function PNPTransistorSymbol() {
   )
 }
 
-function NMOSSymbol() {
+function NMOSSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      {/* Gate */}
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      {/* Gate (Pin at 0, 40) */}
       <line x1="0" y1="40" x2="44" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <line x1="44" y1="24" x2="44" y2="56" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" />
-      {/* Channel bars */}
-      <line x1="52" y1="24" x2="52" y2="34" stroke="#1f2937" strokeWidth="2.4" />
-      <line x1="52" y1="36" x2="52" y2="44" stroke="#1f2937" strokeWidth="2.4" />
-      <line x1="52" y1="46" x2="52" y2="56" stroke="#1f2937" strokeWidth="2.4" />
-      {/* Drain */}
-      <line x1="52" y1="28" x2="76" y2="28" stroke="#1f2937" strokeWidth="1.8" />
-      <line x1="76" y1="28" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
-      {/* Source */}
-      <line x1="52" y1="52" x2="76" y2="52" stroke="#1f2937" strokeWidth="1.8" />
-      <line x1="76" y1="52" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      {/* Substrate lead with inward arrow */}
-      <line x1="52" y1="40" x2="76" y2="40" stroke="#1f2937" strokeWidth="1.6" />
-      <line x1="76" y1="40" x2="76" y2="52" stroke="#1f2937" strokeWidth="1.6" />
-      <polygon points="56,40 64,36 64,44" fill="#1f2937" />
+      <line
+        x1="44"
+        y1="20"
+        x2="44"
+        y2="60"
+        stroke="#1f2937"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+
+      {/* 3 Channel Bars (Enhancement Mode, 8px dielectric gap at x=52) */}
+      <line
+        x1="52"
+        y1="20"
+        x2="52"
+        y2="30"
+        stroke="#1f2937"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="52"
+        y1="35"
+        x2="52"
+        y2="45"
+        stroke="#1f2937"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="52"
+        y1="50"
+        x2="52"
+        y2="60"
+        stroke="#1f2937"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+
+      {/* Drain Lead (Pin at 120, 20) */}
+      <line x1="52" y1="25" x2="80" y2="25" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="80" y1="25" x2="80" y2="20" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="80" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
+
+      {/* Source Lead (Pin at 120, 60) */}
+      <line x1="52" y1="55" x2="80" y2="55" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="80" y1="55" x2="80" y2="60" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="80" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
+
+      {/* Bulk / Substrate Lead (Pin at 120, 40) */}
+      <line x1="52" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      {/* NMOS Substrate Arrow (Inward pointing toward P-substrate/channel) */}
+      <polygon points="60,40 72,34 72,46" fill="#1f2937" />
+
+      {/* Terminal Pin Designators */}
+      <text
+        x="114"
+        y="16"
+        fontSize="8.5"
+        fontWeight="600"
+        fill="#64748b"
+        textAnchor="end"
+        fontFamily="sans-serif"
+      >
+        D
+      </text>
+      <text
+        x="114"
+        y="36"
+        fontSize="8.5"
+        fontWeight="600"
+        fill="#64748b"
+        textAnchor="end"
+        fontFamily="sans-serif"
+      >
+        B
+      </text>
+      <text
+        x="114"
+        y="75"
+        fontSize="8.5"
+        fontWeight="600"
+        fill="#64748b"
+        textAnchor="end"
+        fontFamily="sans-serif"
+      >
+        S
+      </text>
+      <text x="8" y="34" fontSize="8.5" fontWeight="600" fill="#64748b" fontFamily="sans-serif">
+        G
+      </text>
     </svg>
   )
 }
 
-function PMOSSymbol() {
+function PMOSSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      {/* Gate with inversion bubble */}
-      <line x1="0" y1="40" x2="38" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <circle cx="41" cy="40" r="3" fill="#ffffff" stroke="#1f2937" strokeWidth="1.5" />
-      <line x1="44" y1="24" x2="44" y2="56" stroke="#1f2937" strokeWidth="2" strokeLinecap="round" />
-      {/* Channel */}
-      <line x1="52" y1="24" x2="52" y2="56" stroke="#1f2937" strokeWidth="2.4" />
-      <line x1="52" y1="28" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
-      <line x1="52" y1="52" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      {/* Gate with Inversion Bubble (Pin at 0, 40) */}
+      <line x1="0" y1="40" x2="37" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      <circle cx="41" cy="40" r="3.5" fill="#ffffff" stroke="#1f2937" strokeWidth="1.6" />
+      <line
+        x1="45"
+        y1="20"
+        x2="45"
+        y2="60"
+        stroke="#1f2937"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+
+      {/* 3 Channel Bars (Enhancement Mode, 8px dielectric gap at x=53) */}
+      <line
+        x1="53"
+        y1="20"
+        x2="53"
+        y2="30"
+        stroke="#1f2937"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="53"
+        y1="35"
+        x2="53"
+        y2="45"
+        stroke="#1f2937"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+      <line
+        x1="53"
+        y1="50"
+        x2="53"
+        y2="60"
+        stroke="#1f2937"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+
+      {/* Drain Lead (Pin at 120, 20) */}
+      <line x1="53" y1="25" x2="80" y2="25" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="80" y1="25" x2="80" y2="20" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="80" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
+
+      {/* Source Lead (Pin at 120, 60) */}
+      <line x1="53" y1="55" x2="80" y2="55" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="80" y1="55" x2="80" y2="60" stroke="#1f2937" strokeWidth="1.8" />
+      <line x1="80" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
+
+      {/* Bulk / Substrate Lead (Pin at 120, 40) */}
+      <line x1="53" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
+      {/* PMOS Substrate Arrow (Outward pointing away from N-well/channel) */}
+      <polygon points="74,40 62,34 62,46" fill="#1f2937" />
+
+      {/* Terminal Pin Designators */}
+      <text
+        x="114"
+        y="16"
+        fontSize="8.5"
+        fontWeight="600"
+        fill="#64748b"
+        textAnchor="end"
+        fontFamily="sans-serif"
+      >
+        D
+      </text>
+      <text
+        x="114"
+        y="36"
+        fontSize="8.5"
+        fontWeight="600"
+        fill="#64748b"
+        textAnchor="end"
+        fontFamily="sans-serif"
+      >
+        B
+      </text>
+      <text
+        x="114"
+        y="75"
+        fontSize="8.5"
+        fontWeight="600"
+        fill="#64748b"
+        textAnchor="end"
+        fontFamily="sans-serif"
+      >
+        S
+      </text>
+      <text x="8" y="34" fontSize="8.5" fontWeight="600" fill="#64748b" fontFamily="sans-serif">
+        G
+      </text>
     </svg>
   )
 }
 
-function JFETNSymbol() {
+function JFETNSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <circle cx="60" cy="40" r="24" fill="none" stroke="#1f2937" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <circle
+        cx="60"
+        cy="40"
+        r="24"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="1.5"
+        strokeDasharray="3 3"
+        opacity="0.6"
+      />
       {/* Channel */}
       <line x1="56" y1="24" x2="56" y2="56" stroke="#1f2937" strokeWidth="2.4" />
       {/* Drain */}
@@ -797,10 +1315,19 @@ function JFETNSymbol() {
   )
 }
 
-function JFETPSymbol() {
+function JFETPSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <circle cx="60" cy="40" r="24" fill="none" stroke="#1f2937" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <circle
+        cx="60"
+        cy="40"
+        r="24"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="1.5"
+        strokeDasharray="3 3"
+        opacity="0.6"
+      />
       <line x1="56" y1="24" x2="56" y2="56" stroke="#1f2937" strokeWidth="2.4" />
       <line x1="56" y1="28" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="56" y1="52" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
@@ -811,14 +1338,20 @@ function JFETPSymbol() {
   )
 }
 
-function OpAmpSymbol() {
+function OpAmpSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       {/* In- and In+ */}
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
       {/* Triangle */}
-      <polygon points="36,10 36,70 94,40" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <polygon
+        points="36,10 36,70 94,40"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       {/* Inverting minus and non-inverting plus */}
       <line x1="42" y1="24" x2="48" y2="24" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="42" y1="56" x2="48" y2="56" stroke="#1f2937" strokeWidth="1.8" />
@@ -829,12 +1362,18 @@ function OpAmpSymbol() {
   )
 }
 
-function ComparatorSymbol() {
+function ComparatorSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <polygon points="36,10 36,70 94,40" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <polygon
+        points="36,10 36,70 94,40"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <line x1="42" y1="24" x2="48" y2="24" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="42" y1="56" x2="48" y2="56" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="45" y1="53" x2="45" y2="59" stroke="#1f2937" strokeWidth="1.8" />
@@ -845,12 +1384,33 @@ function ComparatorSymbol() {
   )
 }
 
-function Timer555Symbol() {
+function Timer555Symbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <rect x="24" y="10" width="72" height="60" rx="4" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="38" fontSize="13" fontWeight="800" textAnchor="middle" fill="#1f2937" fontFamily="sans-serif">555</text>
-      <text x="60" y="52" fontSize="9" fontWeight="600" textAnchor="middle" fill="#6b7280">TIMER</text>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <rect
+        x="24"
+        y="10"
+        width="72"
+        height="60"
+        rx="4"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+      />
+      <text
+        x="60"
+        y="38"
+        fontSize="13"
+        fontWeight="800"
+        textAnchor="middle"
+        fill="#1f2937"
+        fontFamily="sans-serif"
+      >
+        555
+      </text>
+      <text x="60" y="52" fontSize="9" fontWeight="600" textAnchor="middle" fill="#6b7280">
+        TIMER
+      </text>
       {/* Leads */}
       <line x1="0" y1="20" x2="24" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="40" x2="24" y2="40" stroke="#1f2937" strokeWidth="1.8" />
@@ -863,12 +1423,33 @@ function Timer555Symbol() {
   )
 }
 
-function VoltageRegulatorSymbol() {
+function VoltageRegulatorSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <rect x="30" y="18" width="60" height="44" rx="4" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="38" fontSize="11" fontWeight="700" textAnchor="middle" fill="#1f2937" fontFamily="monospace">REG</text>
-      <text x="60" y="50" fontSize="9" fontWeight="600" textAnchor="middle" fill="#2563eb">7805</text>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <rect
+        x="30"
+        y="18"
+        width="60"
+        height="44"
+        rx="4"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+      />
+      <text
+        x="60"
+        y="38"
+        fontSize="11"
+        fontWeight="700"
+        textAnchor="middle"
+        fill="#1f2937"
+        fontFamily="monospace"
+      >
+        REG
+      </text>
+      <text x="60" y="50" fontSize="9" fontWeight="600" textAnchor="middle" fill="#2563eb">
+        7805
+      </text>
       <line x1="0" y1="40" x2="30" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="90" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="60" y1="62" x2="60" y2="80" stroke="#1f2937" strokeWidth="1.8" />
@@ -876,196 +1457,367 @@ function VoltageRegulatorSymbol() {
   )
 }
 
-function SwitchSymbol() {
+function SwitchSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="40" x2="40" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <circle cx="42" cy="40" r="3" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
-      <line x1="44" y1="38" x2="76" y2="22" stroke="#1f2937" strokeWidth="2.2" strokeLinecap="round" />
+      <line
+        x1="44"
+        y1="38"
+        x2="76"
+        y2="22"
+        stroke="#1f2937"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
       <circle cx="78" cy="40" r="3" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="80" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function GateANDSymbol() {
+function GateANDSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <path d="M36,12 L56,12 C72,12 84,24 84,40 C84,56 72,68 56,68 L36,68 Z" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="M36,12 L56,12 C72,12 84,24 84,40 C84,56 72,68 56,68 L36,68 Z"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <line x1="84" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function GateORSymbol() {
+function GateORSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <path d="M32,12 Q48,40 32,68 Q64,68 86,40 Q64,12 32,12 Z" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="M32,12 Q48,40 32,68 Q64,68 86,40 Q64,12 32,12 Z"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <line x1="86" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function GateNOTSymbol() {
+function GateNOTSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="40" x2="40" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <polygon points="40,16 40,64 78,40" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <polygon
+        points="40,16 40,64 78,40"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <circle cx="83" cy="40" r="4" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="87" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function GateNANDSymbol() {
+function GateNANDSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <path d="M36,12 L56,12 C72,12 82,24 82,40 C82,56 72,68 56,68 L36,68 Z" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="M36,12 L56,12 C72,12 82,24 82,40 C82,56 72,68 56,68 L36,68 Z"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <circle cx="87" cy="40" r="4" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="91" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function GateNORSymbol() {
+function GateNORSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="36" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="36" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <path d="M32,12 Q48,40 32,68 Q64,68 84,40 Q64,12 32,12 Z" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="M32,12 Q48,40 32,68 Q64,68 84,40 Q64,12 32,12 Z"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <circle cx="89" cy="40" r="4" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="93" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function GateXORSymbol() {
+function GateXORSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="32" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="32" y2="60" stroke="#1f2937" strokeWidth="1.8" />
       <path d="M26,12 Q42,40 26,68" fill="none" stroke="#1f2937" strokeWidth="2" />
-      <path d="M34,12 Q50,40 34,68 Q66,68 86,40 Q66,12 34,12 Z" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="M34,12 Q50,40 34,68 Q66,68 86,40 Q66,12 34,12 Z"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <line x1="86" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function GateXNORSymbol() {
+function GateXNORSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <line x1="0" y1="20" x2="32" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="32" y2="60" stroke="#1f2937" strokeWidth="1.8" />
       <path d="M26,12 Q42,40 26,68" fill="none" stroke="#1f2937" strokeWidth="2" />
-      <path d="M34,12 Q50,40 34,68 Q66,68 84,40 Q66,12 34,12 Z" fill="#ffffff" stroke="#1f2937" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="M34,12 Q50,40 34,68 Q66,68 84,40 Q66,12 34,12 Z"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
       <circle cx="89" cy="40" r="4" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="93" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
     </svg>
   )
 }
 
-function FlipFlopDSymbol() {
+function FlipFlopDSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <rect x="28" y="10" width="64" height="60" rx="3" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <rect
+        x="28"
+        y="10"
+        width="64"
+        height="60"
+        rx="3"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+      />
       <line x1="0" y1="20" x2="28" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="28" y2="60" stroke="#1f2937" strokeWidth="1.8" />
       <polyline points="28,54 36,60 28,66" fill="none" stroke="#1f2937" strokeWidth="1.5" />
-      <text x="36" y="24" fontSize="10" fontWeight="700" fill="#1f2937">D</text>
-      <text x="44" y="64" fontSize="9" fontWeight="700" fill="#6b7280">CLK</text>
+      <text x="36" y="24" fontSize="10" fontWeight="700" fill="#1f2937">
+        D
+      </text>
+      <text x="44" y="64" fontSize="9" fontWeight="700" fill="#6b7280">
+        CLK
+      </text>
       <line x1="92" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="92" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="80" y="24" fontSize="10" fontWeight="700" fill="#1f2937">Q</text>
-      <text x="76" y="64" fontSize="10" fontWeight="700" fill="#1f2937">Q̄</text>
+      <text x="80" y="24" fontSize="10" fontWeight="700" fill="#1f2937">
+        Q
+      </text>
+      <text x="76" y="64" fontSize="10" fontWeight="700" fill="#1f2937">
+        Q̄
+      </text>
     </svg>
   )
 }
 
-function FlipFlopJKSymbol() {
+function FlipFlopJKSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <rect x="28" y="8" width="64" height="64" rx="3" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <rect
+        x="28"
+        y="8"
+        width="64"
+        height="64"
+        rx="3"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+      />
       <line x1="0" y1="20" x2="28" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="40" x2="28" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="28" y2="60" stroke="#1f2937" strokeWidth="1.8" />
       <polyline points="28,34 36,40 28,46" fill="none" stroke="#1f2937" strokeWidth="1.5" />
-      <text x="36" y="24" fontSize="10" fontWeight="700" fill="#1f2937">J</text>
-      <text x="36" y="64" fontSize="10" fontWeight="700" fill="#1f2937">K</text>
+      <text x="36" y="24" fontSize="10" fontWeight="700" fill="#1f2937">
+        J
+      </text>
+      <text x="36" y="64" fontSize="10" fontWeight="700" fill="#1f2937">
+        K
+      </text>
       <line x1="92" y1="20" x2="120" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="92" y1="60" x2="120" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="80" y="24" fontSize="10" fontWeight="700" fill="#1f2937">Q</text>
-      <text x="76" y="64" fontSize="10" fontWeight="700" fill="#1f2937">Q̄</text>
+      <text x="80" y="24" fontSize="10" fontWeight="700" fill="#1f2937">
+        Q
+      </text>
+      <text x="76" y="64" fontSize="10" fontWeight="700" fill="#1f2937">
+        Q̄
+      </text>
     </svg>
   )
 }
 
-function MUX2to1Symbol() {
+function MUX2to1Symbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <polygon points="34,8 86,20 86,60 34,72" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" strokeLinejoin="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <polygon
+        points="34,8 86,20 86,60 34,72"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
       <line x1="0" y1="20" x2="34" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="34" y2="60" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="42" y="24" fontSize="9" fontWeight="700" fill="#1f2937">0</text>
-      <text x="42" y="64" fontSize="9" fontWeight="700" fill="#1f2937">1</text>
+      <text x="42" y="24" fontSize="9" fontWeight="700" fill="#1f2937">
+        0
+      </text>
+      <text x="42" y="64" fontSize="9" fontWeight="700" fill="#1f2937">
+        1
+      </text>
       <line x1="60" y1="66" x2="60" y2="80" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="58" fontSize="8" fontWeight="700" textAnchor="middle" fill="#2563eb">S</text>
+      <text x="60" y="58" fontSize="8" fontWeight="700" textAnchor="middle" fill="#2563eb">
+        S
+      </text>
       <line x1="86" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="38" fontSize="10" fontWeight="800" textAnchor="middle" fill="#1f2937">MUX</text>
+      <text x="60" y="38" fontSize="10" fontWeight="800" textAnchor="middle" fill="#1f2937">
+        MUX
+      </text>
     </svg>
   )
 }
 
-function Counter4BitSymbol() {
+function Counter4BitSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <rect x="28" y="6" width="64" height="68" rx="3" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <rect
+        x="28"
+        y="6"
+        width="64"
+        height="68"
+        rx="3"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+      />
       <line x1="0" y1="20" x2="28" y2="20" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="0" y1="60" x2="28" y2="60" stroke="#1f2937" strokeWidth="1.8" />
       <polyline points="28,14 36,20 28,26" fill="none" stroke="#1f2937" strokeWidth="1.5" />
-      <text x="40" y="23" fontSize="8" fontWeight="700" fill="#1f2937">CLK</text>
-      <text x="36" y="63" fontSize="8" fontWeight="700" fill="#dc2626">RST</text>
+      <text x="40" y="23" fontSize="8" fontWeight="700" fill="#1f2937">
+        CLK
+      </text>
+      <text x="36" y="63" fontSize="8" fontWeight="700" fill="#dc2626">
+        RST
+      </text>
       <line x1="92" y1="10" x2="120" y2="10" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="92" y1="30" x2="120" y2="30" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="92" y1="50" x2="120" y2="50" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="92" y1="70" x2="120" y2="70" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="44" fontSize="10" fontWeight="800" textAnchor="middle" fill="#1f2937">4-BIT</text>
+      <text x="60" y="44" fontSize="10" fontWeight="800" textAnchor="middle" fill="#1f2937">
+        4-BIT
+      </text>
     </svg>
   )
 }
 
-function GroundSymbol() {
+function GroundSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="60" y1="0" x2="60" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="42" y1="40" x2="78" y2="40" stroke="#1f2937" strokeWidth="2.2" strokeLinecap="round" />
-      <line x1="48" y1="48" x2="72" y2="48" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="54" y1="56" x2="66" y2="56" stroke="#1f2937" strokeWidth="1.6" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="60"
+        y1="0"
+        x2="60"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <line
+        x1="42"
+        y1="40"
+        x2="78"
+        y2="40"
+        stroke="#1f2937"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="48"
+        y1="48"
+        x2="72"
+        y2="48"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <line
+        x1="54"
+        y1="56"
+        x2="66"
+        y2="56"
+        stroke="#1f2937"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
 
-function VCCSymbol() {
+function VCCSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="60" y1="40" x2="60" y2="80" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
-      <polygon points="60,18 46,40 74,40" fill="none" stroke="#1f2937" strokeWidth="1.8" strokeLinejoin="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="60"
+        y1="40"
+        x2="60"
+        y2="80"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <polygon
+        points="60,18 46,40 74,40"
+        fill="none"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
 
-function NetLabelSymbol({ name }: { name?: string }) {
-  const text = name || "NET"
+function NetLabelSymbol({
+  name,
+  highlightColor
+}: {
+  name?: string
+  highlightColor?: string
+}): React.JSX.Element {
+  const text = name || 'NET'
+  const stroke = highlightColor || '#0284c7'
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block", overflow: "visible" }}>
+    <svg
+      width="120"
+      height="80"
+      viewBox="0 0 120 80"
+      style={{ display: 'block', overflow: 'visible' }}
+    >
       {/* Anchor connection point touching the wire at (0, 40) */}
-      <line x1="0" y1="40" x2="6" y2="40" stroke="#0284c7" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="0" cy="40" r="2.5" fill="#0284c7" />
+      <line x1="0" y1="40" x2="6" y2="40" stroke={stroke} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="0" cy="40" r="2.5" fill={stroke} />
       {/* Plain text net name rendered directly above wire (LTspice style) */}
       <text
         x="6"
@@ -1073,7 +1825,7 @@ function NetLabelSymbol({ name }: { name?: string }) {
         fontSize="13"
         fontWeight="700"
         textAnchor="start"
-        fill="#0369a1"
+        fill={stroke}
         fontFamily="sans-serif"
       >
         {text}
@@ -1082,26 +1834,41 @@ function NetLabelSymbol({ name }: { name?: string }) {
   )
 }
 
-function PortInSymbol({ name }: { name?: string }) {
-  const text = (name || "IN").slice(0, 10)
-  const fontSize = text.length > 7 ? "9.5" : text.length > 5 ? "10.5" : "11.5"
+function PortInSymbol({
+  name,
+  highlightColor
+}: {
+  name?: string
+  highlightColor?: string
+}): React.JSX.Element {
+  const text = (name || 'IN').slice(0, 10)
+  const fontSize = text.length > 7 ? '9.5' : text.length > 5 ? '10.5' : '11.5'
+  const stroke = highlightColor || '#1f2937'
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
       <polygon
         points="18,24 76,24 94,40 76,56 18,56"
-        fill="#ffffff"
-        stroke="#1f2937"
-        strokeWidth="1.8"
+        fill={highlightColor ? `${highlightColor}18` : '#ffffff'}
+        stroke={stroke}
+        strokeWidth={highlightColor ? '2.4' : '1.8'}
         strokeLinejoin="round"
       />
-      <line x1="94" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+      <line
+        x1="94"
+        y1="40"
+        x2="120"
+        y2="40"
+        stroke={stroke}
+        strokeWidth={highlightColor ? '2.4' : '1.8'}
+        strokeLinecap="round"
+      />
       <text
         x="50"
         y="44"
         fontSize={fontSize}
         fontWeight="700"
         textAnchor="middle"
-        fill="#1f2937"
+        fill={highlightColor || '#1f2937'}
         fontFamily='"JetBrains Mono", Consolas, monospace'
         letterSpacing="0.02em"
       >
@@ -1111,17 +1878,32 @@ function PortInSymbol({ name }: { name?: string }) {
   )
 }
 
-function PortOutSymbol({ name }: { name?: string }) {
-  const text = (name || "OUT").slice(0, 10)
-  const fontSize = text.length > 7 ? "9.5" : text.length > 5 ? "10.5" : "11.5"
+function PortOutSymbol({
+  name,
+  highlightColor
+}: {
+  name?: string
+  highlightColor?: string
+}): React.JSX.Element {
+  const text = (name || 'OUT').slice(0, 10)
+  const fontSize = text.length > 7 ? '9.5' : text.length > 5 ? '10.5' : '11.5'
+  const stroke = highlightColor || '#1f2937'
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="26" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="26"
+        y2="40"
+        stroke={stroke}
+        strokeWidth={highlightColor ? '2.4' : '1.8'}
+        strokeLinecap="round"
+      />
       <polygon
         points="26,24 84,24 102,40 84,56 26,56"
-        fill="#ffffff"
-        stroke="#1f2937"
-        strokeWidth="1.8"
+        fill={highlightColor ? `${highlightColor}18` : '#ffffff'}
+        stroke={stroke}
+        strokeWidth={highlightColor ? '2.4' : '1.8'}
         strokeLinejoin="round"
       />
       <text
@@ -1130,7 +1912,7 @@ function PortOutSymbol({ name }: { name?: string }) {
         fontSize={fontSize}
         fontWeight="700"
         textAnchor="middle"
-        fill="#1f2937"
+        fill={highlightColor || '#1f2937'}
         fontFamily='"JetBrains Mono", Consolas, monospace'
         letterSpacing="0.02em"
       >
@@ -1140,17 +1922,32 @@ function PortOutSymbol({ name }: { name?: string }) {
   )
 }
 
-function PortBiSymbol({ name }: { name?: string }) {
-  const text = (name || "IO").slice(0, 10)
-  const fontSize = text.length > 7 ? "9.5" : text.length > 5 ? "10.5" : "11.5"
+function PortBiSymbol({
+  name,
+  highlightColor
+}: {
+  name?: string
+  highlightColor?: string
+}): React.JSX.Element {
+  const text = (name || 'IO').slice(0, 10)
+  const fontSize = text.length > 7 ? '9.5' : text.length > 5 ? '10.5' : '11.5'
+  const stroke = highlightColor || '#1f2937'
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <line x1="0" y1="40" x2="20" y2="40" stroke="#1f2937" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <line
+        x1="0"
+        y1="40"
+        x2="20"
+        y2="40"
+        stroke={stroke}
+        strokeWidth={highlightColor ? '2.4' : '1.8'}
+        strokeLinecap="round"
+      />
       <polygon
         points="20,40 34,24 84,24 98,40 84,56 34,56"
-        fill="#ffffff"
-        stroke="#1f2937"
-        strokeWidth="1.8"
+        fill={highlightColor ? `${highlightColor}18` : '#ffffff'}
+        stroke={stroke}
+        strokeWidth={highlightColor ? '2.4' : '1.8'}
         strokeLinejoin="round"
       />
       <text
@@ -1159,7 +1956,7 @@ function PortBiSymbol({ name }: { name?: string }) {
         fontSize={fontSize}
         fontWeight="700"
         textAnchor="middle"
-        fill="#1f2937"
+        fill={highlightColor || '#1f2937'}
         fontFamily='"JetBrains Mono", Consolas, monospace'
         letterSpacing="0.02em"
       >
@@ -1169,136 +1966,198 @@ function PortBiSymbol({ name }: { name?: string }) {
   )
 }
 
-function GenericSymbol() {
+function GenericSymbol(): React.JSX.Element {
   return (
-    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-      <rect x="30" y="16" width="60" height="48" fill="#ffffff" stroke="#1f2937" strokeWidth="1.8" />
+    <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+      <rect
+        x="30"
+        y="16"
+        width="60"
+        height="48"
+        fill="#ffffff"
+        stroke="#1f2937"
+        strokeWidth="1.8"
+      />
       <line x1="0" y1="40" x2="30" y2="40" stroke="#1f2937" strokeWidth="1.8" />
       <line x1="90" y1="40" x2="120" y2="40" stroke="#1f2937" strokeWidth="1.8" />
-      <text x="60" y="44" fontSize="11" fontWeight="700" textAnchor="middle" fill="#1f2937" fontFamily="monospace">IC</text>
+      <text
+        x="60"
+        y="44"
+        fontSize="11"
+        fontWeight="700"
+        textAnchor="middle"
+        fill="#1f2937"
+        fontFamily="monospace"
+      >
+        IC
+      </text>
     </svg>
   )
 }
 
-export function renderSymbol(type: SchematicComponentType, labelName?: string) {
+export function renderSymbol(
+  type: SchematicComponentType,
+  labelName?: string,
+  highlightColor?: string
+): React.JSX.Element {
   switch (type) {
-    case "net-label":
-      return <NetLabelSymbol name={labelName} />
-    case "port-in":
-      return <PortInSymbol name={labelName} />
-    case "port-out":
-      return <PortOutSymbol name={labelName} />
-    case "port-bi":
-      return <PortBiSymbol name={labelName} />
-    case "resistor":
+    case 'net-label':
+      return <NetLabelSymbol name={labelName} highlightColor={highlightColor} />
+    case 'port-in':
+      return <PortInSymbol name={labelName} highlightColor={highlightColor} />
+    case 'port-out':
+      return <PortOutSymbol name={labelName} highlightColor={highlightColor} />
+    case 'port-bi':
+      return <PortBiSymbol name={labelName} highlightColor={highlightColor} />
+    case 'resistor':
       return <ResistorSymbol />
-    case "capacitor":
+    case 'capacitor':
       return <CapacitorSymbol />
-    case "inductor":
+    case 'inductor':
       return <InductorSymbol />
-    case "potentiometer":
+    case 'potentiometer':
       return <PotentiometerSymbol />
-    case "transformer":
+    case 'transformer':
       return <TransformerSymbol />
-    case "coupled-inductor":
+    case 'coupled-inductor':
       return <CoupledInductorSymbol />
-    case "transmission-line":
+    case 'transmission-line':
       return <TransmissionLineSymbol />
 
-    case "voltage-source":
+    case 'voltage-source':
       return <VoltageSourceSymbol />
-    case "current-source":
+    case 'current-source':
       return <CurrentSourceSymbol />
-    case "ac-source":
+    case 'ac-source':
       return <ACSourceSymbol />
-    case "pulse-source":
+    case 'pulse-source':
       return <PulseSourceSymbol />
-    case "vcvs":
+    case 'vcvs':
       return <VCVSSymbol />
-    case "vccs":
+    case 'vccs':
       return <VCCSSymbol />
-    case "cccs":
+    case 'cccs':
       return <CCCSSymbol />
-    case "ccvs":
+    case 'ccvs':
       return <CCVSSymbol />
-    case "behavioral-source":
+    case 'behavioral-source':
       return <BehavioralSourceSymbol />
 
-    case "diode":
+    case 'diode':
       return <DiodeSymbol />
-    case "zener-diode":
+    case 'zener-diode':
       return <ZenerDiodeSymbol />
-    case "schottky-diode":
+    case 'schottky-diode':
       return <SchottkyDiodeSymbol />
-    case "led":
+    case 'led':
       return <LEDSymbol />
 
-    case "npn-bjt":
+    case 'npn-bjt':
       return <NPNTransistorSymbol />
-    case "pnp-bjt":
+    case 'pnp-bjt':
       return <PNPTransistorSymbol />
-    case "nmos":
+    case 'nmos':
       return <NMOSSymbol />
-    case "pmos":
+    case 'pmos':
       return <PMOSSymbol />
-    case "jfet-n":
+    case 'jfet-n':
       return <JFETNSymbol />
-    case "jfet-p":
+    case 'jfet-p':
       return <JFETPSymbol />
 
-    case "opamp":
+    case 'opamp':
       return <OpAmpSymbol />
-    case "comparator":
+    case 'comparator':
       return <ComparatorSymbol />
-    case "timer-555":
+    case 'timer-555':
       return <Timer555Symbol />
-    case "voltage-regulator":
+    case 'voltage-regulator':
       return <VoltageRegulatorSymbol />
-    case "switch":
+    case 'switch':
       return <SwitchSymbol />
 
-    case "gate-and":
+    case 'gate-and':
       return <GateANDSymbol />
-    case "gate-or":
+    case 'gate-or':
       return <GateORSymbol />
-    case "gate-not":
+    case 'gate-not':
       return <GateNOTSymbol />
-    case "gate-nand":
+    case 'gate-nand':
       return <GateNANDSymbol />
-    case "gate-nor":
+    case 'gate-nor':
       return <GateNORSymbol />
-    case "gate-xor":
+    case 'gate-xor':
       return <GateXORSymbol />
-    case "gate-xnor":
+    case 'gate-xnor':
       return <GateXNORSymbol />
-    case "flipflop-d":
+    case 'flipflop-d':
       return <FlipFlopDSymbol />
-    case "flipflop-jk":
+    case 'flipflop-jk':
       return <FlipFlopJKSymbol />
-    case "mux-2to1":
+    case 'mux-2to1':
       return <MUX2to1Symbol />
-    case "counter-4bit":
+    case 'counter-4bit':
       return <Counter4BitSymbol />
 
-    case "ground":
+    case 'ground':
       return <GroundSymbol />
-    case "vcc":
+    case 'vcc':
       return <VCCSymbol />
-    case "spice-directive":
+    case 'spice-directive':
       return (
-        <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-          <rect x="8" y="14" width="104" height="52" rx="4" fill="#f8fafc" stroke="#0284c7" strokeWidth="1.8" strokeDasharray="4 2" />
-          <text x="60" y="44" fontSize="12" fontWeight="700" textAnchor="middle" fill="#0369a1" fontFamily="monospace">.tran / .op</text>
+        <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+          <rect
+            x="8"
+            y="14"
+            width="104"
+            height="52"
+            rx="4"
+            fill="#f8fafc"
+            stroke="#0284c7"
+            strokeWidth="1.8"
+            strokeDasharray="4 2"
+          />
+          <text
+            x="60"
+            y="44"
+            fontSize="12"
+            fontWeight="700"
+            textAnchor="middle"
+            fill="#0369a1"
+            fontFamily="monospace"
+          >
+            .tran / .op
+          </text>
         </svg>
       )
-    case "schematic-text":
+    case 'schematic-text':
       return (
-        <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: "block" }}>
-          <rect x="8" y="14" width="104" height="52" rx="4" fill="#fafafa" stroke="#6b7280" strokeWidth="1.5" strokeDasharray="3 3" />
-          <text x="60" y="44" fontSize="12" fontWeight="600" textAnchor="middle" fill="#374151" fontFamily="sans-serif">Text Note</text>
+        <svg width="120" height="80" viewBox="0 0 120 80" style={{ display: 'block' }}>
+          <rect
+            x="8"
+            y="14"
+            width="104"
+            height="52"
+            rx="4"
+            fill="#fafafa"
+            stroke="#6b7280"
+            strokeWidth="1.5"
+            strokeDasharray="3 3"
+          />
+          <text
+            x="60"
+            y="44"
+            fontSize="12"
+            fontWeight="600"
+            textAnchor="middle"
+            fill="#374151"
+            fontFamily="sans-serif"
+          >
+            Text Note
+          </text>
         </svg>
       )
-    case "generic":
+    case 'generic':
     default:
       return <GenericSymbol />
   }
@@ -1307,52 +2166,54 @@ export function renderSymbol(type: SchematicComponentType, labelName?: string) {
 export default function SchematicNode({
   data,
   selected,
-  isConnectable,
-}: NodeProps<SchematicNodeData>) {
-  if (data.type === "spice-directive") {
-    const rawVal = data.value || data.label || ".op"
+  isConnectable
+}: NodeProps<SchematicNodeData>): React.JSX.Element {
+  if (data.type === 'spice-directive') {
+    const rawVal = data.value || data.label || '.op'
     const isComment =
-      data.directiveType === "comment" || rawVal.startsWith("*") || rawVal.startsWith(";")
+      data.directiveType === 'comment' || rawVal.startsWith('*') || rawVal.startsWith(';')
     return (
       <div
         style={{
-          position: "relative",
+          position: 'relative',
           minWidth: 120,
           maxWidth: 340,
-          padding: "5px 9px",
-          background: isComment ? "#f0fdf4" : "#eff6ff",
-          border: selected ? "1.5px dashed #2563eb" : isComment ? "1px solid #86efac" : "1px solid #93c5fd",
+          padding: '5px 9px',
+          background: isComment ? '#f0fdf4' : '#eff6ff',
+          border: selected
+            ? '1.5px dashed #2563eb'
+            : isComment
+              ? '1px solid #86efac'
+              : '1px solid #93c5fd',
           borderRadius: 3,
           fontFamily: 'Consolas, "JetBrains Mono", monospace',
-          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-          userSelect: "none",
+          boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          userSelect: 'none'
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
           <span
             style={{
               fontSize: 9,
               fontWeight: 800,
-              padding: "1px 4px",
+              padding: '1px 4px',
               borderRadius: 2,
-              background: isComment ? "#bbf7d0" : "#bfdbfe",
-              color: isComment ? "#166534" : "#1d4ed8",
-              letterSpacing: "0.03em",
+              background: isComment ? '#bbf7d0' : '#bfdbfe',
+              color: isComment ? '#166534' : '#1d4ed8',
+              letterSpacing: '0.03em'
             }}
           >
-            {isComment ? "; COMMENT" : ".SPICE"}
+            {isComment ? '; COMMENT' : '.SPICE'}
           </span>
-          <span style={{ fontSize: 10, color: "#64748b" }}>
-            {data.label}
-          </span>
+          <span style={{ fontSize: 10, color: '#64748b' }}>{data.label}</span>
         </div>
         <div
           style={{
             fontSize: 12,
             fontWeight: 700,
-            color: isComment ? "#15803d" : "#1e40af",
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.3,
+            color: isComment ? '#15803d' : '#1e40af',
+            whiteSpace: 'pre-wrap',
+            lineHeight: 1.3
           }}
         >
           {rawVal}
@@ -1361,26 +2222,26 @@ export default function SchematicNode({
     )
   }
 
-  if (data.type === "schematic-text") {
+  if (data.type === 'schematic-text') {
     return (
       <div
         style={{
-          position: "relative",
+          position: 'relative',
           minWidth: 70,
           maxWidth: 320,
-          padding: "3px 6px",
-          background: "transparent",
-          border: selected ? "1.5px dashed #2563eb" : "1px dashed transparent",
+          padding: '3px 6px',
+          background: 'transparent',
+          border: selected ? '1.5px dashed #2563eb' : '1px dashed transparent',
           borderRadius: 2,
           fontFamily: '"Segoe UI", -apple-system, sans-serif',
           fontSize: 12.5,
-          color: "#0f172a",
-          whiteSpace: "pre-wrap",
+          color: '#0f172a',
+          whiteSpace: 'pre-wrap',
           lineHeight: 1.35,
-          userSelect: "none",
+          userSelect: 'none'
         }}
       >
-        {data.value || data.label || "Annotation text"}
+        {data.value || data.label || 'Annotation text'}
       </div>
     )
   }
@@ -1388,33 +2249,35 @@ export default function SchematicNode({
   const rotation = data.rotation ?? 0
   const pins = getComponentPins(data.type)
   const isNetOrPort =
-    data.type === "net-label" ||
-    data.type === "port-in" ||
-    data.type === "port-out" ||
-    data.type === "port-bi"
+    data.type === 'net-label' ||
+    data.type === 'port-in' ||
+    data.type === 'port-out' ||
+    data.type === 'port-bi'
 
   return (
     <div
       className={`schematic-node-component comp-type-${data.type}`}
       data-comp-type={data.type}
       style={{
-        position: "relative",
+        position: 'relative',
         width: 120,
         height: 80,
-        boxSizing: "border-box",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "transparent",
-        userSelect: "none",
-        outline: selected ? "1px dashed #2563eb" : "none",
-        borderRadius: 4,
+        boxSizing: 'border-box',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'transparent',
+        userSelect: 'none',
+        outline: selected ? '1px dashed #2563eb' : 'none',
+        borderRadius: 4
       }}
     >
       {/* Handles dynamically mapped from component pin definitions */}
       {pins.map((pin) => {
         const rotPos = getRotatedPinPos(pin, rotation)
-        const isPinHighlighted = data.highlightedPins?.includes(pin.id)
+        const pinColor = data.pinHighlightColors?.[pin.id]
+        const isPinHighlighted = Boolean(pinColor) || data.highlightedPins?.includes(pin.id)
+        const activeColor = pinColor || '#0284c7'
 
         return (
           <Fragment key={pin.id}>
@@ -1428,21 +2291,15 @@ export default function SchematicNode({
                 height: isPinHighlighted ? 10 : 8,
                 top: rotPos.y,
                 left: rotPos.x,
-                transform: "translate(-50%, -50%)",
-                background: isPinHighlighted
-                  ? "#0284c7"
-                  : selected
-                    ? "#2563eb"
-                    : "#1f2937",
-                border: isPinHighlighted
-                  ? "2px solid #38bdf8"
-                  : "1.5px solid #ffffff",
+                transform: 'translate(-50%, -50%)',
+                background: isPinHighlighted ? activeColor : selected ? '#2563eb' : '#1f2937',
+                border: isPinHighlighted ? `2px solid ${activeColor}` : '1.5px solid #ffffff',
                 boxShadow: isPinHighlighted
-                  ? "0 0 10px #38bdf8, 0 0 4px #0284c7"
-                  : "0 0 0 1px rgba(31, 41, 55, 0.25)",
+                  ? `0 0 10px ${activeColor}, 0 0 4px ${activeColor}`
+                  : '0 0 0 1px rgba(31, 41, 55, 0.25)',
                 zIndex: isPinHighlighted ? 15 : 10,
-                pointerEvents: isConnectable ? "all" : "none",
-                transition: "background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease",
+                pointerEvents: isConnectable ? 'all' : 'none',
+                transition: 'background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease'
               }}
             />
           </Fragment>
@@ -1453,13 +2310,13 @@ export default function SchematicNode({
       <div
         style={{
           transform: `rotate(${rotation}deg)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          pointerEvents: "none",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none'
         }}
       >
-        {renderSymbol(data.type, data.value || data.label)}
+        {renderSymbol(data.type, data.value || data.label, data.highlightColor)}
       </div>
 
       {/* Engineering Designator & Parameter Labels */}
@@ -1467,19 +2324,19 @@ export default function SchematicNode({
         <div
           style={{
             ...getLabelLayout(data.type, rotation).containerStyle,
-            zIndex: 6,
+            zIndex: 6
           }}
         >
           <span
             style={{
               fontSize: 11,
               fontWeight: 700,
-              color: "#1f2937",
+              color: '#1f2937',
               fontFamily: '"JetBrains Mono", monospace',
               lineHeight: 1.2,
-              backgroundColor: "rgba(255, 255, 255, 0.85)",
-              padding: "0 2px",
-              borderRadius: 2,
+              backgroundColor: 'rgba(255, 255, 255, 0.85)',
+              padding: '0 2px',
+              borderRadius: 2
             }}
           >
             {data.label}
@@ -1489,15 +2346,69 @@ export default function SchematicNode({
               style={{
                 fontSize: 11,
                 fontWeight: 600,
-                color: "#2563eb",
+                color: '#2563eb',
                 fontFamily: '"JetBrains Mono", monospace',
                 lineHeight: 1.2,
-                backgroundColor: "rgba(255, 255, 255, 0.85)",
-                padding: "0 2px",
-                borderRadius: 2,
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                padding: '0 2px',
+                borderRadius: 2
               }}
             >
               {data.value}
+            </span>
+          )}
+          {(data.type === 'nmos' || data.type === 'pmos') &&
+            data.properties?.w &&
+            data.properties?.l && (
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  color: '#0284c7',
+                  fontFamily: '"JetBrains Mono", monospace',
+                  lineHeight: 1.1,
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  padding: '1px 2px',
+                  borderRadius: 2,
+                  border: '1px solid rgba(2, 132, 199, 0.2)'
+                }}
+              >
+                W={data.properties.w} L={data.properties.l}
+                {data.properties.m && data.properties.m !== '1' ? ` M=${data.properties.m}` : ''}
+              </span>
+            )}
+          {(data.type === 'capacitor' || data.type === 'inductor') && data.properties?.ic && (
+            <span
+              style={{
+                fontSize: 9.5,
+                fontWeight: 600,
+                color: '#059669',
+                fontFamily: '"JetBrains Mono", monospace',
+                lineHeight: 1.1,
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                padding: '1px 2px',
+                borderRadius: 2
+              }}
+            >
+              IC={data.properties.ic}
+            </span>
+          )}
+          {isDigitalLogicComponent(data.type) && (
+            <span
+              style={{
+                fontSize: 8.5,
+                fontWeight: 700,
+                color: '#059669',
+                fontFamily: '"JetBrains Mono", monospace',
+                lineHeight: 1.1,
+                backgroundColor: 'rgba(240, 253, 244, 0.95)',
+                padding: '1px 3px',
+                borderRadius: 2,
+                border: '1px solid rgba(16, 185, 129, 0.3)'
+              }}
+              title="Inbuilt Power: +5V VCC and 0V Ground connected automatically"
+            >
+              ⚡ 5V | 0V
             </span>
           )}
         </div>

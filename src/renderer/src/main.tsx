@@ -31,17 +31,46 @@ class RootErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
   render(): ReactNode {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 24, fontFamily: 'Segoe UI, Tahoma, sans-serif', background: '#fff', color: '#111', height: '100vh', boxSizing: 'border-box' }}>
+        <div
+          style={{
+            padding: 24,
+            fontFamily: 'Segoe UI, Tahoma, sans-serif',
+            background: '#fff',
+            color: '#111',
+            height: '100vh',
+            boxSizing: 'border-box'
+          }}
+        >
           <h2 style={{ color: '#d32f2f', margin: '0 0 12px 0' }}>An error occurred in ASAP EDA</h2>
           <p style={{ margin: '0 0 16px 0', fontSize: 13, color: '#444' }}>
-            The application encountered a render problem. You can reload the window or inspect the error details below.
+            The application encountered a render problem. You can reload the window or inspect the
+            error details below.
           </p>
-          <pre style={{ background: '#f5f5f5', padding: 12, border: '1px solid #ddd', borderRadius: 4, overflow: 'auto', maxHeight: 280, fontSize: 12 }}>
+          <pre
+            style={{
+              background: '#f5f5f5',
+              padding: 12,
+              border: '1px solid #ddd',
+              borderRadius: 4,
+              overflow: 'auto',
+              maxHeight: 280,
+              fontSize: 12
+            }}
+          >
             {this.state.error?.stack || this.state.error?.message || String(this.state.error)}
           </pre>
           <button
             onClick={() => window.location.reload()}
-            style={{ marginTop: 16, padding: '6px 16px', background: '#0078d7', color: '#fff', border: '1px solid #005499', borderRadius: 2, cursor: 'pointer', fontSize: 13 }}
+            style={{
+              marginTop: 16,
+              padding: '6px 16px',
+              background: '#0078d7',
+              color: '#fff',
+              border: '1px solid #005499',
+              borderRadius: 2,
+              cursor: 'pointer',
+              fontSize: 13
+            }}
           >
             Reload Application
           </button>
@@ -59,4 +88,3 @@ createRoot(document.getElementById('root')!).render(
     </RootErrorBoundary>
   </StrictMode>
 )
-

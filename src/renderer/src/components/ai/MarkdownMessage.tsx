@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import Prism from 'prismjs'
@@ -16,26 +17,29 @@ if (!Prism.languages.spice) {
   Prism.languages.spice = {
     comment: {
       pattern: /(^[ \t]*[*;].*|\s+;.*)/m,
-      greedy: true,
+      greedy: true
     },
     directive: {
       pattern: /^[ \t]*\.[a-zA-Z0-9_]+/m,
-      alias: 'keyword',
+      alias: 'keyword'
     },
     component: {
       pattern: /^[ \t]*[A-Za-z0-9_]+/m,
-      alias: 'function',
+      alias: 'function'
     },
     number: /\b\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?:meg|[kMunpfza]|MEG|[KMUNPFZA])?\b/,
     string: /(["'])(?:(?=(\\?))\2.)*?\1/,
-    operator: /[=+\-*/()]/,
+    operator: /[=+\-*/()]/
   }
   Prism.languages.netlist = Prism.languages.spice
   Prism.languages.cir = Prism.languages.spice
   Prism.languages.sp = Prism.languages.spice
 }
 
-function extractBalancedBraced(str: string, startIndex: number): { content: string; endIndex: number } | null {
+function extractBalancedBraced(
+  str: string,
+  startIndex: number
+): { content: string; endIndex: number } | null {
   if (startIndex >= str.length || str[startIndex] !== '{') return null
   let depth = 0
   for (let i = startIndex; i < str.length; i++) {
@@ -79,7 +83,12 @@ function resolveNestedCommands(str: string, cmd: string, prefix = '', suffix = '
     const braced = extractBalancedBraced(result, idx + cmd.length)
     if (!braced) break
 
-    result = result.slice(0, idx) + prefix + braced.content.trim() + suffix + result.slice(braced.endIndex + 1)
+    result =
+      result.slice(0, idx) +
+      prefix +
+      braced.content.trim() +
+      suffix +
+      result.slice(braced.endIndex + 1)
     limit++
   }
   return result
@@ -93,87 +102,95 @@ export function cleanLatexMath(raw: string): string {
   if (!raw) return ''
   // Don't modify content inside actual ``` code blocks
   const parts = raw.split(/(```[\s\S]*?```)/g)
-  return parts.map((part, index) => {
-    if (index % 2 === 1) return part
+  return parts
+    .map((part, index) => {
+      if (index % 2 === 1) return part
 
-    let text = part
+      let text = part
 
-    // 1. Unwrap \boxed{...} and /boxed{...}
-    text = resolveNestedCommands(text, '\\boxed')
-    text = resolveNestedCommands(text, '/boxed')
+      // 1. Unwrap \boxed{...} and /boxed{...}
+      text = resolveNestedCommands(text, '\\boxed')
+      text = resolveNestedCommands(text, '/boxed')
 
-    // 2. Unwrap text formatting commands: \text{...}, \mathrm{...}, \mathbf{...}
-    text = resolveNestedCommands(text, '\\text')
-    text = resolveNestedCommands(text, '\\mathrm')
-    text = resolveNestedCommands(text, '\\mathbf')
+      // 2. Unwrap text formatting commands: \text{...}, \mathrm{...}, \mathbf{...}
+      text = resolveNestedCommands(text, '\\text')
+      text = resolveNestedCommands(text, '\\mathrm')
+      text = resolveNestedCommands(text, '\\mathbf')
 
-    // 3. Resolve fractions (including nested braces like \frac{V_{ref}}{I_{div}})
-    text = resolveNestedFracs(text)
+      // 3. Resolve fractions (including nested braces like \frac{V_{ref}}{I_{div}})
+      text = resolveNestedFracs(text)
 
-    // 4. Clean subscript braces: I_{div} -> I_div, V_{ref} -> V_ref, A_{v} -> Av
-    text = text.replace(/([A-Za-z0-9]+)_\{([A-Za-z0-9]+)\}/g, '$1_$2')
+      // 4. Clean subscript braces: I_{div} -> I_div, V_{ref} -> V_ref, A_{v} -> Av
+      text = text.replace(/([A-Za-z0-9]+)_\{([A-Za-z0-9]+)\}/g, '$1_$2')
 
-    // 5. Clean LaTeX spacing and double semicolons (;; or \;)
-    text = text
-      .replace(/;{2,}/g, '  ')
-      .replace(/\\;/g, ' ')
-      .replace(/\\:/g, ' ')
-      .replace(/\\,/g, ' ')
-      .replace(/\\quad/g, '  ')
-      .replace(/\\qquad/g, '   ')
+      // 5. Clean LaTeX spacing and double semicolons (;; or \;)
+      text = text
+        .replace(/;{2,}/g, '  ')
+        .replace(/\\;/g, ' ')
+        .replace(/\\:/g, ' ')
+        .replace(/\\,/g, ' ')
+        .replace(/\\quad/g, '  ')
+        .replace(/\\qquad/g, '   ')
 
-    // 6. Convert common LaTeX mathematical & electrical symbols to clean Unicode
-    text = text
-      .replace(/\\Omega\b/g, 'Ω')
-      .replace(/\\mu\b/g, 'µ')
-      .replace(/\\times\b/g, '×')
-      .replace(/\\cdot\b/g, '·')
-      .replace(/\\approx\b/g, '≈')
-      .replace(/\\Longleftrightarrow\b/g, '⟺')
-      .replace(/\\Longrightarrow\b/g, '⟹')
-      .replace(/\\Rightarrow\b/g, '⇒')
-      .replace(/\\rightarrow\b/g, '→')
-      .replace(/\\Leftarrow\b/g, '⇐')
-      .replace(/\\leftarrow\b/g, '←')
-      .replace(/\\pm\b/g, '±')
-      .replace(/\\mp\b/g, '∓')
-      .replace(/\\neq\b/g, '≠')
-      .replace(/\\leq\b/g, '≤')
-      .replace(/\\geq\b/g, '≥')
-      .replace(/\\Delta\b/g, 'Δ')
-      .replace(/\\pi\b/g, 'π')
-      .replace(/\\infty\b/g, '∞')
-      .replace(/\\degree\b/g, '°')
-      .replace(/\\circ\b/g, '°')
-      .replace(/\\parallel\b/g, '||')
-      .replace(/\\sqrt\{([^{}]+)\}/g, '√($1)')
+      // 6. Convert common LaTeX mathematical & electrical symbols to clean Unicode
+      text = text
+        .replace(/\\Omega\b/g, 'Ω')
+        .replace(/\\mu\b/g, 'µ')
+        .replace(/\\times\b/g, '×')
+        .replace(/\\cdot\b/g, '·')
+        .replace(/\\approx\b/g, '≈')
+        .replace(/\\Longleftrightarrow\b/g, '⟺')
+        .replace(/\\Longrightarrow\b/g, '⟹')
+        .replace(/\\Rightarrow\b/g, '⇒')
+        .replace(/\\rightarrow\b/g, '→')
+        .replace(/\\Leftarrow\b/g, '⇐')
+        .replace(/\\leftarrow\b/g, '←')
+        .replace(/\\pm\b/g, '±')
+        .replace(/\\mp\b/g, '∓')
+        .replace(/\\neq\b/g, '≠')
+        .replace(/\\leq\b/g, '≤')
+        .replace(/\\geq\b/g, '≥')
+        .replace(/\\Delta\b/g, 'Δ')
+        .replace(/\\pi\b/g, 'π')
+        .replace(/\\infty\b/g, '∞')
+        .replace(/\\degree\b/g, '°')
+        .replace(/\\circ\b/g, '°')
+        .replace(/\\parallel\b/g, '||')
+        .replace(/\\sqrt\{([^{}]+)\}/g, '√($1)')
 
-    // 7. Clean \left and \right
-    text = text.replace(/\\left\s*([([{|.])/g, '$1').replace(/\\right\s*([)\]}|.])/g, '$1')
+      // 7. Clean \left and \right
+      text = text.replace(/\\left\s*([([{|.])/g, '$1').replace(/\\right\s*([)\]}|.])/g, '$1')
 
-    // 8. Clean inline math delimiters \( ... \)
-    text = text.replace(/\\\(([\s\S]*?)\\\)/g, '$1')
+      // 8. Clean inline math delimiters \( ... \)
+      text = text.replace(/\\\(([\s\S]*?)\\\)/g, '$1')
 
-    // 9. Format standalone equation blocks: \[ ... \], $$ ... $$, or [ ... ]
-    text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, eq) => '\n> ' + eq.trim() + '\n')
-    text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => '\n> ' + eq.trim() + '\n')
-    text = text.replace(/(^|\n)\[\s*([^\]]*?(?:\/|×|·|≈|Ω|⇒|⟹|kΩ|mA|Idiv|Vref|Av)[^\]]*?)\s*\](?=\n|$)/gm, (_, _prefix, eq) => '\n> ' + eq.trim() + '\n')
+      // 9. Format standalone equation blocks: \[ ... \], $$ ... $$, or [ ... ]
+      text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, eq) => '\n> ' + eq.trim() + '\n')
+      text = text.replace(/\$\$([\s\S]*?)\$\$/g, (_, eq) => '\n> ' + eq.trim() + '\n')
+      text = text.replace(
+        /(^|\n)\[\s*([^\]]*?(?:\/|×|·|≈|Ω|⇒|⟹|kΩ|mA|Idiv|Vref|Av)[^\]]*?)\s*\](?=\n|$)/gm,
+        (_, _prefix, eq) => '\n> ' + eq.trim() + '\n'
+      )
 
-    // 10. Clean up any asterisks inside blockquotes: e.g. "> ** equation **" -> "> equation"
-    text = text.replace(/(^|\n)>\s*\*\*\s*([\s\S]*?)\s*\*\*(?=\n|$)/g, '$1> $2')
-    text = text.replace(/(^|\n)>\s*\*+([^\n*]+?)\*+(?=\n|$)/g, '$1> $2')
+      // 10. Clean up any asterisks inside blockquotes: e.g. "> ** equation **" -> "> equation"
+      text = text.replace(/(^|\n)>\s*\*\*\s*([\s\S]*?)\s*\*\*(?=\n|$)/g, '$1> $2')
+      text = text.replace(/(^|\n)>\s*\*+([^\n*]+?)\*+(?=\n|$)/g, '$1> $2')
 
-    // 11. Strip ** around mathematical equations & formulas (e.g. "** I_div = 1 mA ⇒ R2 = V_ref / I_div **")
-    text = text.replace(/\*\*\s*([^\n*]*?(?:=|\/|×|·|≈|Ω|⇒|⟹|kΩ|mA|µF|Idiv|Vref|Av)[^\n*]*?)\s*\*\*/g, '$1')
+      // 11. Strip ** around mathematical equations & formulas (e.g. "** I_div = 1 mA ⇒ R2 = V_ref / I_div **")
+      text = text.replace(
+        /\*\*\s*([^\n*]*?(?:=|\/|×|·|≈|Ω|⇒|⟹|kΩ|mA|µF|Idiv|Vref|Av)[^\n*]*?)\s*\*\*/g,
+        '$1'
+      )
 
-    // 12. Fix spaced bolding like "** text **" so CommonMark parses it properly into bold instead of showing literal "**"
-    text = text.replace(/\*\*\s+([^\n*]+?)\s+\*\*/g, '**$1**')
+      // 12. Fix spaced bolding like "** text **" so CommonMark parses it properly into bold instead of showing literal "**"
+      text = text.replace(/\*\*\s+([^\n*]+?)\s+\*\*/g, '**$1**')
 
-    // 13. Remove any lone dangling double-asterisks
-    text = text.replace(/(^|\s)\*\*(?=\s|$)/g, '$1')
+      // 13. Remove any lone dangling double-asterisks
+      text = text.replace(/(^|\s)\*\*(?=\s|$)/g, '$1')
 
-    return text
-  }).join('')
+      return text
+    })
+    .join('')
 }
 
 /**
@@ -218,6 +235,7 @@ export function preprocessStreamingMarkdown(raw: string): string {
 }
 
 const CodeBlock: React.FC<{ language?: string; code: string }> = ({ language, code }) => {
+  const { t } = useTranslation('common')
   const [copied, setCopied] = useState(false)
   const lang = (language || 'text').toLowerCase()
 
@@ -245,7 +263,7 @@ const CodeBlock: React.FC<{ language?: string; code: string }> = ({ language, co
         border: '1px solid #334155',
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-        fontSize: 12,
+        fontSize: 12
       }}
     >
       {/* Code Header */}
@@ -261,7 +279,7 @@ const CodeBlock: React.FC<{ language?: string; code: string }> = ({ language, co
           fontSize: 11,
           fontWeight: 600,
           textTransform: 'uppercase',
-          letterSpacing: '0.05em',
+          letterSpacing: '0.05em'
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -282,9 +300,9 @@ const CodeBlock: React.FC<{ language?: string; code: string }> = ({ language, co
             fontSize: 10.5,
             fontWeight: 600,
             cursor: 'pointer',
-            transition: 'background 0.15s ease',
+            transition: 'background 0.15s ease'
           }}
-          title="Copy code"
+          title={t('markdown.copyCode')}
         >
           {copied ? (
             <>
@@ -305,7 +323,7 @@ const CodeBlock: React.FC<{ language?: string; code: string }> = ({ language, co
           padding: '12px 14px',
           overflowX: 'auto',
           lineHeight: 1.55,
-          color: '#e2e8f0',
+          color: '#e2e8f0'
         }}
       >
         <code
@@ -350,7 +368,7 @@ export const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => 
                 margin: '14px 0 6px',
                 color: '#0f172a',
                 borderBottom: '1px solid #e2e8f0',
-                paddingBottom: 4,
+                paddingBottom: 4
               }}
             >
               {children}
@@ -379,7 +397,9 @@ export const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => 
             <ul style={{ margin: '6px 0', paddingLeft: 20, listStyleType: 'disc' }}>{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol style={{ margin: '6px 0', paddingLeft: 20, listStyleType: 'decimal' }}>{children}</ol>
+            <ol style={{ margin: '6px 0', paddingLeft: 20, listStyleType: 'decimal' }}>
+              {children}
+            </ol>
           ),
           li: ({ children }) => <li style={{ margin: '3px 0', lineHeight: 1.5 }}>{children}</li>,
           blockquote: ({ children }) => (
@@ -391,7 +411,7 @@ export const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => 
                 background: '#f8fafc',
                 borderRadius: '0 6px 6px 0',
                 color: '#475569',
-                fontStyle: 'italic',
+                fontStyle: 'italic'
               }}
             >
               {children}
@@ -406,7 +426,7 @@ export const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => 
                 overflowX: 'auto',
                 margin: '10px 0',
                 borderRadius: 6,
-                border: '1px solid #e2e8f0',
+                border: '1px solid #e2e8f0'
               }}
             >
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -420,16 +440,14 @@ export const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => 
             </thead>
           ),
           tbody: ({ children }) => <tbody>{children}</tbody>,
-          tr: ({ children }) => (
-            <tr style={{ borderBottom: '1px solid #f1f5f9' }}>{children}</tr>
-          ),
+          tr: ({ children }) => <tr style={{ borderBottom: '1px solid #f1f5f9' }}>{children}</tr>,
           th: ({ children }) => (
             <th
               style={{
                 padding: '6px 10px',
                 textAlign: 'left',
                 fontWeight: 650,
-                color: '#334155',
+                color: '#334155'
               }}
             >
               {children}
@@ -467,7 +485,7 @@ export const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => 
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 2,
+                  gap: 2
                 }}
                 title={`Open ${href}`}
               >
@@ -481,12 +499,7 @@ export const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => 
             const textContent = String(children).replace(/\n$/, '')
             const isInline = inline || (!match && !textContent.includes('\n'))
             if (!isInline) {
-              return (
-                <CodeBlock
-                  language={match ? match[1] : undefined}
-                  code={textContent}
-                />
-              )
+              return <CodeBlock language={match ? match[1] : undefined} code={textContent} />
             }
             return (
               <code
@@ -497,14 +510,14 @@ export const MarkdownMessage: React.FC<MarkdownMessageProps> = ({ content }) => 
                   borderRadius: 4,
                   fontSize: '0.9em',
                   fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                  fontWeight: 500,
+                  fontWeight: 500
                 }}
                 {...props}
               >
                 {children}
               </code>
             )
-          },
+          }
         }}
       >
         {processed}

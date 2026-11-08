@@ -1,4 +1,3 @@
-
 To run gnuplot xycontour tests.
 -------------------------------
 
@@ -19,4 +18,3 @@ On visualc Windows in a cmd shell, run 'winq.cir'.
 This checks that gnuplot <file> xycontour <expr> works with 1d data.
 The xycontour flag is just ignored.
 On visualc Windows in a cmd shell, run 'winq1.cir'.
-

@@ -3,16 +3,16 @@
  * Pure mathematical algorithms evaluating genuine ngspice simulation data.
  */
 
-import type { SimulationRunResult } from "../../../shared/simulation"
-import { formatEngineering } from "./engineeringFormat"
+import type { SimulationRunResult } from '../../../shared/simulation'
+import { formatEngineering } from './engineeringFormat'
 
-export type MeasurementStatus = "valid" | "insufficient_data" | "not_applicable"
+export type MeasurementStatus = 'valid' | 'insufficient_data' | 'not_applicable'
 
 export interface MeasurementResult {
   id: string
   name: string
   symbol: string
-  category: "transient" | "ac" | "dc" | "op"
+  category: 'transient' | 'ac' | 'dc' | 'op'
   valueFormatted: string
   numericValue: number | null
   unit: string
@@ -31,7 +31,13 @@ export interface MeasurementsReport {
 /**
  * Binary search & linear interpolation on monotonic array
  */
-function interpolateX(xArr: number[], yArr: number[], yTarget: number, startIdx = 0, endIdx = xArr.length - 1): number | null {
+function interpolateX(
+  xArr: number[],
+  yArr: number[],
+  yTarget: number,
+  startIdx = 0,
+  endIdx = xArr.length - 1
+): number | null {
   for (let i = startIdx; i < endIdx; i++) {
     const y0 = yArr[i]
     const y1 = yArr[i + 1]
@@ -49,34 +55,49 @@ function interpolateX(xArr: number[], yArr: number[], yTarget: number, startIdx 
  */
 export function calculateAutomaticMeasurements(
   simResult: SimulationRunResult | null,
-  signalName: string,
+  signalName: string
 ): MeasurementsReport {
   if (!simResult || !simResult.data || !signalName || !simResult.data[signalName]) {
     return {
-      signalName: signalName || "None",
-      analysisType: simResult?.analysisType || "unknown",
+      signalName: signalName || 'None',
+      analysisType: simResult?.analysisType || 'unknown',
       pointCount: 0,
-      measurements: [],
+      measurements: []
     }
   }
 
   const yData = simResult.data[signalName]
-  const xVarName = simResult.xVariable || (simResult.variables.length > 0 ? simResult.variables[0].name : "")
-  const xData = (xVarName && simResult.data[xVarName]) ? simResult.data[xVarName] : []
+  const xVarName =
+    simResult.xVariable || (simResult.variables.length > 0 ? simResult.variables[0].name : '')
+  const xData = xVarName && simResult.data[xVarName] ? simResult.data[xVarName] : []
   const n = yData.length
-  const rawAnalysis = simResult.analysisType?.toLowerCase() || ""
-  const isAc = rawAnalysis.includes("ac") || xVarName.toLowerCase().includes("freq") || signalName.endsWith("_db") || signalName.endsWith("_phase")
-  const isDc = !isAc && (rawAnalysis.includes("dc") || xVarName.toLowerCase().includes("sweep") || (!rawAnalysis.includes("tran") && !xVarName.toLowerCase().includes("time") && !rawAnalysis.includes("op") && (xVarName.toLowerCase().startsWith("v") || xVarName.toLowerCase().startsWith("i"))))
-  const isOp = !isAc && !isDc && (rawAnalysis.includes("op") || (n === 1 && !rawAnalysis.includes("tran")))
+  const rawAnalysis = simResult.analysisType?.toLowerCase() || ''
+  const isAc =
+    rawAnalysis.includes('ac') ||
+    xVarName.toLowerCase().includes('freq') ||
+    signalName.endsWith('_db') ||
+    signalName.endsWith('_phase')
+  const isDc =
+    !isAc &&
+    (rawAnalysis.includes('dc') ||
+      xVarName.toLowerCase().includes('sweep') ||
+      (!rawAnalysis.includes('tran') &&
+        !xVarName.toLowerCase().includes('time') &&
+        !rawAnalysis.includes('op') &&
+        (xVarName.toLowerCase().startsWith('v') || xVarName.toLowerCase().startsWith('i'))))
+  const isOp =
+    !isAc && !isDc && (rawAnalysis.includes('op') || (n === 1 && !rawAnalysis.includes('tran')))
   const isTran = !isAc && !isDc && !isOp
 
-  const resolvedAnalysisType = isTran ? "TRANSIENT" : isAc ? "AC" : isDc ? "DC" : "OP"
+  const resolvedAnalysisType = isTran ? 'TRANSIENT' : isAc ? 'AC' : isDc ? 'DC' : 'OP'
 
   const results: MeasurementResult[] = []
 
   // Helper to resolve unit
-  const variableMeta = simResult.variables.find((v) => v.name.toLowerCase() === signalName.toLowerCase())
-  const rawUnit = variableMeta?.unit || (signalName.toLowerCase().startsWith("i(") ? "A" : "V")
+  const variableMeta = simResult.variables.find(
+    (v) => v.name.toLowerCase() === signalName.toLowerCase()
+  )
+  const rawUnit = variableMeta?.unit || (signalName.toLowerCase().startsWith('i(') ? 'A' : 'V')
 
   if (n === 0) {
     return {
@@ -85,18 +106,18 @@ export function calculateAutomaticMeasurements(
       pointCount: 0,
       measurements: [
         {
-          id: "no_data",
-          name: "Data Check",
-          symbol: "Status",
-          category: isTran ? "transient" : isAc ? "ac" : isDc ? "dc" : "op",
-          valueFormatted: "No Points",
+          id: 'no_data',
+          name: 'Data Check',
+          symbol: 'Status',
+          category: isTran ? 'transient' : isAc ? 'ac' : isDc ? 'dc' : 'op',
+          valueFormatted: 'No Points',
           numericValue: null,
-          unit: "",
-          definition: "Verification of simulation data vectors.",
-          status: "insufficient_data",
-          note: "Selected signal contains 0 data points.",
-        },
-      ],
+          unit: '',
+          definition: 'Verification of simulation data vectors.',
+          status: 'insufficient_data',
+          note: 'Selected signal contains 0 data points.'
+        }
+      ]
     }
   }
 
@@ -122,41 +143,41 @@ export function calculateAutomaticMeasurements(
 
     // 1. Peak
     results.push({
-      id: "tran_peak",
-      name: "Peak Amplitude",
-      symbol: "Vmax",
-      category: "transient",
+      id: 'tran_peak',
+      name: 'Peak Amplitude',
+      symbol: 'Vmax',
+      category: 'transient',
       valueFormatted: formatEngineering(maxVal, rawUnit, 4),
       numericValue: maxVal,
       unit: rawUnit,
-      definition: "Maximum positive value reached by the signal across the simulation duration.",
-      status: "valid",
+      definition: 'Maximum positive value reached by the signal across the simulation duration.',
+      status: 'valid'
     })
 
     // 2. Minimum
     results.push({
-      id: "tran_min",
-      name: "Minimum Amplitude",
-      symbol: "Vmin",
-      category: "transient",
+      id: 'tran_min',
+      name: 'Minimum Amplitude',
+      symbol: 'Vmin',
+      category: 'transient',
       valueFormatted: formatEngineering(minVal, rawUnit, 4),
       numericValue: minVal,
       unit: rawUnit,
-      definition: "Minimum value reached by the signal across the simulation duration.",
-      status: "valid",
+      definition: 'Minimum value reached by the signal across the simulation duration.',
+      status: 'valid'
     })
 
     // Peak-to-Peak
     results.push({
-      id: "tran_vpp",
-      name: "Peak-to-Peak",
-      symbol: "Vpp",
-      category: "transient",
+      id: 'tran_vpp',
+      name: 'Peak-to-Peak',
+      symbol: 'Vpp',
+      category: 'transient',
       valueFormatted: formatEngineering(peakToPeak, rawUnit, 4),
       numericValue: peakToPeak,
       unit: rawUnit,
-      definition: "Full signal swing: difference between maximum and minimum values (Vmax - Vmin).",
-      status: "valid",
+      definition: 'Full signal swing: difference between maximum and minimum values (Vmax - Vmin).',
+      status: 'valid'
     })
 
     // 3. Average (DC value via trapezoidal integration)
@@ -185,28 +206,29 @@ export function calculateAutomaticMeasurements(
     }
 
     results.push({
-      id: "tran_avg",
-      name: "Average (DC)",
-      symbol: "Vavg",
-      category: "transient",
+      id: 'tran_avg',
+      name: 'Average (DC)',
+      symbol: 'Vavg',
+      category: 'transient',
       valueFormatted: formatEngineering(avgVal, rawUnit, 4),
       numericValue: avgVal,
       unit: rawUnit,
-      definition: "Time-weighted arithmetic mean (DC component) computed via numerical integration.",
-      status: "valid",
+      definition:
+        'Time-weighted arithmetic mean (DC component) computed via numerical integration.',
+      status: 'valid'
     })
 
     // 4. RMS
     results.push({
-      id: "tran_rms",
-      name: "Root Mean Square",
-      symbol: "Vrms",
-      category: "transient",
+      id: 'tran_rms',
+      name: 'Root Mean Square',
+      symbol: 'Vrms',
+      category: 'transient',
       valueFormatted: formatEngineering(rmsVal, rawUnit, 4),
       numericValue: rmsVal,
       unit: rawUnit,
-      definition: "Effective RMS amplitude representing equivalent power/heating value.",
-      status: "valid",
+      definition: 'Effective RMS amplitude representing equivalent power/heating value.',
+      status: 'valid'
     })
 
     // 5. Rise Time (10% to 90%)
@@ -222,7 +244,8 @@ export function calculateAutomaticMeasurements(
     // Determine baseline and top level
     // If the transition begins immediately at t=0, window averaging can be biased by the ongoing ramp;
     // thus choose the true quiescent starting point yData[0] if it reflects the full step span.
-    const baseline = Math.abs(yData[0] - finalAvg) > Math.abs(initAvg - finalAvg) ? yData[0] : initAvg
+    const baseline =
+      Math.abs(yData[0] - finalAvg) > Math.abs(initAvg - finalAvg) ? yData[0] : initAvg
     const isStepUp = finalAvg > baseline
     const stepHeight = Math.abs(finalAvg - baseline)
 
@@ -276,30 +299,33 @@ export function calculateAutomaticMeasurements(
     }
 
     results.push({
-      id: "tran_rise_time",
-      name: "Rise Time",
-      symbol: "tr (10%-90%)",
-      category: "transient",
-      valueFormatted: riseTime !== null ? formatEngineering(riseTime, "s", 3) : "N/A",
+      id: 'tran_rise_time',
+      name: 'Rise Time',
+      symbol: 'tr (10%-90%)',
+      category: 'transient',
+      valueFormatted: riseTime !== null ? formatEngineering(riseTime, 's', 3) : 'N/A',
       numericValue: riseTime,
-      unit: "s",
-      definition: "Time required for the waveform to transition from 10% to 90% of pulse/step height.",
-      status: riseTime !== null ? "valid" : "insufficient_data",
-      note: riseTime === null ? "No complete 10% to 90% rising edge detected in window." : undefined,
+      unit: 's',
+      definition:
+        'Time required for the waveform to transition from 10% to 90% of pulse/step height.',
+      status: riseTime !== null ? 'valid' : 'insufficient_data',
+      note: riseTime === null ? 'No complete 10% to 90% rising edge detected in window.' : undefined
     })
 
     // 6. Fall Time (90% to 10%)
     results.push({
-      id: "tran_fall_time",
-      name: "Fall Time",
-      symbol: "tf (90%-10%)",
-      category: "transient",
-      valueFormatted: fallTime !== null ? formatEngineering(fallTime, "s", 3) : "N/A",
+      id: 'tran_fall_time',
+      name: 'Fall Time',
+      symbol: 'tf (90%-10%)',
+      category: 'transient',
+      valueFormatted: fallTime !== null ? formatEngineering(fallTime, 's', 3) : 'N/A',
       numericValue: fallTime,
-      unit: "s",
-      definition: "Time required for the waveform to transition from 90% to 10% of pulse/step height.",
-      status: fallTime !== null ? "valid" : "insufficient_data",
-      note: fallTime === null ? "No complete 90% to 10% falling edge detected in window." : undefined,
+      unit: 's',
+      definition:
+        'Time required for the waveform to transition from 90% to 10% of pulse/step height.',
+      status: fallTime !== null ? 'valid' : 'insufficient_data',
+      note:
+        fallTime === null ? 'No complete 90% to 10% falling edge detected in window.' : undefined
     })
 
     // 7. Overshoot (%)
@@ -321,16 +347,19 @@ export function calculateAutomaticMeasurements(
     }
 
     results.push({
-      id: "tran_overshoot",
-      name: "Overshoot",
-      symbol: "OS %",
-      category: "transient",
-      valueFormatted: overshootPct !== null ? `${overshootPct.toFixed(2)} %` : "N/A",
+      id: 'tran_overshoot',
+      name: 'Overshoot',
+      symbol: 'OS %',
+      category: 'transient',
+      valueFormatted: overshootPct !== null ? `${overshootPct.toFixed(2)} %` : 'N/A',
       numericValue: overshootPct,
-      unit: "%",
-      definition: "Peak excursion beyond the final steady-state value relative to step height.",
-      status: overshootPct !== null ? "valid" : "insufficient_data",
-      note: overshootPct === null ? "Waveform amplitude variation is insufficient to define a step." : undefined,
+      unit: '%',
+      definition: 'Peak excursion beyond the final steady-state value relative to step height.',
+      status: overshootPct !== null ? 'valid' : 'insufficient_data',
+      note:
+        overshootPct === null
+          ? 'Waveform amplitude variation is insufficient to define a step.'
+          : undefined
     })
 
     // 8. Settling Time (2% band)
@@ -362,16 +391,21 @@ export function calculateAutomaticMeasurements(
     }
 
     results.push({
-      id: "tran_settling_time",
-      name: "Settling Time",
-      symbol: "ts (±2%)",
-      category: "transient",
-      valueFormatted: settlingTime !== null ? formatEngineering(settlingTime, "s", 3) : "Did not settle",
+      id: 'tran_settling_time',
+      name: 'Settling Time',
+      symbol: 'ts (±2%)',
+      category: 'transient',
+      valueFormatted:
+        settlingTime !== null ? formatEngineering(settlingTime, 's', 3) : 'Did not settle',
       numericValue: settlingTime,
-      unit: "s",
-      definition: "Time elapsed until the signal enters and permanently stays within ±2% of steady-state value.",
-      status: settlingTime !== null ? "valid" : "insufficient_data",
-      note: settlingTime === null ? "Signal did not settle within ±2% band by the end of simulation." : undefined,
+      unit: 's',
+      definition:
+        'Time elapsed until the signal enters and permanently stays within ±2% of steady-state value.',
+      status: settlingTime !== null ? 'valid' : 'insufficient_data',
+      note:
+        settlingTime === null
+          ? 'Signal did not settle within ±2% band by the end of simulation.'
+          : undefined
     })
   }
 
@@ -379,11 +413,11 @@ export function calculateAutomaticMeasurements(
   // 2. AC FREQUENCY DOMAIN MEASUREMENTS (.ac)
   // ============================================================
   else if (isAc) {
-    const isDbTrace = signalName.endsWith("_db")
-    const isPhaseTrace = signalName.endsWith("_phase")
+    const isDbTrace = signalName.endsWith('_db')
+    const isPhaseTrace = signalName.endsWith('_phase')
 
     // Find companion dB and Phase signals if measuring a node voltage
-    const baseName = signalName.replace(/(_db|_phase)$/, "")
+    const baseName = signalName.replace(/(_db|_phase)$/, '')
     const dbKey = `${baseName}_db`
     const phaseKey = `${baseName}_phase`
 
@@ -408,54 +442,54 @@ export function calculateAutomaticMeasurements(
 
     // 1. Peak Gain / Value
     results.push({
-      id: "ac_peak_gain",
-      name: isPhaseTrace ? "Peak Phase" : isDbTrace ? "Maximum Gain (dB)" : "Maximum Gain",
-      symbol: isPhaseTrace ? "Φmax" : "Gain(max)",
-      category: "ac",
+      id: 'ac_peak_gain',
+      name: isPhaseTrace ? 'Peak Phase' : isDbTrace ? 'Maximum Gain (dB)' : 'Maximum Gain',
+      symbol: isPhaseTrace ? 'Φmax' : 'Gain(max)',
+      category: 'ac',
       valueFormatted: isPhaseTrace
         ? `${maxVal.toFixed(2)}°`
         : isDbTrace
           ? `${maxVal.toFixed(2)} dB`
-          : `${formatEngineering(maxVal, "V/V", 3)} (${(20 * Math.log10(Math.max(1e-15, maxVal))).toFixed(2)} dB)`,
+          : `${formatEngineering(maxVal, 'V/V', 3)} (${(20 * Math.log10(Math.max(1e-15, maxVal))).toFixed(2)} dB)`,
       numericValue: maxVal,
-      unit: isPhaseTrace ? "°" : isDbTrace ? "dB" : "V/V",
-      definition: "Maximum transmission magnitude across the swept frequency spectrum.",
-      status: "valid",
+      unit: isPhaseTrace ? '°' : isDbTrace ? 'dB' : 'V/V',
+      definition: 'Maximum transmission magnitude across the swept frequency spectrum.',
+      status: 'valid'
     })
 
     // 2. Minimum Gain / Value
     results.push({
-      id: "ac_min_gain",
-      name: isPhaseTrace ? "Minimum Phase" : isDbTrace ? "Minimum Gain (dB)" : "Minimum Gain",
-      symbol: isPhaseTrace ? "Φmin" : "Gain(min)",
-      category: "ac",
+      id: 'ac_min_gain',
+      name: isPhaseTrace ? 'Minimum Phase' : isDbTrace ? 'Minimum Gain (dB)' : 'Minimum Gain',
+      symbol: isPhaseTrace ? 'Φmin' : 'Gain(min)',
+      category: 'ac',
       valueFormatted: isPhaseTrace
         ? `${minVal.toFixed(2)}°`
         : isDbTrace
           ? `${minVal.toFixed(2)} dB`
-          : `${formatEngineering(minVal, "V/V", 3)} (${(20 * Math.log10(Math.max(1e-15, minVal))).toFixed(2)} dB)`,
+          : `${formatEngineering(minVal, 'V/V', 3)} (${(20 * Math.log10(Math.max(1e-15, minVal))).toFixed(2)} dB)`,
       numericValue: minVal,
-      unit: isPhaseTrace ? "°" : isDbTrace ? "dB" : "V/V",
-      definition: "Minimum transmission magnitude across the swept frequency spectrum.",
-      status: "valid",
+      unit: isPhaseTrace ? '°' : isDbTrace ? 'dB' : 'V/V',
+      definition: 'Minimum transmission magnitude across the swept frequency spectrum.',
+      status: 'valid'
     })
 
     // 3. Low-Frequency / Starting Gain
     const startVal = yData[0]
     results.push({
-      id: "ac_low_freq_gain",
-      name: "Starting Sweep Gain",
-      symbol: "Gain(f0)",
-      category: "ac",
+      id: 'ac_low_freq_gain',
+      name: 'Starting Sweep Gain',
+      symbol: 'Gain(f0)',
+      category: 'ac',
       valueFormatted: isPhaseTrace
         ? `${startVal.toFixed(2)}°`
         : isDbTrace
           ? `${startVal.toFixed(2)} dB`
-          : formatEngineering(startVal, "V/V", 3),
+          : formatEngineering(startVal, 'V/V', 3),
       numericValue: startVal,
-      unit: isPhaseTrace ? "°" : isDbTrace ? "dB" : "V/V",
-      definition: `Response at the lowest swept frequency (${formatEngineering(xData[0] || 0, "Hz")}).`,
-      status: "valid",
+      unit: isPhaseTrace ? '°' : isDbTrace ? 'dB' : 'V/V',
+      definition: `Response at the lowest swept frequency (${formatEngineering(xData[0] || 0, 'Hz')}).`,
+      status: 'valid'
     })
 
     // 4. -3 dB Cutoff Frequency & Bandwidth Calculation
@@ -494,7 +528,8 @@ export function calculateAutomaticMeasurements(
 
             // Interpolate phase at cutoff if phase data available
             if (phaseData && phaseData.length === xData.length) {
-              cutoffPhase = phaseData[i] + ((cutoffFreq - f0) / (f1 - f0)) * (phaseData[i + 1] - phaseData[i])
+              cutoffPhase =
+                phaseData[i] + ((cutoffFreq - f0) / (f1 - f0)) * (phaseData[i + 1] - phaseData[i])
             }
             break
           }
@@ -516,44 +551,54 @@ export function calculateAutomaticMeasurements(
     }
 
     results.push({
-      id: "ac_cutoff_freq",
-      name: "Cutoff Frequency (-3 dB)",
-      symbol: "fc (-3dB)",
-      category: "ac",
-      valueFormatted: cutoffFreq !== null ? formatEngineering(cutoffFreq, "Hz", 3) : "N/A",
+      id: 'ac_cutoff_freq',
+      name: 'Cutoff Frequency (-3 dB)',
+      symbol: 'fc (-3dB)',
+      category: 'ac',
+      valueFormatted: cutoffFreq !== null ? formatEngineering(cutoffFreq, 'Hz', 3) : 'N/A',
       numericValue: cutoffFreq,
-      unit: "Hz",
-      definition: "Frequency where output power drops by half (-3.01 dB) relative to passband maximum.",
-      status: cutoffFreq !== null ? "valid" : "insufficient_data",
-      note: cutoffFreq === null ? "Gain does not drop by -3 dB within the simulated frequency span." : undefined,
+      unit: 'Hz',
+      definition:
+        'Frequency where output power drops by half (-3.01 dB) relative to passband maximum.',
+      status: cutoffFreq !== null ? 'valid' : 'insufficient_data',
+      note:
+        cutoffFreq === null
+          ? 'Gain does not drop by -3 dB within the simulated frequency span.'
+          : undefined
     })
 
     // 5. Bandwidth
     results.push({
-      id: "ac_bandwidth",
-      name: "Bandwidth (-3 dB)",
-      symbol: "BW",
-      category: "ac",
-      valueFormatted: bandwidth !== null ? formatEngineering(bandwidth, "Hz", 3) : "N/A",
+      id: 'ac_bandwidth',
+      name: 'Bandwidth (-3 dB)',
+      symbol: 'BW',
+      category: 'ac',
+      valueFormatted: bandwidth !== null ? formatEngineering(bandwidth, 'Hz', 3) : 'N/A',
       numericValue: bandwidth,
-      unit: "Hz",
-      definition: "Effective usable transmission frequency span within -3 dB passband.",
-      status: bandwidth !== null ? "valid" : "insufficient_data",
-      note: bandwidth === null ? "Upper cutoff frequency exceeds simulation sweep range." : undefined,
+      unit: 'Hz',
+      definition: 'Effective usable transmission frequency span within -3 dB passband.',
+      status: bandwidth !== null ? 'valid' : 'insufficient_data',
+      note:
+        bandwidth === null ? 'Upper cutoff frequency exceeds simulation sweep range.' : undefined
     })
 
     // 6. Phase at Cutoff / Phase Margin
     results.push({
-      id: "ac_cutoff_phase",
-      name: "Phase at Cutoff",
-      symbol: "Φ(fc)",
-      category: "ac",
-      valueFormatted: cutoffPhase !== null ? `${cutoffPhase.toFixed(1)}°` : "N/A",
+      id: 'ac_cutoff_phase',
+      name: 'Phase at Cutoff',
+      symbol: 'Φ(fc)',
+      category: 'ac',
+      valueFormatted: cutoffPhase !== null ? `${cutoffPhase.toFixed(1)}°` : 'N/A',
       numericValue: cutoffPhase,
-      unit: "°",
-      definition: "Signal phase shift angle at the -3 dB cutoff frequency.",
-      status: cutoffPhase !== null ? "valid" : "not_applicable",
-      note: cutoffPhase === null ? (cutoffFreq === null ? "Requires valid -3 dB cutoff frequency." : "Phase data not available for this trace.") : undefined,
+      unit: '°',
+      definition: 'Signal phase shift angle at the -3 dB cutoff frequency.',
+      status: cutoffPhase !== null ? 'valid' : 'not_applicable',
+      note:
+        cutoffPhase === null
+          ? cutoffFreq === null
+            ? 'Requires valid -3 dB cutoff frequency.'
+            : 'Phase data not available for this trace.'
+          : undefined
     })
   }
 
@@ -580,42 +625,42 @@ export function calculateAutomaticMeasurements(
 
     // 1. Max Value
     results.push({
-      id: "dc_max",
-      name: "Maximum Value",
-      symbol: "Ymax",
-      category: "dc",
-      valueFormatted: `${formatEngineering(maxVal, rawUnit, 4)} (at ${formatEngineering(maxSweepX, "V")})`,
+      id: 'dc_max',
+      name: 'Maximum Value',
+      symbol: 'Ymax',
+      category: 'dc',
+      valueFormatted: `${formatEngineering(maxVal, rawUnit, 4)} (at ${formatEngineering(maxSweepX, 'V')})`,
       numericValue: maxVal,
       unit: rawUnit,
-      definition: "Maximum output value reached across the swept DC source range.",
-      status: "valid",
+      definition: 'Maximum output value reached across the swept DC source range.',
+      status: 'valid'
     })
 
     // 2. Min Value
     results.push({
-      id: "dc_min",
-      name: "Minimum Value",
-      symbol: "Ymin",
-      category: "dc",
-      valueFormatted: `${formatEngineering(minVal, rawUnit, 4)} (at ${formatEngineering(minSweepX, "V")})`,
+      id: 'dc_min',
+      name: 'Minimum Value',
+      symbol: 'Ymin',
+      category: 'dc',
+      valueFormatted: `${formatEngineering(minVal, rawUnit, 4)} (at ${formatEngineering(minSweepX, 'V')})`,
       numericValue: minVal,
       unit: rawUnit,
-      definition: "Minimum output value reached across the swept DC source range.",
-      status: "valid",
+      definition: 'Minimum output value reached across the swept DC source range.',
+      status: 'valid'
     })
 
     // 3. Range / Span
     const span = maxVal - minVal
     results.push({
-      id: "dc_span",
-      name: "Dynamic Range / Span",
-      symbol: "ΔY",
-      category: "dc",
+      id: 'dc_span',
+      name: 'Dynamic Range / Span',
+      symbol: 'ΔY',
+      category: 'dc',
       valueFormatted: formatEngineering(span, rawUnit, 4),
       numericValue: span,
       unit: rawUnit,
-      definition: "Full span of signal variation (Ymax - Ymin) across the sweep.",
-      status: "valid",
+      definition: 'Full span of signal variation (Ymax - Ymin) across the sweep.',
+      status: 'valid'
     })
 
     // 4. Value at Zero Input (X = 0)
@@ -642,16 +687,16 @@ export function calculateAutomaticMeasurements(
     }
 
     results.push({
-      id: "dc_zero_bias",
-      name: "Zero-Input Quiescent Bias",
-      symbol: "Y(X=0)",
-      category: "dc",
-      valueFormatted: zeroVal !== null ? formatEngineering(zeroVal, rawUnit, 4) : "N/A",
+      id: 'dc_zero_bias',
+      name: 'Zero-Input Quiescent Bias',
+      symbol: 'Y(X=0)',
+      category: 'dc',
+      valueFormatted: zeroVal !== null ? formatEngineering(zeroVal, rawUnit, 4) : 'N/A',
       numericValue: zeroVal,
       unit: rawUnit,
-      definition: "Quiescent bias value evaluated when the swept source is at 0V/0A.",
-      status: zeroVal !== null ? "valid" : "not_applicable",
-      note: zeroVal === null ? "Swept range does not include 0." : undefined,
+      definition: 'Quiescent bias value evaluated when the swept source is at 0V/0A.',
+      status: zeroVal !== null ? 'valid' : 'not_applicable',
+      note: zeroVal === null ? 'Swept range does not include 0.' : undefined
     })
 
     // 5. Transfer Slope / Sensitivity
@@ -661,15 +706,15 @@ export function calculateAutomaticMeasurements(
     }
 
     results.push({
-      id: "dc_slope",
-      name: "Average Transfer Slope",
-      symbol: "dY/dX",
-      category: "dc",
-      valueFormatted: slope !== null ? `${slope.toFixed(4)} ${rawUnit}/V` : "N/A",
+      id: 'dc_slope',
+      name: 'Average Transfer Slope',
+      symbol: 'dY/dX',
+      category: 'dc',
+      valueFormatted: slope !== null ? `${slope.toFixed(4)} ${rawUnit}/V` : 'N/A',
       numericValue: slope,
       unit: `${rawUnit}/V`,
-      definition: "Overall transfer slope (gain or transconductance) across sweep range.",
-      status: slope !== null ? "valid" : "insufficient_data",
+      definition: 'Overall transfer slope (gain or transconductance) across sweep range.',
+      status: slope !== null ? 'valid' : 'insufficient_data'
     })
   }
 
@@ -679,15 +724,16 @@ export function calculateAutomaticMeasurements(
   else {
     const singleVal = yData[0] ?? 0
     results.push({
-      id: "op_bias",
-      name: "Quiescent Operating Bias",
-      symbol: "V_dc / I_dc",
-      category: "op",
+      id: 'op_bias',
+      name: 'Quiescent Operating Bias',
+      symbol: 'V_dc / I_dc',
+      category: 'op',
       valueFormatted: formatEngineering(singleVal, rawUnit, 4),
       numericValue: singleVal,
       unit: rawUnit,
-      definition: "Calculated steady-state DC operating point with capacitors open and inductors shorted.",
-      status: "valid",
+      definition:
+        'Calculated steady-state DC operating point with capacitors open and inductors shorted.',
+      status: 'valid'
     })
   }
 
@@ -695,6 +741,6 @@ export function calculateAutomaticMeasurements(
     signalName,
     analysisType: resolvedAnalysisType,
     pointCount: n,
-    measurements: results,
+    measurements: results
   }
 }

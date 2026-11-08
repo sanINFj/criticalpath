@@ -1,10 +1,8 @@
-import React, { useState, useMemo } from "react"
-import { X, Check, AlertTriangle } from "lucide-react"
-import {
-  evaluateWaveformExpression,
-  type MathTraceDefinition,
-} from "../../utils/waveformMath"
-import { PALETTE_COLORS } from "./TraceConfigModal"
+import React, { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { X, Check, AlertTriangle } from 'lucide-react'
+import { evaluateWaveformExpression, type MathTraceDefinition } from '../../utils/waveformMath'
+import { PALETTE_COLORS } from './TraceConfigModal'
 
 export interface AddMathTraceModalProps {
   isOpen: boolean
@@ -27,10 +25,11 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
   customMathTraces,
   onAddMathTrace,
   onRemoveMathTrace,
-  panesCount,
+  panesCount
 }) => {
-  const [expression, setExpression] = useState("")
-  const [traceName, setTraceName] = useState("")
+  const { t } = useTranslation(['waveform', 'common'])
+  const [expression, setExpression] = useState('')
+  const [traceName, setTraceName] = useState('')
   const [selectedColor, setSelectedColor] = useState(PALETTE_COLORS[2])
   const [selectedPane, setSelectedPane] = useState(0)
 
@@ -60,40 +59,52 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
       expression: expression.trim(),
       color: selectedColor,
       lineWidth: 2,
-      lineStyle: "solid",
+      lineStyle: 'solid',
       paneIndex: selectedPane,
-      unit: evalResult.unit || "V",
+      unit: evalResult.unit || 'V'
     })
 
-    setExpression("")
-    setTraceName("")
+    setExpression('')
+    setTraceName('')
     onClose()
   }
 
   return (
     <div className="wf-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="wf-modal-window" onClick={(e) => e.stopPropagation()} style={{ width: "560px" }}>
+      <div
+        className="wf-modal-window"
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: '560px' }}
+      >
         {/* Header */}
         <div className="wf-modal-header">
           <div className="wf-modal-title">
-            <span style={{ marginRight: "6px" }}>𝑓(𝑥)</span>
-            Waveform Math Expression Builder
+            <span style={{ marginRight: '6px' }}>𝑓(𝑥)</span>
+            {t('waveform:math.title')}
           </div>
-          <button className="wf-modal-close" onClick={onClose} title="Close" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button
+            className="wf-modal-close"
+            onClick={onClose}
+            title={t('common:actions.close')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <X size={14} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="wf-modal-body" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "14px" }}>
+        <div
+          className="wf-modal-body"
+          style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}
+        >
           {/* Expression Input */}
           <div className="wf-field-group">
-            <label className="wf-field-label">Mathematical Expression:</label>
+            <label className="wf-field-label">{t('waveform:math.expressionLabel')}</label>
             <input
               type="text"
               className="wf-text-input"
-              style={{ fontFamily: "'JetBrains Mono', Consolas, monospace", fontSize: "13px" }}
-              placeholder="e.g. V(out) - V(in)  or  d(V(out))/dt  or  V(out)*I(R1)"
+              style={{ fontFamily: "'JetBrains Mono', Consolas, monospace", fontSize: '13px' }}
+              placeholder={t('waveform:math.placeholderExpr')}
               value={expression}
               onChange={(e) => {
                 setExpression(e.target.value)
@@ -106,18 +117,31 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
           </div>
 
           {/* Quick Operators & Functions Bar */}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-            {["+", "-", "*", "/", "(", ")", "^2", "abs()", "d()/dt", "integ()", "sqrt()", "log10()"].map((op) => (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+            {[
+              '+',
+              '-',
+              '*',
+              '/',
+              '(',
+              ')',
+              '^2',
+              'abs()',
+              'd()/dt',
+              'integ()',
+              'sqrt()',
+              'log10()'
+            ].map((op) => (
               <button
                 key={op}
                 type="button"
                 className="wf-mini-btn"
                 onClick={() => {
-                  if (op === "abs()") handleInsert("abs()")
-                  else if (op === "d()/dt") handleInsert("d()/dt")
-                  else if (op === "integ()") handleInsert("integ()")
-                  else if (op === "sqrt()") handleInsert("sqrt()")
-                  else if (op === "log10()") handleInsert("log10()")
+                  if (op === 'abs()') handleInsert('abs()')
+                  else if (op === 'd()/dt') handleInsert('d()/dt')
+                  else if (op === 'integ()') handleInsert('integ()')
+                  else if (op === 'sqrt()') handleInsert('sqrt()')
+                  else if (op === 'log10()') handleInsert('log10()')
                   else handleInsert(` ${op} `)
                 }}
               >
@@ -128,10 +152,26 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
 
           {/* Available Circuit Signals Chips */}
           <div>
-            <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#64748b',
+                textTransform: 'uppercase'
+              }}
+            >
               Insert Signal:
             </span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px", maxHeight: "80px", overflowY: "auto" }}>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px',
+                marginTop: '4px',
+                maxHeight: '80px',
+                overflowY: 'auto'
+              }}
+            >
               {availableSignals.map((sig) => (
                 <button
                   key={sig}
@@ -150,25 +190,30 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
           {expression.trim() && (
             <div
               style={{
-                padding: "8px 12px",
-                borderRadius: "4px",
-                fontSize: "12px",
+                padding: '8px 12px',
+                borderRadius: '4px',
+                fontSize: '12px',
                 fontFamily: "'JetBrains Mono', Consolas, monospace",
-                background: evalResult?.success ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
-                color: evalResult?.success ? "#059669" : "#dc2626",
-                border: `1px solid ${evalResult?.success ? "#10b981" : "#ef4444"}`,
+                background: evalResult?.success
+                  ? 'rgba(16, 185, 129, 0.12)'
+                  : 'rgba(239, 68, 68, 0.12)',
+                color: evalResult?.success ? '#059669' : '#dc2626',
+                border: `1px solid ${evalResult?.success ? '#10b981' : '#ef4444'}`
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {evalResult?.success ? (
                   <>
                     <Check size={14} style={{ flexShrink: 0 }} />
-                    <span>Valid expression ({evalResult.data?.length || 0} points, unit: {evalResult.unit})</span>
+                    <span>
+                      Valid expression ({evalResult.data?.length || 0} points, unit:{' '}
+                      {evalResult.unit})
+                    </span>
                   </>
                 ) : (
                   <>
                     <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-                    <span>{evalResult?.error || "Invalid expression"}</span>
+                    <span>{evalResult?.error || 'Invalid expression'}</span>
                   </>
                 )}
               </div>
@@ -176,13 +221,13 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
           )}
 
           {/* Trace Name and Color & Pane */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px" }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
             <div className="wf-field-group">
-              <label className="wf-field-label">Display Trace Label:</label>
+              <label className="wf-field-label">{t('waveform:math.displayLabel')}</label>
               <input
                 type="text"
                 className="wf-text-input"
-                placeholder="e.g. Diff_Out"
+                placeholder={t('waveform:math.placeholderName')}
                 value={traceName}
                 onChange={(e) => setTraceName(e.target.value)}
               />
@@ -190,14 +235,19 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
 
             {panesCount > 1 && (
               <div className="wf-field-group">
-                <label className="wf-field-label">Pane:</label>
+                <label className="wf-field-label">{t('waveform:math.pane')}</label>
                 <select
                   className="wf-select-input"
                   value={selectedPane}
                   onChange={(e) => setSelectedPane(Number(e.target.value))}
                 >
                   {Array.from({ length: panesCount }).map((_, i) => (
-                    <option key={i} value={i}>Pane {i + 1}</option>
+                    <option key={i} value={i}>
+                      {t('waveform:traces.paneLabel', {
+                        pane: i + 1,
+                        defaultValue: `Pane ${i + 1}`
+                      })}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -206,13 +256,13 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
 
           {/* Color selection */}
           <div className="wf-field-group">
-            <label className="wf-field-label">Trace Color:</label>
-            <div style={{ display: "flex", gap: "6px" }}>
+            <label className="wf-field-label">{t('waveform:math.traceColor')}</label>
+            <div style={{ display: 'flex', gap: '6px' }}>
               {PALETTE_COLORS.slice(0, 8).map((c) => (
                 <button
                   key={c}
                   type="button"
-                  className={`wf-palette-btn ${selectedColor === c ? "selected" : ""}`}
+                  className={`wf-palette-btn ${selectedColor === c ? 'selected' : ''}`}
                   style={{ background: c }}
                   onClick={() => setSelectedColor(c)}
                 />
@@ -222,35 +272,55 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
 
           {/* Existing Custom Math Traces List */}
           {customMathTraces.length > 0 && (
-            <div style={{ borderTop: "1px solid #cbd5e1", paddingTop: "10px" }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase" }}>
-                Active Math Traces:
+            <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '10px' }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase'
+                }}
+              >
+                {t('waveform:traces.mathTraces', { defaultValue: 'Active Math Traces:' })}
               </span>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "6px", maxHeight: "100px", overflowY: "auto" }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  marginTop: '6px',
+                  maxHeight: '100px',
+                  overflowY: 'auto'
+                }}
+              >
                 {customMathTraces.map((mt) => (
                   <div
                     key={mt.id}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "4px 8px",
-                      background: "#f1f5f9",
-                      borderRadius: "4px",
-                      fontSize: "12px",
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '4px 8px',
+                      background: '#f1f5f9',
+                      borderRadius: '4px',
+                      fontSize: '12px'
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className="wf-color-swatch-sm" style={{ background: mt.color }} />
                       <strong>{mt.name}</strong>
-                      <code style={{ fontSize: "11px", color: "#64748b" }}>={mt.expression}</code>
+                      <code style={{ fontSize: '11px', color: '#64748b' }}>={mt.expression}</code>
                     </div>
                     <button
                       type="button"
                       className="wf-mini-btn danger"
                       onClick={() => onRemoveMathTrace(mt.id)}
-                      title="Remove math trace"
-                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+                      title={t('waveform:math.removeTrace')}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
                     >
                       <X size={11} />
                     </button>
@@ -264,7 +334,7 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
         {/* Footer */}
         <div className="wf-modal-footer">
           <button type="button" className="wf-secondary-btn" onClick={onClose}>
-            Cancel
+            {t('common:actions.cancel')}
           </button>
           <button
             type="button"
@@ -272,7 +342,7 @@ export const AddMathTraceModal: React.FC<AddMathTraceModalProps> = ({
             disabled={!evalResult?.success}
             onClick={handleAdd}
           >
-            Add Math Trace
+            {t('waveform:math.addTrace')}
           </button>
         </div>
       </div>

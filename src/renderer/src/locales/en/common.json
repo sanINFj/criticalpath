@@ -47,7 +47,52 @@
     "ltspiceReference": "LTspice Reference"
   },
   "toolbar": {
-    "component": "Component"
+    "component": "Component",
+    "newSchematic": "New Schematic",
+    "openSchematic": "Open Schematic",
+    "saveSchematic": "Save Schematic",
+    "runSpice": "Run SPICE",
+    "pauseSpice": "Pause SPICE",
+    "undo": "Undo",
+    "redo": "Redo",
+    "diagnostics": "Simulation Diagnostics",
+    "hideDiagnostics": "Hide Diagnostics",
+    "waveformViewer": "Waveform Viewer",
+    "hideWaveforms": "Hide Waveforms",
+    "measurements": "Automatic Measurements",
+    "hideMeasurements": "Hide Measurements",
+    "aiCopilot": "CriticalPath AI Copilot",
+    "closeAiCopilot": "Close AI Copilot",
+    "wireTool": "Wire Tool",
+    "probeTool": "Probe Wire/Node (Graph & Calculate)",
+    "exitProbe": "Exit Probe Mode",
+    "ground": "Ground",
+    "netLabel": "Net Label",
+    "port": "Port",
+    "portOptions": "Port Options",
+    "inputPort": "Input Port",
+    "outputPort": "Output Port",
+    "biPort": "Bidirectional Port",
+    "textAnnotation": "Text Annotation",
+    "solderDot": "Solder Dot",
+    "resistor": "Resistor",
+    "capacitor": "Capacitor",
+    "inductor": "Inductor",
+    "diode": "Diode",
+    "voltageSource": "Voltage Source",
+    "acSource": "AC Voltage Source",
+    "npnTransistor": "NPN Transistor",
+    "pnpTransistor": "PNP Transistor",
+    "componentLibrary": "Component Library (Browse All Symbols)",
+    "selectTool": "Select Tool",
+    "rotate": "Rotate 90°",
+    "deleteTool": "Delete Tool",
+    "exitDelete": "Exit Delete Mode",
+    "fitScreen": "Fit to Screen",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "closeDock": "Close Bottom Dock",
+    "toolbarAria": "LTspice Schematic Toolbar"
   },
   "actions": {
     "save": "Save",
@@ -73,7 +118,23 @@
       "tran": "Transient (.tran)",
       "ac": "AC Analysis (.ac)",
       "dc": "DC Sweep (.dc)",
-      "op": "DC op pnt (.op)"
+      "op": "DC op pnt (.op)",
+      "digital": "Digital Analysis (.tran)"
+    },
+    "digital": {
+      "hint": "Virtuoso-grade digital transient simulation. Configure voltage rails, edge timing, and port stimulus bit patterns.",
+      "railsTitle": "1. Logic Voltage Rails & DC State",
+      "vcc": "VCC Supply Voltage:",
+      "gnd": "GND Reference:",
+      "uic": "Skip initial DC operating point (UIC) — starts all gates from 0V state",
+      "timingTitle": "2. Timing & Edge Parameters",
+      "stopTime": "Stop Time (tstop):",
+      "maxStep": "Max Timestep:",
+      "delay": "Initial Delay (td):",
+      "edges": "Rise / Fall Times:",
+      "stimulusTitle": "3. Input Ports Stimulus & Bit Patterns",
+      "addPort": "Add Port",
+      "accuracyTitle": "4. Virtuoso Accuracy Preset (errpreset)"
     },
     "tran": {
       "hint": "Compute circuit voltages and currents as a function of time.",
@@ -120,7 +181,11 @@
       "desc2": "No time, frequency, or sweep parameters are required."
     },
     "directive": "SPICE Directive:",
-    "hintKeys": "Press Enter to apply · Esc to cancel"
+    "hintKeys": "Press Enter to apply · Esc to cancel",
+    "start": "Start",
+    "stop": "Stop",
+    "step": "Step",
+    "generatedDirective": "Generated SPICE directive command"
   },
   "componentLib": {
     "title": "Select Component Symbol",
@@ -147,7 +212,14 @@
       "hotkey": "Top Toolbar Hotkey"
     },
     "footerHint": "Tip: Double-click any item or press Enter to place · Press Esc to cancel",
-    "placeComponent": "Place Component"
+    "placeComponent": "Place Component",
+    "symbolPreview": "Symbol Preview",
+    "solderDot": "Solder Junction Dot",
+    "component": "Component",
+    "category": "Category",
+    "typeKey": "Type Key",
+    "topHotkey": "Top Toolbar Hotkey",
+    "clearSearch": "Clear search"
   },
   "validation": {
     "title": "Simulation Failed",
@@ -158,7 +230,9 @@
     "suggestion": "Suggestion:",
     "locateError": "Locate Error",
     "viewDiagnostics": "View Diagnostics",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "closeDialog": "Close dialog",
+    "openDiagnostics": "Open simulation diagnostics panel"
   },
   "diagnostics": {
     "title": "Simulation Diagnostics",
@@ -283,7 +357,7 @@
     "componentCount": "{{count}} components",
     "electricalNets": "{{count}} electrical nets",
     "linesCount": "{{count}} lines",
-    "copyNetlist": "Copy Netlist",
+    "copyNetlist": "Copy Netlist to Clipboard",
     "copied": "Copied!",
     "downloadCir": "Download .cir",
     "components": "Components",
@@ -304,7 +378,10 @@
     "connectedTerminals": "Connected Component Terminals",
     "highlightCanvas": "Highlight on Canvas",
     "pressEsc": "Press Esc to dismiss",
-    "runSimulation": "▶ Run Simulation"
+    "runSimulation": "▶ Run Simulation",
+    "saveCircuit": "Save circuit.cir",
+    "zoomComponent": "Zoom to component on canvas",
+    "highlightNet": "Highlight this net on the schematic canvas"
   },
   "waveformToolbar": {
     "zoom": "Zoom",
@@ -329,7 +406,37 @@
     "minimize": "Minimize Waveform Viewer",
     "maximize": "Maximize Waveform Viewer",
     "restore": "Restore Waveform Viewer",
-    "closeTooltip": "Close Waveform Viewer (W / F10)"
+    "closeTooltip": "Close Waveform Viewer (W / F10)",
+    "resizeHint": "Drag up/down to resize waveform panel",
+    "probeNodeWire": "Probe Node/Wire",
+    "filterNodes": "Filter nodes or wires...",
+    "probeToolBtn": "Probe Tool (P)",
+    "probeToolActive": "Probe: Active",
+    "measures": "Measures",
+    "measuresTooltip": "Toggle Live Oscilloscope Measurements Bar (Vp-p, Vmax, Vmin, Vavg, Vrms, Frequency)",
+    "boxZoomTooltip": "Box Zoom Tool (Click and drag box to zoom)",
+    "panTooltip": "Pan Tool (Click and drag canvas to move viewport)",
+    "fitTooltip": "Autoscale / Fit all waveforms to view (Home)",
+    "selectWireTooltip": "Select a circuit wire or node to plot and calculate its values on the graph",
+    "schematicProbeTooltip": "Toggle Schematic Probe Mode (P): Click any wire or node directly on the schematic to plot and calculate its values",
+    "highlightWire": "Highlight Wire",
+    "closeMeasures": "Close Measurements Bar",
+    "unplot": "Unplot {{trace}}",
+    "noTracesHint": "Probe nets or components on the schematic to plot waveforms",
+    "clearPlotTooltip": "Clear all waveforms",
+    "circuitNets": "Circuit Nets & Wires",
+    "toggleCursorsTooltip": "Toggle Dual Cursors with Delta Measurements (ΔX, ΔY, 1/ΔX, Slope)",
+    "fftTooltip": "Toggle Fast Fourier Transform (FFT) Power Spectrum View (dB vs Hz)",
+    "plotSettingsTooltip": "Open Waveform Plot Settings (Traces, Axes, Appearance, Math Expressions, Annotations, Export)",
+    "windowControlsAria": "Window Controls",
+    "vmax": "Vmax",
+    "vmin": "Vmin",
+    "vavg": "Vavg",
+    "vrms": "Vrms",
+    "freq": "Freq",
+    "period": "Period",
+    "cursor": "Cursor",
+    "highlightNetCanvas": "Highlight this net and its wires in the schematic canvas"
   },
   "measurementsPanel": {
     "title": "Automatic Measurements",
@@ -352,7 +459,9 @@
     "noData": "No Simulation Data Available",
     "noDataDesc": "Run a simulation (F9) to compute genuine circuit data points and calculate measurements.",
     "noSignalSelected": "No Signal Selected for Measurement",
-    "noSignalSelectedDesc": "Select an active signal from the dropdown above to view its automatic measurements."
+    "noSignalSelectedDesc": "Select an active signal from the dropdown above to view its automatic measurements.",
+    "copyTable": "Copy measurements table to clipboard",
+    "close": "Close Measurements Panel"
   },
   "componentProperties": {
     "propertiesTitle": "Properties",
@@ -369,7 +478,55 @@
     "terminal": "Terminal",
     "connectedNet": "Connected Net",
     "floating": "Floating / Unconnected",
-    "unsavedEdits": "● Unsaved edits"
+    "unsavedEdits": "● Unsaved edits",
+    "spiceDirectiveBlock": "SPICE Directive / Code Block",
+    "spiceDirective": "SPICE Directive",
+    "spiceDirectiveDesc": "(executed by simulation engine)",
+    "comment": "Comment",
+    "commentDesc": "(unsimulated text note)",
+    "directivePlaceholder": "Enter SPICE directive (e.g. .tran 10m, .ac dec 10 1 100k, .op, .include mylib.lib)",
+    "quickTemplates": "Quick Insert Templates:",
+    "textAnnotation": "Schematic Text Annotation",
+    "textAnnotationPlaceholder": "Enter text annotation or comments...",
+    "netLabelProps": "Net Label Properties",
+    "portProps": "Port Properties",
+    "netName": "Net Name:",
+    "portName": "Port Name:",
+    "electricalConnectivity": "Electrical Connectivity:",
+    "assignsNetWire": "Assigns net name \"{{name}}\" to connected wire",
+    "electricalParamsValue": "Electrical Parameters & Value",
+    "transistorModel": "Transistor Model:",
+    "spiceModelName": "SPICE Model Name:",
+    "channelWidth": "Channel Width (W):",
+    "channelLength": "Channel Length (L):",
+    "multiplier": "Multiplier (M):",
+    "parallelDeviceCount": "Parallel device count",
+    "bulkSubstrate": "Bulk (Substrate):",
+    "bulkWire": "Wired on Canvas (Pin B)",
+    "bulkSource": "Tied to Source (S)",
+    "bulkGround": "Tied to Ground (0V / Substrate)",
+    "bulkCustom": "Custom Net Name",
+    "generatedSpiceCard": "Generated SPICE Card:",
+    "resistanceValue": "Resistance Value:",
+    "tolerance": "Tolerance:",
+    "tempCoeff": "Temp Coeff (TC1):",
+    "parallelMultiplier": "Parallel Multiplier (M):",
+    "cancelEsc": "Cancel (Esc)",
+    "applyChanges": "Apply Changes",
+    "generatedSpiceString": "Generated SPICE String:",
+    "orientations": {
+      "deg0": "0° (Standard Horizontal)",
+      "deg90": "90° (Clockwise)",
+      "deg180": "180° (Inverted)",
+      "deg270": "270° (Counter-Clockwise)"
+    },
+    "tolerances": {
+      "none": "Standard (None)",
+      "p01": "±0.1% (Ultra Precision)",
+      "p1": "±1% (Precision)",
+      "p5": "±5% (Standard)",
+      "p10": "±10% (Wide)"
+    }
   },
   "opModal": {
     "title": "Operating Point (.op) — DC Operating Point Results",
@@ -441,7 +598,8 @@
     "copied": "Copied",
     "copyTooltip": "Copy table to clipboard",
     "exportCsv": "CSV",
-    "exportTooltip": "Export results to CSV"
+    "exportTooltip": "Export results to CSV",
+    "perPage": "Per page:"
   },
   "simSettings": {
     "title": "Simulation Settings",
@@ -458,5 +616,99 @@
     "abstolHint": "Amperes (default: 1pA)",
     "temp": "Nominal Temp (temp):",
     "tempHint": "Degrees Celsius (°C)"
+  },
+  "tabs": {
+    "unsavedChanges": "Unsaved changes",
+    "closeTab": "Close Schematic",
+    "close": "Close",
+    "closeOthers": "Close Others",
+    "closeAll": "Close All",
+    "save": "Save",
+    "saveAs": "Save As...",
+    "copyPath": "Copy File Path",
+    "newTab": "New Schematic"
+  },
+  "contextMenu": {
+    "rotate": "Rotate 90°",
+    "delete": "Delete",
+    "flipBend": "Flip Bend",
+    "deleteWire": "Delete Wire",
+    "placeResistor": "Place Resistor",
+    "placeCapacitor": "Place Capacitor",
+    "placeGround": "Place Ground",
+    "placeSolderDot": "Place Solder Dot"
+  },
+  "canvasHints": {
+    "clickPlaceRotate": "Click: Place · R: Rotate",
+    "clickPlaceDot": "Click to place dot"
+  },
+  "statusBarExtra": {
+    "probeModeHint": "🎯 Probe Mode: Click any wire or node to graph & calculate",
+    "clearNetHint": "Click or press Esc to clear net highlight",
+    "configAnalysisTitle": "Click to Configure Simulation Analysis",
+    "openDiagTitle": "Click to open Simulation Diagnostics panel",
+    "openMeasTitle": "Click to view Automatic Measurements panel",
+    "ngspiceChecking": "Checking ngspice engine...",
+    "ngspiceOffline": "ngspice offline"
+  },
+  "netModal": {
+    "titleNet": "Place Net Label",
+    "titlePort": "Place Schematic Port",
+    "portDirection": "Port Direction / Type",
+    "inwardSignal": "(inward signal)",
+    "outwardSignal": "(outward signal)",
+    "ioSignal": "(I/O)",
+    "netIdentifier": "Net Identifier",
+    "portName": "Port Name:",
+    "netName": "Net Name:",
+    "netHint": "Identical net names connect electrically without drawing wires.",
+    "commonPresets": "Common Name Presets",
+    "enterToPlace": "Enter to place on schematic",
+    "place": "Place"
+  },
+  "aboutModal": {
+    "aboutTitle": "About ASAP (Credits & Licenses)",
+    "title": "ASAP",
+    "subtitle": "Open-Source EDA & SPICE Circuit Simulator",
+    "tabOverview": "Overview & Credits",
+    "tabLicenses": "Open Source Licenses",
+    "tabDisclaimer": "Legal & Warranty",
+    "simEngine": "Simulation Engine: ngspice",
+    "aiAssistant": "AI Circuit Assistant",
+    "licensedUnder": "Licensed under the",
+    "close": "Close",
+    "maintainedBy": "is maintained by the CriticalPath Team.",
+    "mitLicense": "MIT License",
+    "licenseSuffix": ". Free and open source for students, engineers, and researchers."
+  },
+  "aiAssistant": {
+    "title": "CriticalPath AI Copilot",
+    "newChat": "New Conversation",
+    "history": "Chat History",
+    "searchHistory": "Search history...",
+    "deleteChat": "Delete conversation",
+    "close": "Close",
+    "keysSafe": "Keys remain safely on your computer.",
+    "reviewSchematic": "Review Schematic",
+    "copyCode": "Copy code",
+    "copyResponse": "Copy response",
+    "modelToggle": "Click to toggle model",
+    "inputHelp": "Enter to send · Shift+Enter for newline",
+    "copilotBadge": "CriticalPath Copilot",
+    "componentSizing": "Component Sizing",
+    "componentSizingDesc": "Calculate standard values",
+    "simulationSetup": "Simulation Setup",
+    "simulationSetupDesc": "Recommend .tran / .ac directives",
+    "suggestNextStep": "Suggest Next Step",
+    "suggestNextStepDesc": "Circuit design advice",
+    "reviewSchematicDesc": "Check floating nets & grounds",
+    "settings": "Settings (API Key & Model)",
+    "stop": "Stop (Esc)",
+    "send": "Send (Enter)",
+    "inputPlaceholder": "Ask about components, circuit calculations, SPICE...",
+    "resizeHint": "Drag horizontally to resize window (Double-click to toggle width)"
+  },
+  "markdown": {
+    "copyCode": "Copy code"
   }
 }

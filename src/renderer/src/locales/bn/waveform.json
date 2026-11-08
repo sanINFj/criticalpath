@@ -22,7 +22,15 @@
     "leftAxis": "বাম Y-অক্ষ",
     "rightAxis": "ডান Y-অক্ষ",
     "assignedPane": "নির্ধারিত প্যান (Pane)",
-    "showHide": "প্লটে দেখান"
+    "showHide": "প্লটে দেখান",
+    "visible": "দৃশ্যমান",
+    "hidden": "লুকানো",
+    "solo": "একক (Solo)",
+    "soloTooltip": "এই সিগন্যালটি আলাদা করুন (solo)",
+    "lineThickness": "রেখার পুরুত্ব:",
+    "colorLabel": "ট্রেস রঙ:",
+    "paneLabel": "নির্ধারিত ফলক (Pane):",
+    "selectHint": "বাম তালিকা থেকে একটি ট্রেস নির্বাচন করুন।"
   },
   "axes": {
     "xAxis": "X-অক্ষ (সময় / কম্পাঙ্ক)",
@@ -31,9 +39,18 @@
     "autoScale": "স্বয়ংক্রিয় স্কেল",
     "min": "সর্বনিম্ন",
     "max": "সর্বোচ্চ",
-    "logScale": "লগ স্কেল (Logarithmic)",
+    "logScale": "লগারিদমিক স্কেল (Log10)",
     "applyLimits": "সীমা প্রয়োগ করুন",
-    "resetAuto": "স্বয়ংক্রিয়তে রিসেট"
+    "resetAuto": "স্বয়ংক্রিয়তে রিসেট",
+    "autoScaleX": "X এর স্বতঃ-স্কেল",
+    "minX": "সর্বনিম্ন X:",
+    "maxX": "সর্বোচ্চ X:",
+    "autoScaleLeftY": "বাম Y এর স্বতঃ-স্কেল",
+    "minY": "সর্বনিম্ন Y:",
+    "maxY": "সর্বোচ্চ Y:",
+    "autoScaleRightY": "ডান Y এর স্বতঃ-স্কেল",
+    "minRightY": "সর্বনিম্ন ডান Y:",
+    "maxRightY": "সর্বোচ্চ ডান Y:"
   },
   "appearance": {
     "theme": "থিম",
@@ -48,7 +65,10 @@
     "panesCount": "প্যানের সংখ্যা",
     "showLegend": "লেজেন্ড দেখান",
     "showCursors": "কার্সার দেখান",
-    "cursorMode": "কার্সার মোড"
+    "cursorMode": "কার্সার মোড",
+    "plotThemeTitle": "প্লট ব্যাকগ্রাউন্ড থিম",
+    "gridStyleTitle": "গ্রিড লাইন স্টাইল",
+    "splitPanesTitle": "একাধিক প্লট পেন (LTspice স্প্লিট প্যান)"
   },
   "math": {
     "title": "গাণিতিক এক্সপ্রেশন ট্রেস যোগ করুন",
@@ -57,7 +77,15 @@
     "preview": "সূত্র প্রিভিউ",
     "addTrace": "ম্যাথ ট্রেস যোগ করুন",
     "valid": "বৈধ এক্সপ্রেশন",
-    "invalid": "সিনট্যাক্স ত্রুটি বা অজানা ভেরিয়েবল"
+    "invalid": "সিনট্যাক্স ত্রুটি বা অজানা ভেরিয়েবল",
+    "expressionLabel": "গাণিতিক রাশিমালা:",
+    "displayLabel": "ট্রেস লেবেল প্রদর্শন করুন:",
+    "pane": "পেন:",
+    "traceColor": "ট্রেস রঙ:",
+    "removeTrace": "ম্যাথ ট্রেস মুছুন",
+    "close": "বন্ধ করুন",
+    "placeholderExpr": "উদা. V(out) - V(in)  বা  d(V(out))/dt  বা  V(out)*I(R1)",
+    "placeholderName": "উদা. Diff_Out"
   },
   "annotations": {
     "title": "প্লট টীকা ও মার্কার",
@@ -67,13 +95,28 @@
     "refLineV": "উল্লম্ব রেফারেন্স রেখা",
     "arrow": "তীর নির্দেশক",
     "add": "টীকা যোগ করুন",
-    "clearAll": "সব টীকা মুছুন"
+    "clearAll": "সব টীকা মুছুন",
+    "typeLabel": "টীকা প্রকার:",
+    "textNote": "টেক্সট নোট",
+    "endX": "শেষ X (তীর মাথা):",
+    "endY": "শেষ Y (তীর মাথা):",
+    "labelContent": "লেবেল / টেক্সট বিষয়বস্তু:",
+    "color": "রঙ:",
+    "pane": "পেন:",
+    "delete": "মুছুন",
+    "close": "বন্ধ করুন"
   },
   "export": {
     "title": "এক্সপোর্ট ও প্রোফাইল",
     "exportCsv": "CSV হিসেবে ডেটা এক্সপোর্ট",
     "exportPng": "উচ্চ রেজোলিউশন PNG এক্সপোর্ট",
     "saveProfile": "সেটিংস প্রোফাইল সংরক্ষণ",
-    "loadProfile": "সেটিংস প্রোফাইল লোড"
+    "loadProfile": "সেটিংস প্রোফাইল লোড",
+    "dataExportTitle": "ওয়েভফর্ম ডেটা ও চিত্র এক্সপোর্ট",
+    "exportCsvBtn": "প্লট করা ডেটা CSV তে এক্সপোর্ট করুন",
+    "savePngBtn": "হাই-রেস PNG ছবি সংরক্ষণ করুন",
+    "configTitle": "প্লট সেটিংস কনফিগারেশন (JSON)",
+    "saveConfigBtn": "কনফিগারেশন সংরক্ষণ করুন (.json)",
+    "loadConfigBtn": "কনফিগারেশন লোড করুন (.json)"
   }
 }

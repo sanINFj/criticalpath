@@ -4,11 +4,11 @@ The pll consists of the following blocks:
 
 ** voltage controlled oscillator:
 vco_sub.cir
-   7 stage ring oscillator with gain cells, CMOS devices
+7 stage ring oscillator with gain cells, CMOS devices
 or
 vco_sub_new.cir
-   vco made from code model d_osc, cntl_array/freq_array data
-   are gained by running test-vco.cir with vco_sub.cir
+vco made from code model d_osc, cntl_array/freq_array data
+are gained by running test-vco.cir with vco_sub.cir
 
 ** digital divider and frequency reference:
 pll-xspice.cir
@@ -18,12 +18,12 @@ f-p-det-d-sub.cir
 
 ** loop filter:
 loop-filter.cir
-   switched current sources as charge pump, 2nd order
-   passive RC filter
+switched current sources as charge pump, 2nd order
+passive RC filter
 or
 loop-filter-2.cir
-   transistors as switches for charge pump, 2nd or 3rd
-   order passive RC filters
+transistors as switches for charge pump, 2nd or 3rd
+order passive RC filters
 
 ** main simulation control:
 pll-xspice.cir
@@ -36,4 +36,4 @@ The main building blocks are organised as subcircuits.
 
 main simulation control with three reference frequencies:
 pll-xspice-fstep.cir
-   simulates two steps of the reference in one simulation run
+simulates two steps of the reference in one simulation run

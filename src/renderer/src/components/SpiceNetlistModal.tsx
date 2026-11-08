@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react"
-import { useTranslation } from "react-i18next"
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Zap,
   X,
@@ -12,15 +12,15 @@ import {
   Crosshair,
   Eye,
   Maximize2,
-  Minimize2,
-} from "lucide-react"
-import type { NetlistGenerationResult } from "../utils/spiceNetlist"
+  Minimize2
+} from 'lucide-react'
+import type { NetlistGenerationResult } from '../utils/spiceNetlist'
 
 interface SpiceNetlistModalProps {
   isOpen: boolean
   onClose: () => void
   result: NetlistGenerationResult | null
-  initialTab?: "netlist" | "validation"
+  initialTab?: 'netlist' | 'validation'
   onRunSimulation?: () => void
   onHighlightNet?: (netName: string) => void
   onLocateComponent?: (componentId: string) => void
@@ -30,13 +30,13 @@ export default function SpiceNetlistModal({
   isOpen,
   onClose,
   result,
-  initialTab = "netlist",
+  initialTab = 'netlist',
   onRunSimulation,
   onHighlightNet,
-  onLocateComponent,
+  onLocateComponent
 }: SpiceNetlistModalProps) {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState<"netlist" | "validation">("netlist")
+  const [activeTab, setActiveTab] = useState<'netlist' | 'validation'>('netlist')
   const [copied, setCopied] = useState(false)
   const [selectedNet, setSelectedNet] = useState<string | null>(null)
   const [isMaximized, setIsMaximized] = useState(true)
@@ -44,7 +44,7 @@ export default function SpiceNetlistModal({
   useEffect(() => {
     if (isOpen) {
       if (result && !result.success && result.errors.length > 0) {
-        setActiveTab("validation")
+        setActiveTab('validation')
       } else {
         setActiveTab(initialTab)
       }
@@ -56,13 +56,13 @@ export default function SpiceNetlistModal({
   useEffect(() => {
     if (!isOpen) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault()
         onClose()
       }
     }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose])
 
   if (!isOpen || !result) return null
@@ -75,41 +75,41 @@ export default function SpiceNetlistModal({
   }
 
   const handleDownload = () => {
-    const blob = new Blob([result.netlist], { type: "text/plain;charset=utf-8" })
+    const blob = new Blob([result.netlist], { type: 'text/plain;charset=utf-8' })
     const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
+    const link = document.createElement('a')
     link.href = url
-    link.download = "circuit.cir"
+    link.download = 'circuit.cir'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
   }
 
-  const lines = result.netlist.split("\n")
+  const lines = result.netlist.split('\n')
 
   return (
     <div
-      className={`netlist-modal-backdrop analysis-modal-backdrop ${!isMaximized ? "windowed" : ""}`}
+      className={`netlist-modal-backdrop analysis-modal-backdrop ${!isMaximized ? 'windowed' : ''}`}
       onClick={onClose}
     >
       <div
-        className={`netlist-modal-container analysis-modal-container ${isMaximized ? "maximized" : ""}`}
+        className={`netlist-modal-container analysis-modal-container ${isMaximized ? 'maximized' : ''}`}
         style={
           isMaximized
             ? {
-                width: "100vw",
-                height: "100vh",
-                maxWidth: "100vw",
-                maxHeight: "100vh",
-                borderRadius: 0,
+                width: '100vw',
+                height: '100vh',
+                maxWidth: '100vw',
+                maxHeight: '100vh',
+                borderRadius: 0
               }
             : {
-                width: "95vw",
-                height: "92vh",
-                maxWidth: "1550px",
-                maxHeight: "94vh",
-                borderRadius: 8,
+                width: '95vw',
+                height: '92vh',
+                maxWidth: '1550px',
+                maxHeight: '94vh',
+                borderRadius: 8
               }
         }
         onClick={(e) => e.stopPropagation()}
@@ -125,17 +125,15 @@ export default function SpiceNetlistModal({
               <div id="netlist-modal-title" className="netlist-modal-title">
                 {t('netlistModal.title')}
               </div>
-              <div className="netlist-modal-subtitle">
-                {t('netlistModal.subtitle')}
-              </div>
+              <div className="netlist-modal-subtitle">{t('netlistModal.subtitle')}</div>
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {result.success ? (
               <span
                 className="netlist-status-badge netlist-badge-success"
-                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
                 <CheckCircle2 size={12} />
                 <span>{t('netlistModal.validNetlist')}</span>
@@ -143,7 +141,7 @@ export default function SpiceNetlistModal({
             ) : (
               <span
                 className="netlist-status-badge netlist-badge-error"
-                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
                 <AlertCircle size={12} />
                 <span>{t('netlistModal.errorsCount', { count: result.errors.length })}</span>
@@ -152,7 +150,7 @@ export default function SpiceNetlistModal({
             {result.warnings.length > 0 && (
               <span
                 className="netlist-status-badge netlist-badge-warning"
-                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
               >
                 <AlertTriangle size={12} />
                 <span>{t('netlistModal.warningsCount', { count: result.warnings.length })}</span>
@@ -163,8 +161,8 @@ export default function SpiceNetlistModal({
             <button
               className="netlist-modal-win-btn"
               onClick={() => setIsMaximized(!isMaximized)}
-              title={isMaximized ? "Restore Window Size" : "Maximize to Full Screen"}
-              aria-label={isMaximized ? "Restore" : "Maximize"}
+              title={isMaximized ? 'Restore Window Size' : 'Maximize to Full Screen'}
+              aria-label={isMaximized ? 'Restore' : 'Maximize'}
             >
               {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
             </button>
@@ -184,29 +182,27 @@ export default function SpiceNetlistModal({
         {/* Tab Navigation */}
         <div className="netlist-modal-tabs analysis-tabs-nav">
           <button
-            className={`netlist-modal-tab-btn analysis-tab-btn ${activeTab === "netlist" ? "active" : ""}`}
-            onClick={() => setActiveTab("netlist")}
+            className={`netlist-modal-tab-btn analysis-tab-btn ${activeTab === 'netlist' ? 'active' : ''}`}
+            onClick={() => setActiveTab('netlist')}
           >
             {t('netlistModal.tabNetlist')}
           </button>
           <button
-            className={`netlist-modal-tab-btn analysis-tab-btn ${activeTab === "validation" ? "active" : ""}`}
-            onClick={() => setActiveTab("validation")}
+            className={`netlist-modal-tab-btn analysis-tab-btn ${activeTab === 'validation' ? 'active' : ''}`}
+            onClick={() => setActiveTab('validation')}
           >
             {t('netlistModal.tabValidation')}
             {(result.errors.length > 0 || result.warnings.length > 0) && (
               <span
                 style={{
                   marginLeft: 6,
-                  padding: "1px 6px",
+                  padding: '1px 6px',
                   borderRadius: 8,
                   fontSize: 10.5,
                   fontWeight: 700,
                   background:
-                    result.errors.length > 0
-                      ? "rgba(239, 68, 68, 0.2)"
-                      : "rgba(245, 158, 11, 0.2)",
-                  color: result.errors.length > 0 ? "#ef4444" : "#f59e0b",
+                    result.errors.length > 0 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+                  color: result.errors.length > 0 ? '#ef4444' : '#f59e0b'
                 }}
               >
                 {result.errors.length + result.warnings.length}
@@ -218,36 +214,46 @@ export default function SpiceNetlistModal({
         {/* Tab Content */}
         <div
           className="analysis-tab-content"
-          style={{ padding: 20, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column" }}
+          style={{
+            padding: 20,
+            overflowY: 'auto',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column'
+          }}
         >
-          {activeTab === "netlist" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1, minHeight: 0 }}>
+          {activeTab === 'netlist' && (
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0 }}
+            >
               {/* Quick Actions Bar */}
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "8px 12px",
-                  background: "var(--bg-elevated)",
-                  borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--border-faint)",
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-faint)'
                 }}
               >
-                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                  <span>{t('netlistModal.componentCount', { count: result.stats.componentCount })}</span>
-                  <span style={{ margin: "0 8px" }}>·</span>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  <span>
+                    {t('netlistModal.componentCount', { count: result.stats.componentCount })}
+                  </span>
+                  <span style={{ margin: '0 8px' }}>·</span>
                   <span>{t('netlistModal.electricalNets', { count: result.stats.netCount })}</span>
-                  <span style={{ margin: "0 8px" }}>·</span>
+                  <span style={{ margin: '0 8px' }}>·</span>
                   <span>{t('netlistModal.linesCount', { count: lines.length })}</span>
                 </div>
 
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     className="netlist-action-btn"
                     onClick={handleCopy}
-                    title="Copy Netlist to Clipboard"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                    title={t('netlistModal.copyNetlist')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     <Copy size={13} />
                     <span>{copied ? t('netlistModal.copied') : t('netlistModal.copyNetlist')}</span>
@@ -255,8 +261,8 @@ export default function SpiceNetlistModal({
                   <button
                     className="netlist-action-btn"
                     onClick={handleDownload}
-                    title="Save circuit.cir"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                    title={t('netlistModal.saveCircuit')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     <Download size={13} />
                     <span>{t('netlistModal.downloadCir')}</span>
@@ -267,7 +273,7 @@ export default function SpiceNetlistModal({
               {/* Netlist Code Viewer */}
               <div
                 className="netlist-code-container"
-                style={{ flex: 1, maxHeight: "none", minHeight: "380px" }}
+                style={{ flex: 1, maxHeight: 'none', minHeight: '380px' }}
               >
                 <div className="netlist-line-numbers">
                   {lines.map((_, idx) => (
@@ -278,20 +284,20 @@ export default function SpiceNetlistModal({
                 </div>
                 <pre className="netlist-code-content">
                   {lines.map((line, idx) => {
-                    const isComment = line.trim().startsWith("*")
-                    const isDirective = line.trim().startsWith(".")
+                    const isComment = line.trim().startsWith('*')
+                    const isDirective = line.trim().startsWith('.')
                     return (
                       <div
                         key={idx}
                         className={`netlist-code-line ${
                           isComment
-                            ? "netlist-line-comment"
+                            ? 'netlist-line-comment'
                             : isDirective
-                              ? "netlist-line-directive"
-                              : ""
+                              ? 'netlist-line-directive'
+                              : ''
                         }`}
                       >
-                        {line || " "}
+                        {line || ' '}
                       </div>
                     )
                   })}
@@ -300,10 +306,12 @@ export default function SpiceNetlistModal({
             </div>
           )}
 
-          {activeTab === "validation" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, flex: 1, minHeight: 0 }}>
+          {activeTab === 'validation' && (
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 0 }}
+            >
               {/* Circuit Statistics Cards */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                 <div className="validation-stat-card">
                   <div className="validation-stat-value">{result.stats.componentCount}</div>
                   <div className="validation-stat-label">{t('netlistModal.components')}</div>
@@ -320,10 +328,12 @@ export default function SpiceNetlistModal({
                   <div
                     className="validation-stat-value"
                     style={{
-                      color: result.stats.groundConnected ? "#10b981" : "#ef4444",
+                      color: result.stats.groundConnected ? '#10b981' : '#ef4444'
                     }}
                   >
-                    {result.stats.groundConnected ? t('netlistModal.connected') : t('netlistModal.missing')}
+                    {result.stats.groundConnected
+                      ? t('netlistModal.connected')
+                      : t('netlistModal.missing')}
                   </div>
                   <div className="validation-stat-label">{t('netlistModal.ground')}</div>
                 </div>
@@ -332,36 +342,64 @@ export default function SpiceNetlistModal({
               {/* Errors List */}
               {result.errors.length > 0 && (
                 <div>
-                  <div className="validation-section-title" style={{ color: "#ef4444" }}>
+                  <div className="validation-section-title" style={{ color: '#ef4444' }}>
                     {t('netlistModal.connectivityErrors', { count: result.errors.length })}
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {result.errors.map((err, idx) => (
                       <div key={idx} className="validation-issue-card validation-issue-error">
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <AlertCircle size={18} color="#ef4444" style={{ flexShrink: 0, marginTop: 1 }} />
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <AlertCircle
+                            size={18}
+                            color="#ef4444"
+                            style={{ flexShrink: 0, marginTop: 1 }}
+                          />
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, color: "#ef4444" }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: '#ef4444' }}>
                               {err.message}
                             </div>
                             {err.suggestion && (
-                              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: 'var(--text-secondary)',
+                                  marginTop: 4,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5
+                                }}
+                              >
                                 <Lightbulb size={13} color="#f59e0b" style={{ flexShrink: 0 }} />
-                                <span><strong>{t('netlistModal.fix')}</strong> {err.suggestion}</span>
+                                <span>
+                                  <strong>{t('netlistModal.fix')}</strong> {err.suggestion}
+                                </span>
                               </div>
                             )}
                           </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 6,
+                              alignItems: 'flex-end'
+                            }}
+                          >
                             <span className="validation-issue-code">{err.code}</span>
                             {err.componentId && onLocateComponent && (
                               <button
                                 className="netlist-action-btn"
-                                style={{ fontSize: 11, padding: "2px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}
+                                style={{
+                                  fontSize: 11,
+                                  padding: '2px 8px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
                                 onClick={() => {
                                   onLocateComponent(err.componentId!)
                                   onClose()
                                 }}
-                                title="Zoom to component on canvas"
+                                title={t('netlistModal.zoomComponent')}
                               >
                                 <Crosshair size={11} />
                                 <span>{t('netlistModal.locate')}</span>
@@ -378,36 +416,64 @@ export default function SpiceNetlistModal({
               {/* Warnings List */}
               {result.warnings.length > 0 && (
                 <div>
-                  <div className="validation-section-title" style={{ color: "#f59e0b" }}>
+                  <div className="validation-section-title" style={{ color: '#f59e0b' }}>
                     {t('netlistModal.connectivityWarnings', { count: result.warnings.length })}
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {result.warnings.map((warn, idx) => (
                       <div key={idx} className="validation-issue-card validation-issue-warning">
-                        <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                          <AlertTriangle size={18} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                          <AlertTriangle
+                            size={18}
+                            color="#f59e0b"
+                            style={{ flexShrink: 0, marginTop: 1 }}
+                          />
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, color: "#f59e0b" }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: '#f59e0b' }}>
                               {warn.message}
                             </div>
                             {warn.suggestion && (
-                              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: 'var(--text-secondary)',
+                                  marginTop: 4,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5
+                                }}
+                              >
                                 <Lightbulb size={13} color="#f59e0b" style={{ flexShrink: 0 }} />
-                                <span><strong>{t('netlistModal.tip')}</strong> {warn.suggestion}</span>
+                                <span>
+                                  <strong>{t('netlistModal.tip')}</strong> {warn.suggestion}
+                                </span>
                               </div>
                             )}
                           </div>
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 6,
+                              alignItems: 'flex-end'
+                            }}
+                          >
                             <span className="validation-issue-code">{warn.code}</span>
                             {warn.componentId && onLocateComponent && (
                               <button
                                 className="netlist-action-btn"
-                                style={{ fontSize: 11, padding: "2px 8px", display: "inline-flex", alignItems: "center", gap: 4 }}
+                                style={{
+                                  fontSize: 11,
+                                  padding: '2px 8px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
                                 onClick={() => {
                                   onLocateComponent(warn.componentId!)
                                   onClose()
                                 }}
-                                title="Zoom to component on canvas"
+                                title={t('netlistModal.zoomComponent')}
                               >
                                 <Crosshair size={11} />
                                 <span>{t('netlistModal.locate')}</span>
@@ -424,13 +490,13 @@ export default function SpiceNetlistModal({
               {/* All Passed Alert */}
               {result.errors.length === 0 && result.warnings.length === 0 && (
                 <div className="validation-issue-card validation-issue-success">
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <CheckCircle2 size={22} color="#10b981" />
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 13.5, color: "#10b981" }}>
+                      <div style={{ fontWeight: 600, fontSize: 13.5, color: '#10b981' }}>
                         {t('netlistModal.rulesPassed')}
                       </div>
-                      <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
                         {t('netlistModal.rulesPassedDesc')}
                       </div>
                     </div>
@@ -439,13 +505,13 @@ export default function SpiceNetlistModal({
               )}
 
               {/* Net Connectivity Matrix Table */}
-              <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
                 <div className="validation-section-title">
                   {t('netlistModal.netConnectivity', { count: Object.keys(result.nets).length })}
                 </div>
                 <div
                   className="netlist-table-container"
-                  style={{ flex: 1, maxHeight: "none", minHeight: "320px", overflowY: "auto" }}
+                  style={{ flex: 1, maxHeight: 'none', minHeight: '320px', overflowY: 'auto' }}
                 >
                   <table className="netlist-table">
                     <thead>
@@ -461,10 +527,12 @@ export default function SpiceNetlistModal({
                           <tr
                             key={netName}
                             style={{
-                              cursor: "pointer",
-                              background: isSelected ? "rgba(2, 132, 199, 0.12)" : undefined,
-                              borderLeft: isSelected ? "3px solid #0284c7" : "3px solid transparent",
-                              transition: "all 0.15s ease",
+                              cursor: 'pointer',
+                              background: isSelected ? 'rgba(2, 132, 199, 0.12)' : undefined,
+                              borderLeft: isSelected
+                                ? '3px solid #0284c7'
+                                : '3px solid transparent',
+                              transition: 'all 0.15s ease'
                             }}
                             onClick={() => {
                               const nextNet = isSelected ? null : netName
@@ -477,15 +545,23 @@ export default function SpiceNetlistModal({
                             <td>
                               <span
                                 className={`net-tag ${
-                                  netName === "0" ? "net-tag-ground" : "net-tag-normal"
+                                  netName === '0' ? 'net-tag-ground' : 'net-tag-normal'
                                 }`}
                               >
-                                {netName === "0" ? "0 (GND)" : netName}
+                                {netName === '0' ? '0 (GND)' : netName}
                               </span>
                             </td>
                             <td>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
-                                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  flexWrap: 'wrap',
+                                  gap: 6
+                                }}
+                              >
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                                   {pins.map((p, pIdx) => (
                                     <span key={pIdx} className="terminal-chip">
                                       <strong>{p.componentLabel}</strong>.{p.pinName}
@@ -495,13 +571,19 @@ export default function SpiceNetlistModal({
                                 {onHighlightNet && (
                                   <button
                                     className="netlist-action-btn"
-                                    style={{ fontSize: 10.5, padding: "2px 7px", display: "inline-flex", alignItems: "center", gap: 4 }}
+                                    style={{
+                                      fontSize: 10.5,
+                                      padding: '2px 7px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4
+                                    }}
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       onHighlightNet(netName)
                                       onClose()
                                     }}
-                                    title="Highlight this net on the schematic canvas"
+                                    title={t('netlistModal.highlightNet')}
                                   >
                                     <Eye size={11} />
                                     <span>{t('netlistModal.highlightCanvas')}</span>
@@ -522,11 +604,11 @@ export default function SpiceNetlistModal({
 
         {/* Modal Footer */}
         <div className="analysis-modal-footer">
-          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
             {t('netlistModal.pressEsc')}
           </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
             <button className="analysis-cancel-btn" onClick={onClose}>
               {t('actions.close')}
             </button>

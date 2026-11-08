@@ -10,7 +10,8 @@ export const LanguageSwitcher: React.FC = () => {
 
   // Current language matching
   const currentLangCode = (i18n.language?.split('-')[0] || 'en') as SupportedLanguageCode
-  const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === currentLangCode) || SUPPORTED_LANGUAGES[0]
+  const currentLang =
+    SUPPORTED_LANGUAGES.find((l) => l.code === currentLangCode) || SUPPORTED_LANGUAGES[0]
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

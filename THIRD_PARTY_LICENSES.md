@@ -7,10 +7,11 @@ This project, **ASAP (CriticalPath EDA)**, incorporates and depends on various o
 ## 1. Native Simulation Engine
 
 ### ngspice
-* **Project**: ngspice circuit simulator
-* **Homepage**: https://ngspice.sourceforge.io/
-* **License**: Mixed BSD / LGPL (SPICE3f5, Cider1b1, XSPICE)
-* **Notice**:
+
+- **Project**: ngspice circuit simulator
+- **Homepage**: https://ngspice.sourceforge.io/
+- **License**: Mixed BSD / LGPL (SPICE3f5, Cider1b1, XSPICE)
+- **Notice**:
   > ngspice is an open-source, mixed-level/mixed-signal circuit simulator based on SPICE3f5, Cider1b1, and XSPICE.
   > Portions Copyright (c) 1985-1991 The Regents of the University of California.
   > Portions Copyright (c) 1996-2024 ngspice team and contributors.
@@ -22,94 +23,110 @@ This project, **ASAP (CriticalPath EDA)**, incorporates and depends on various o
 ## 2. Desktop Application Framework
 
 ### Electron
-* **License**: MIT
-* **Copyright**: Copyright (c) Electron contributors, OpenJS Foundation
-* **Homepage**: https://www.electronjs.org/
+
+- **License**: MIT
+- **Copyright**: Copyright (c) Electron contributors, OpenJS Foundation
+- **Homepage**: https://www.electronjs.org/
 
 ### Vite & electron-vite
-* **License**: MIT
-* **Copyright**: Copyright (c) 2019-present Evan You & Vite contributors; Copyright (c) 2021-present Alex Wei
-* **Homepage**: https://electron-vite.org/
+
+- **License**: MIT
+- **Copyright**: Copyright (c) 2019-present Evan You & Vite contributors; Copyright (c) 2021-present Alex Wei
+- **Homepage**: https://electron-vite.org/
 
 ### electron-builder
-* **License**: MIT
-* **Copyright**: Copyright (c) 2015-present Vladimir Krivosheev
-* **Homepage**: https://www.electron-builder.org/
+
+- **License**: MIT
+- **Copyright**: Copyright (c) 2015-present Vladimir Krivosheev
+- **Homepage**: https://www.electron-builder.org/
 
 ---
 
 ## 3. Frontend & User Interface Libraries
 
 ### React & React-DOM
-* **License**: MIT
-* **Copyright**: Copyright (c) Meta Platforms, Inc. and affiliates
-* **Homepage**: https://react.dev/
+
+- **License**: MIT
+- **Copyright**: Copyright (c) Meta Platforms, Inc. and affiliates
+- **Homepage**: https://react.dev/
 
 ### ReactFlow (@xyflow/react)
-* **License**: MIT
-* **Copyright**: Copyright (c) 2019-present webkid GmbH / Christopher Liew & Moritz Klack
-* **Homepage**: https://reactflow.dev/
+
+- **License**: MIT
+- **Copyright**: Copyright (c) 2019-present webkid GmbH / Christopher Liew & Moritz Klack
+- **Homepage**: https://reactflow.dev/
 
 ### Plotly.js & react-plotly.js
-* **License**: MIT
-* **Copyright**: Copyright (c) 2012-2024 Plotly, Inc.
-* **Homepage**: https://plotly.com/javascript/
+
+- **License**: MIT
+- **Copyright**: Copyright (c) 2012-2024 Plotly, Inc.
+- **Homepage**: https://plotly.com/javascript/
 
 ### Lucide React
-* **License**: ISC
-* **Copyright**: Copyright (c) 2022 Lucide Contributors
-* **Homepage**: https://lucide.dev/
+
+- **License**: ISC
+- **Copyright**: Copyright (c) 2022 Lucide Contributors
+- **Homepage**: https://lucide.dev/
 
 ### i18next & react-i18next
-* **License**: MIT
-* **Copyright**: Copyright (c) 2024 i18next
-* **Homepage**: https://www.i18next.com/
+
+- **License**: MIT
+- **Copyright**: Copyright (c) 2024 i18next
+- **Homepage**: https://www.i18next.com/
 
 ### PrismJS
-* **License**: MIT
-* **Copyright**: Copyright (c) 2012 Lea Verou
-* **Homepage**: https://prismjs.com/
+
+- **License**: MIT
+- **Copyright**: Copyright (c) 2012 Lea Verou
+- **Homepage**: https://prismjs.com/
 
 ### react-markdown & remark-gfm
-* **License**: MIT
-* **Copyright**: Copyright (c) 2015 Espen Hovlandsdal, Titus Wormer
-* **Homepage**: https://github.com/remarkjs/react-markdown
+
+- **License**: MIT
+- **Copyright**: Copyright (c) 2015 Espen Hovlandsdal, Titus Wormer
+- **Homepage**: https://github.com/remarkjs/react-markdown
 
 ---
 
 ## 4. Python Scientific Libraries (Timing & Critical Path Analysis)
 
 ### NumPy
-* **License**: BSD 3-Clause
-* **Copyright**: Copyright (c) 2005-2024, NumPy Developers
-* **Homepage**: https://numpy.org/
+
+- **License**: BSD 3-Clause
+- **Copyright**: Copyright (c) 2005-2024, NumPy Developers
+- **Homepage**: https://numpy.org/
 
 ### Pandas
-* **License**: BSD 3-Clause
-* **Copyright**: Copyright (c) 2008-2024, AQR Capital Management, LLC, Lambda Foundry, Inc. and PyData Development Team
-* **Homepage**: https://pandas.pydata.org/
+
+- **License**: BSD 3-Clause
+- **Copyright**: Copyright (c) 2008-2024, AQR Capital Management, LLC, Lambda Foundry, Inc. and PyData Development Team
+- **Homepage**: https://pandas.pydata.org/
 
 ### NetworkX
-* **License**: BSD 3-Clause
-* **Copyright**: Copyright (c) 2004-2024, NetworkX Developers
-* **Homepage**: https://networkx.org/
+
+- **License**: BSD 3-Clause
+- **Copyright**: Copyright (c) 2004-2024, NetworkX Developers
+- **Homepage**: https://networkx.org/
 
 ---
 
 ## 5. Cloud AI Providers (External APIs)
 
 ### Google Gemini API
-* **Terms of Service**: https://ai.google.dev/terms
-* **Usage**: In-app AI Circuit Assistant utilizes user-configured API keys to access Gemini models (`gemini-2.5-flash`, `gemini-1.5-flash`).
+
+- **Terms of Service**: https://ai.google.dev/terms
+- **Usage**: In-app AI Circuit Assistant utilizes user-configured API keys to access Gemini models (`gemini-2.5-flash`, `gemini-1.5-flash`).
 
 ### Groq Cloud API & Meta Llama 3
-* **Terms of Service**: https://groq.com/terms-of-use/
-* **Meta Llama 3 License**: https://llama.meta.com/llama3/license/
-* **Usage**: Alternative LLM provider for rapid circuit analysis (`llama-3.3-70b-versatile`).
+
+- **Terms of Service**: https://groq.com/terms-of-use/
+- **Meta Llama 3 License**: https://llama.meta.com/llama3/license/
+- **Usage**: Alternative LLM provider for rapid circuit analysis (`llama-3.3-70b-versatile`).
 
 ---
 
 ## Standard MIT License Text
+
 ```
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -1,13 +1,12 @@
-
 The d_process XSPICE model was developed by Uros Platise and he has
 provided a non-trivial example and detailed descriptions at:
-  https://www.isotel.eu/mixedsim/embedded/motorforce/index.html
+https://www.isotel.eu/mixedsim/embedded/motorforce/index.html
 
 This directory contains a simple test of the d_process model.
 
 Compile the programs that are called from within d_process:
 
-  ./compile.sh   (on Linux or Cygwin on Windows)
+./compile.sh (on Linux or Cygwin on Windows)
 
 In a Windows Powershell using VisualC, copy compile.bat.txt to compile.bat,
 then use it. In a Mingw Msys shell, you can use the VisualC compiled programs,
@@ -16,27 +15,28 @@ this way to use binary mode pipes.
 
 Run the test case (comment out the gtkwave lines or use plot if you like):
 
-  ngspice prog1-4.cir
+ngspice prog1-4.cir
 
 A typical instance/.model pair Looks like:
 
-  ap1 [clk2] clk1 null [o1 o2 o3 o4] proc1
-  .model proc1 d_process (process_file="prog1in4out"
-  + process_params=["opt1", "qwerty"])
+ap1 [clk2] clk1 null [o1 o2 o3 o4] proc1
+.model proc1 d_process (process_file="prog1in4out"
+
+- process_params=["opt1", "qwerty"])
 
 To clean up:
 
-  ./clean.sh
+./clean.sh
 
 NOTE that the prog-pipes.cir test needs fifos created on Linux or Cygwin
 on Windows. This is not available on Windows VisualC or Mingw builds.
 
-  mkfifo graycode_in
-  mkfifo graycode_out
+mkfifo graycode_in
+mkfifo graycode_out
 
 before ngspice prog-pipes.cir, and in another shell:
 
-  ./graycode --pipe
+./graycode --pipe
 
 needs to be started.
 
@@ -66,10 +66,10 @@ SPICE circuit file. Header d_process.h defines the call to d_process_init()
 for the header response.
 
 Thereafter, the external program executes a loop:
-    while (read data from the input pipe and if it is OK) {
-        compute output data for that input
-        write the output data to the output pipe
-    }
+while (read data from the input pipe and if it is OK) {
+compute output data for that input
+write the output data to the output pipe
+}
 Data is passed in packets of struct in_s {..} and struct out_s {..}. The
 input struct contains the execution time in ngspice, and if it is negative,
 it signifies a reset has occurred. The compute(..) function can decide how
@@ -100,9 +100,8 @@ to debug_info() which calls sleep() to give you time to attach a debugger.
 Just after the sleep() call, there is a call to known_bp() on which you can
 set a breakpoint. The sleep() is enabled by:
 
-  export GO_TO_SLEEP=1   (on Linux, Cygwin)
-  $env:go_to_sleep = '1' (on Windows Powershell)
+export GO_TO_SLEEP=1 (on Linux, Cygwin)
+$env:go_to_sleep = '1' (on Windows Powershell)
 
 Don't forget to remove the environment variables after use, or the
 prog1-4.cir will sleep (for up to 1 minute) each time you rerun it.
-

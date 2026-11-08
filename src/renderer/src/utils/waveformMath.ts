@@ -10,7 +10,7 @@ export interface MathTraceDefinition {
   expression: string
   color: string
   lineWidth?: number
-  lineStyle?: "solid" | "dashed" | "dotted"
+  lineStyle?: 'solid' | 'dashed' | 'dotted'
   paneIndex?: number
   unit?: string
 }
@@ -69,10 +69,10 @@ export function numericalIntegral(x: number[], y: number[]): number[] {
 export function evaluateWaveformExpression(
   expr: string,
   dataMap: Record<string, number[]>,
-  xVarName: string = "time",
+  xVarName: string = 'time'
 ): { success: boolean; data?: number[]; error?: string; unit?: string } {
   if (!expr || !expr.trim()) {
-    return { success: false, error: "Empty expression" }
+    return { success: false, error: 'Empty expression' }
   }
 
   const cleanExpr = expr.trim()
@@ -87,7 +87,7 @@ export function evaluateWaveformExpression(
       return { success: false, error: `Signal "${targetVar}" or "${xVarName}" not found.` }
     }
     const result = numericalDerivative(xArr, yArr)
-    return { success: true, data: result, unit: "V/s" }
+    return { success: true, data: result, unit: 'V/s' }
   }
 
   // 2. Check for integral shorthand: integ(var) or s(var)*dt
@@ -100,7 +100,7 @@ export function evaluateWaveformExpression(
       return { success: false, error: `Signal "${targetVar}" or "${xVarName}" not found.` }
     }
     const result = numericalIntegral(xArr, yArr)
-    return { success: true, data: result, unit: "V·s" }
+    return { success: true, data: result, unit: 'V·s' }
   }
 
   // 3. Point-by-point vectorized mathematical evaluation
@@ -115,7 +115,7 @@ export function evaluateWaveformExpression(
   }
 
   if (pointCount === 0) {
-    return { success: false, error: "No simulation data points available." }
+    return { success: false, error: 'No simulation data points available.' }
   }
 
   // Prepare a safe evaluator function
@@ -131,8 +131,8 @@ export function evaluateWaveformExpression(
   for (const vName of sortedVars) {
     // Regex matching variable name case-insensitively
     // Escape parentheses for regex
-    const escaped = vName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    const regex = new RegExp(escaped, "gi")
+    const escaped = vName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const regex = new RegExp(escaped, 'gi')
     if (regex.test(jsExpr)) {
       const token = `__v_${tokenCounter++}`
       varTokenMap[token] = vName.toLowerCase()
@@ -142,16 +142,16 @@ export function evaluateWaveformExpression(
 
   // Replace math functions: abs -> Math.abs, sqrt -> Math.sqrt, etc.
   jsExpr = jsExpr
-    .replace(/\babs\(/gi, "Math.abs(")
-    .replace(/\bsqrt\(/gi, "Math.sqrt(")
-    .replace(/\blog\(/gi, "Math.log(")
-    .replace(/\blog10\(/gi, "Math.log10(")
-    .replace(/\bexp\(/gi, "Math.exp(")
-    .replace(/\bsin\(/gi, "Math.sin(")
-    .replace(/\bcos\(/gi, "Math.cos(")
-    .replace(/\btan\(/gi, "Math.tan(")
-    .replace(/\bpi\b/gi, "Math.PI")
-    .replace(/\^/g, "**") // Power operator
+    .replace(/\babs\(/gi, 'Math.abs(')
+    .replace(/\bsqrt\(/gi, 'Math.sqrt(')
+    .replace(/\blog\(/gi, 'Math.log(')
+    .replace(/\blog10\(/gi, 'Math.log10(')
+    .replace(/\bexp\(/gi, 'Math.exp(')
+    .replace(/\bsin\(/gi, 'Math.sin(')
+    .replace(/\bcos\(/gi, 'Math.cos(')
+    .replace(/\btan\(/gi, 'Math.tan(')
+    .replace(/\bpi\b/gi, 'Math.PI')
+    .replace(/\^/g, '**') // Power operator
 
   // Pre-compile function
   const tokens = Object.keys(varTokenMap)
@@ -176,5 +176,5 @@ export function evaluateWaveformExpression(
     return { success: false, error: `Evaluation error: ${err.message || String(err)}` }
   }
 
-  return { success: true, data: result, unit: cleanExpr.includes("*") ? "W" : "V" }
+  return { success: true, data: result, unit: cleanExpr.includes('*') ? 'W' : 'V' }
 }

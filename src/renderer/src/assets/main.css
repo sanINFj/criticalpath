@@ -6,7 +6,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  font-family: 'Inter', 'Segoe UI', 'Nirmala UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family:
+    'Inter',
+    'Segoe UI',
+    'Nirmala UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 
   --bg-app: #f0f2f5;
   --bg-panel: #ffffff;
@@ -43,7 +49,7 @@
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.07), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.06);
 
   --t-fast: 80ms ease;
   --t-base: 140ms ease;
@@ -90,7 +96,7 @@ body,
 .app-header {
   height: 30px;
   min-height: 30px;
-  background: #E5E3DC;
+  background: #e5e3dc;
   border-bottom: 1px solid #d0cecb;
   display: flex;
   align-items: center;
@@ -329,7 +335,7 @@ body,
 .ltspice-toolbar {
   height: 32px;
   min-height: 32px;
-  background: #E5E3DC;
+  background: #e5e3dc;
   border-bottom: 1px solid #d0cecb;
   display: flex;
   align-items: center;
@@ -398,7 +404,9 @@ body,
   white-space: nowrap;
   flex-shrink: 0;
   max-width: 220px;
-  transition: background 0.1s ease, color 0.1s ease;
+  transition:
+    background 0.1s ease,
+    color 0.1s ease;
 }
 
 .circuit-tab:hover:not(.active) {
@@ -827,7 +835,6 @@ body,
   border-radius: 3px !important;
 }
 
-
 .floating-zoom-widget {
   position: absolute;
   bottom: 14px;
@@ -856,7 +863,9 @@ body,
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
 
 .zoom-btn:hover {
@@ -966,7 +975,9 @@ body,
   border-radius: var(--radius-sm);
   outline: none;
   text-align: right;
-  transition: border-color var(--t-base), box-shadow var(--t-base);
+  transition:
+    border-color var(--t-base),
+    box-shadow var(--t-base);
 }
 
 .prop-input-control:focus {
@@ -979,7 +990,10 @@ body,
   width: 130px;
   padding: 4px 7px;
   font-size: 11.5px;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    sans-serif;
   font-weight: 500;
   color: var(--text-primary);
   background: var(--bg-panel);
@@ -987,7 +1001,9 @@ body,
   border-radius: var(--radius-sm);
   outline: none;
   cursor: pointer;
-  transition: border-color var(--t-base), box-shadow var(--t-base);
+  transition:
+    border-color var(--t-base),
+    box-shadow var(--t-base);
 }
 
 .prop-select-control:focus {
@@ -1020,11 +1036,17 @@ body,
   gap: 6px;
   color: var(--text-primary);
   font-size: 11.5px;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    sans-serif;
   font-weight: 500;
   cursor: pointer;
   outline: none;
-  transition: border-color var(--t-base), box-shadow var(--t-base), background var(--t-fast);
+  transition:
+    border-color var(--t-base),
+    box-shadow var(--t-base),
+    background var(--t-fast);
 }
 
 .custom-select-trigger:hover {
@@ -1049,7 +1071,9 @@ body,
 .custom-select-arrow {
   color: var(--text-muted);
   flex-shrink: 0;
-  transition: transform 0.15s ease, color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
 }
 
 .custom-select-arrow.open {
@@ -1097,7 +1121,10 @@ body,
   justify-content: space-between;
   padding: 6px 9px;
   font-size: 11.5px;
-  font-family: 'Inter', -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    -apple-system,
+    sans-serif;
   font-weight: 450;
   color: var(--text-secondary);
   background: transparent;
@@ -1106,7 +1133,9 @@ body,
   cursor: pointer;
   text-align: left;
   width: 100%;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
   white-space: nowrap;
 }
 
@@ -1120,7 +1149,6 @@ body,
   color: var(--accent);
   font-weight: 600;
 }
-
 
 .inspector-btn-group {
   display: flex;
@@ -1143,7 +1171,10 @@ body,
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    border-color var(--t-fast),
+    color var(--t-fast);
 }
 
 .inspector-btn:hover {
@@ -1253,7 +1284,6 @@ body,
 }
 
 @keyframes pulse-dot {
-
   0%,
   100% {
     opacity: 1;
@@ -1312,7 +1342,9 @@ body,
   cursor: pointer;
   text-align: left;
   width: 100%;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
 
 .context-menu-item:hover {
@@ -1337,7 +1369,9 @@ body,
 
 /* ── Edges / Wires ── */
 .react-flow__edge-path {
-  transition: stroke 0.12s ease, stroke-width 0.12s ease;
+  transition:
+    stroke 0.12s ease,
+    stroke-width 0.12s ease;
 }
 
 .react-flow__edge:hover .react-flow__edge-path {
@@ -1367,18 +1401,22 @@ body,
 .schematic-viewport.delete-mode-active .react-flow__edge,
 .schematic-viewport.delete-mode-active .react-flow__edge *,
 .schematic-viewport.delete-mode-active .react-flow__handle {
-  cursor: none !important;
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='5' y1='5' x2='19' y2='19' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round'/%3E%3Cline x1='5' y1='19' x2='19' y2='5' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round'/%3E%3Cline x1='5' y1='5' x2='19' y2='19' stroke='%23ef4444' stroke-width='2.5' stroke-linecap='round'/%3E%3Cline x1='5' y1='19' x2='19' y2='5' stroke='%23ef4444' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E")
+      12 12,
+    crosshair !important;
 }
 
 .schematic-viewport.delete-mode-active .react-flow__node:hover {
-  filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.8)) !important;
-  cursor: none !important;
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.9)) !important;
+  outline: 2px solid #ef4444 !important;
+  outline-offset: 3px;
 }
 
 .schematic-viewport.delete-mode-active .react-flow__edge:hover .react-flow__edge-path {
   stroke: #ef4444 !important;
-  stroke-width: 2.6px !important;
-  cursor: none !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.8)) !important;
 }
 
 /* ── LTspice Dual Probe Cursors ── */
@@ -1402,16 +1440,36 @@ body,
 .schematic-viewport.probe-mode-active .comp-type-port-out,
 .schematic-viewport.probe-mode-active .comp-type-port-bi,
 .schematic-viewport.probe-mode-active .react-flow__handle {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cline x1='1' y1='1' x2='7' y2='7' stroke='%23333333' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M7 7 L17 17 L20 14 L10 4 Z' fill='%23ef4444' stroke='%23b91c1c' stroke-width='1'/%3E%3Cpath d='M16 16 L24 24 L26 22 L18 14 Z' fill='%231f2937' stroke='%23111827' stroke-width='1'/%3E%3Cline x1='19' y1='17' x2='21' y2='19' stroke='%236b7280' stroke-width='1'/%3E%3Cline x1='21' y1='19' x2='23' y2='21' stroke='%236b7280' stroke-width='1'/%3E%3Cpath d='M25 23 Q29 27 31 31' fill='none' stroke='%23111827' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='9' cy='15' r='4' fill='%23ef4444' stroke='%23ffffff' stroke-width='1'/%3E%3Ctext x='9' y='17.5' font-family='Arial' font-size='6' font-weight='bold' fill='%23ffffff' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E") 1 1, crosshair !important;
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cline x1='1' y1='1' x2='7' y2='7' stroke='%23333333' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M7 7 L17 17 L20 14 L10 4 Z' fill='%23ef4444' stroke='%23b91c1c' stroke-width='1'/%3E%3Cpath d='M16 16 L24 24 L26 22 L18 14 Z' fill='%231f2937' stroke='%23111827' stroke-width='1'/%3E%3Cline x1='19' y1='17' x2='21' y2='19' stroke='%236b7280' stroke-width='1'/%3E%3Cline x1='21' y1='19' x2='23' y2='21' stroke='%236b7280' stroke-width='1'/%3E%3Cpath d='M25 23 Q29 27 31 31' fill='none' stroke='%23111827' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='9' cy='15' r='4' fill='%23ef4444' stroke='%23ffffff' stroke-width='1'/%3E%3Ctext x='9' y='17.5' font-family='Arial' font-size='6' font-weight='bold' fill='%23ffffff' text-anchor='middle'%3EV%3C/text%3E%3C/svg%3E")
+      1 1,
+    crosshair !important;
 }
 
 /* 2. Current Clamp Cursor (Ammeter loop centered at 14 14) */
 /* Active over component bodies (resistors, capacitors, inductors, diodes, transistors, sources) */
-.schematic-viewport.probe-mode-active .react-flow__node:not(.react-flow__node-junction):not(.comp-type-ground):not(.comp-type-net-label):not(.comp-type-vcc):not(.comp-type-port-in):not(.comp-type-port-out):not(.comp-type-port-bi),
-.schematic-viewport.probe-mode-active .react-flow__node:not(.react-flow__node-junction):not(.comp-type-ground):not(.comp-type-net-label):not(.comp-type-vcc):not(.comp-type-port-in):not(.comp-type-port-out):not(.comp-type-port-bi) *,
-.schematic-viewport.probe-mode-active .schematic-node-component:not(.comp-type-ground):not(.comp-type-net-label):not(.comp-type-vcc):not(.comp-type-port-in):not(.comp-type-port-out):not(.comp-type-port-bi),
-.schematic-viewport.probe-mode-active .schematic-node-component:not(.comp-type-ground):not(.comp-type-net-label):not(.comp-type-vcc):not(.comp-type-port-in):not(.comp-type-port-out):not(.comp-type-port-bi) * {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='14' cy='14' r='9' fill='none' stroke='%230284c7' stroke-width='2.5'/%3E%3Cpath d='M21 9 L25 5' stroke='%230284c7' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M14 8 L14 19 M11 16 L14 19 L17 16' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='23' cy='23' r='5' fill='%230284c7' stroke='%23ffffff' stroke-width='1'/%3E%3Ctext x='23' y='26' font-family='Arial' font-size='7' font-weight='bold' fill='%23ffffff' text-anchor='middle'%3EI%3C/text%3E%3C/svg%3E") 14 14, pointer !important;
+.schematic-viewport.probe-mode-active
+  .react-flow__node:not(.react-flow__node-junction):not(.comp-type-ground):not(
+    .comp-type-net-label
+  ):not(.comp-type-vcc):not(.comp-type-port-in):not(.comp-type-port-out):not(.comp-type-port-bi),
+.schematic-viewport.probe-mode-active
+  .react-flow__node:not(.react-flow__node-junction):not(.comp-type-ground):not(
+    .comp-type-net-label
+  ):not(.comp-type-vcc):not(.comp-type-port-in):not(.comp-type-port-out):not(.comp-type-port-bi)
+  *,
+.schematic-viewport.probe-mode-active
+  .schematic-node-component:not(.comp-type-ground):not(.comp-type-net-label):not(
+    .comp-type-vcc
+  ):not(.comp-type-port-in):not(.comp-type-port-out):not(.comp-type-port-bi),
+.schematic-viewport.probe-mode-active
+  .schematic-node-component:not(.comp-type-ground):not(.comp-type-net-label):not(
+    .comp-type-vcc
+  ):not(.comp-type-port-in):not(.comp-type-port-out):not(.comp-type-port-bi)
+  * {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='14' cy='14' r='9' fill='none' stroke='%230284c7' stroke-width='2.5'/%3E%3Cpath d='M21 9 L25 5' stroke='%230284c7' stroke-width='2.5' stroke-linecap='round'/%3E%3Cpath d='M14 8 L14 19 M11 16 L14 19 L17 16' fill='none' stroke='%23ef4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='23' cy='23' r='5' fill='%230284c7' stroke='%23ffffff' stroke-width='1'/%3E%3Ctext x='23' y='26' font-family='Arial' font-size='7' font-weight='bold' fill='%23ffffff' text-anchor='middle'%3EI%3C/text%3E%3C/svg%3E")
+      14 14,
+    pointer !important;
 }
 
 /* Probe hover highlights on wires and components */
@@ -1513,7 +1571,9 @@ body,
   font-size: 10px;
   color: #000000;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .comp-lib-close-btn:hover {
@@ -1990,7 +2050,7 @@ body,
   border: 1px solid #707070;
   border-radius: 0px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
-  width: 580px;
+  width: 630px;
   max-width: 95vw;
   max-height: 90vh;
   display: flex;
@@ -2063,7 +2123,9 @@ body,
   font-size: 10px;
   color: #000000;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .cfg-analysis-win-close-btn:hover,
@@ -2250,8 +2312,8 @@ body,
   user-select: none;
 }
 
-.cfg-analysis-checkbox-label input[type="checkbox"],
-.analysis-checkbox-label input[type="checkbox"] {
+.cfg-analysis-checkbox-label input[type='checkbox'],
+.analysis-checkbox-label input[type='checkbox'] {
   cursor: pointer;
 }
 
@@ -2403,7 +2465,11 @@ body,
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
-  transition: width 0.15s ease, height 0.15s ease, max-width 0.15s ease, border-radius 0.15s ease;
+  transition:
+    width 0.15s ease,
+    height 0.15s ease,
+    max-width 0.15s ease,
+    border-radius 0.15s ease;
 }
 
 .netlist-modal-container.maximized,
@@ -2832,7 +2898,9 @@ body,
   font-size: 10px;
   color: #000000;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .sim-error-win-close-btn:hover {
@@ -3080,7 +3148,9 @@ body,
   font-size: 10px;
   color: #000000;
   cursor: pointer;
-  transition: background 0.1s, color 0.1s;
+  transition:
+    background 0.1s,
+    color 0.1s;
 }
 
 .comp-prop-win-close-btn:hover {
@@ -3300,7 +3370,9 @@ body,
   justify-content: center;
   user-select: none;
   box-sizing: border-box;
-  transition: background 0.08s, border-color 0.08s;
+  transition:
+    background 0.08s,
+    border-color 0.08s;
 }
 
 .comp-prop-win-btn:hover:not(:disabled) {
@@ -4072,6 +4144,136 @@ body,
 }
 
 /* ============================================================
+   WAVEFORM SCOPE MEASUREMENT STRIP (Docked Below Canvas)
+   ============================================================ */
+.waveform-measurements-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f0ede6;
+  border-top: 1px solid #c0c0c0;
+  padding: 3px 10px;
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 11px;
+  color: #1f2937;
+  flex-shrink: 0;
+  gap: 12px;
+  z-index: 10;
+  box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.meas-strip-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.meas-strip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.meas-strip-title {
+  font-weight: 700;
+  font-size: 11px;
+  color: #0f172a;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+
+.meas-strip-badge {
+  font-size: 9.5px;
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid #bae6fd;
+  font-weight: 600;
+}
+
+.meas-strip-metrics {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.meas-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meas-lbl {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.meas-val {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.meas-val.highlight-vpp {
+  color: #0284c7;
+}
+
+.meas-val.highlight-cursor {
+  color: #dc2626;
+}
+
+.meas-strip-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.meas-strip-action-btn {
+  font-size: 10px;
+  color: #0284c7;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.meas-strip-action-btn:hover {
+  color: #0369a1;
+}
+
+.meas-strip-pts {
+  font-size: 9.5px;
+  color: #64748b;
+}
+
+.meas-strip-close-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 1px 5px;
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 2px;
+}
+
+.meas-strip-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #0f172a;
+}
+
+/* ============================================================
    INTERACTIVE PROBED NODE / WIRE CALCULATED VALUES HUD
    ============================================================ */
 
@@ -4323,7 +4525,10 @@ body,
 .schematic-viewport.probe-mode-active .react-flow__edge *,
 .schematic-viewport.probe-mode-active .react-flow__edge-path,
 .schematic-viewport.probe-mode-active .react-flow__handle {
-  cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%20%3Cg%20transform%3D%22translate(1%2C%201)%20rotate(45)%22%3E%20%3C!--%20Needle%20tip%3A%20fine%20metallic%20pin%20pointing%20at%20(1%2C%201)%20--%3E%20%3Cpath%20d%3D%22M%200%2C0%20L%207%2C-0.8%20L%207%2C0.8%20Z%22%20fill%3D%22%23f8fafc%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3Cline%20x1%3D%221%22%20y1%3D%220%22%20x2%3D%226.8%22%20y2%3D%220%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%220.5%22%20%2F%3E%20%3C!--%20Chuck%20%2F%20Tapered%20Collar%20--%3E%20%3Cpath%20d%3D%22M%207%2C-1.2%20L%209.5%2C-1.6%20L%209.5%2C1.6%20L%207%2C1.2%20Z%22%20fill%3D%22%231e293b%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3Cline%20x1%3D%227.2%22%20y1%3D%22-0.8%22%20x2%3D%229.3%22%20y2%3D%22-1%22%20stroke%3D%22%23475569%22%20stroke-width%3D%220.5%22%20%2F%3E%20%3C!--%20Finger%20Guard%20%2F%20Flange%20--%3E%20%3Cpath%20d%3D%22M%209.5%2C-3.2%20L%2011.2%2C-3.2%20L%2011.2%2C3.2%20L%209.5%2C3.2%20Z%22%20fill%3D%22%23991b1b%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3Cline%20x1%3D%229.8%22%20y1%3D%22-2.7%22%20x2%3D%229.8%22%20y2%3D%222.7%22%20stroke%3D%22%23f87171%22%20stroke-width%3D%220.6%22%20%2F%3E%20%3C!--%20Main%20Handle%20(Classic%20LTspice%20Red%20Barrel)%20--%3E%20%3Cpath%20d%3D%22M%2011.2%2C-2.2%20L%2023.5%2C-2.2%20L%2023.5%2C2.2%20L%2011.2%2C2.2%20Z%22%20fill%3D%22%23dc2626%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3C!--%203D%20Cylindrical%20Highlight%20--%3E%20%3Cpath%20d%3D%22M%2011.4%2C-2.0%20L%2023.3%2C-2.0%20L%2023.3%2C-0.6%20L%2011.4%2C-0.6%20Z%22%20fill%3D%22%23ef4444%22%20%2F%3E%20%3Cline%20x1%3D%2211.4%22%20y1%3D%22-1.3%22%20x2%3D%2223.3%22%20y2%3D%22-1.3%22%20stroke%3D%22%23fca5a5%22%20stroke-width%3D%220.6%22%20%2F%3E%20%3C!--%203D%20Bottom%20Shade%20--%3E%20%3Cpath%20d%3D%22M%2011.4%2C1.0%20L%2023.3%2C1.0%20L%2023.3%2C2.0%20L%2011.4%2C2.0%20Z%22%20fill%3D%22%23991b1b%22%20%2F%3E%20%3C!--%20Handle%20Grip%20Ridges%20--%3E%20%3Cline%20x1%3D%2214.5%22%20y1%3D%22-2.0%22%20x2%3D%2214.5%22%20y2%3D%222.0%22%20stroke%3D%22%237f1d1d%22%20stroke-width%3D%220.8%22%20%2F%3E%20%3Cline%20x1%3D%2217.5%22%20y1%3D%22-2.0%22%20x2%3D%2217.5%22%20y2%3D%222.0%22%20stroke%3D%22%237f1d1d%22%20stroke-width%3D%220.8%22%20%2F%3E%20%3Cline%20x1%3D%2220.5%22%20y1%3D%22-2.0%22%20x2%3D%2220.5%22%20y2%3D%222.0%22%20stroke%3D%22%237f1d1d%22%20stroke-width%3D%220.8%22%20%2F%3E%20%3C!--%20Rubber%20Strain%20Relief%20--%3E%20%3Cpath%20d%3D%22M%2023.5%2C-1.8%20L%2026.5%2C-1.0%20L%2026.5%2C1.0%20L%2023.5%2C1.8%20Z%22%20fill%3D%22%231e293b%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3C!--%20Flexible%20Lead%20Wire%20Tail%20--%3E%20%3Cpath%20d%3D%22M%2026.5%2C0%20C%2029.5%2C-0.5%2032%2C-1.8%2034%2C-0.8%22%20fill%3D%22none%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%3Cpath%20d%3D%22M%2026.5%2C0%20C%2029.5%2C-0.5%2032%2C-1.8%2034%2C-0.8%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%221.2%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%3C%2Fg%3E%20%3C%2Fsvg%3E") 1 1, crosshair !important;
+  cursor:
+    url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2032%2032%22%3E%20%3Cg%20transform%3D%22translate(1%2C%201)%20rotate(45)%22%3E%20%3C!--%20Needle%20tip%3A%20fine%20metallic%20pin%20pointing%20at%20(1%2C%201)%20--%3E%20%3Cpath%20d%3D%22M%200%2C0%20L%207%2C-0.8%20L%207%2C0.8%20Z%22%20fill%3D%22%23f8fafc%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3Cline%20x1%3D%221%22%20y1%3D%220%22%20x2%3D%226.8%22%20y2%3D%220%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%220.5%22%20%2F%3E%20%3C!--%20Chuck%20%2F%20Tapered%20Collar%20--%3E%20%3Cpath%20d%3D%22M%207%2C-1.2%20L%209.5%2C-1.6%20L%209.5%2C1.6%20L%207%2C1.2%20Z%22%20fill%3D%22%231e293b%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3Cline%20x1%3D%227.2%22%20y1%3D%22-0.8%22%20x2%3D%229.3%22%20y2%3D%22-1%22%20stroke%3D%22%23475569%22%20stroke-width%3D%220.5%22%20%2F%3E%20%3C!--%20Finger%20Guard%20%2F%20Flange%20--%3E%20%3Cpath%20d%3D%22M%209.5%2C-3.2%20L%2011.2%2C-3.2%20L%2011.2%2C3.2%20L%209.5%2C3.2%20Z%22%20fill%3D%22%23991b1b%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3Cline%20x1%3D%229.8%22%20y1%3D%22-2.7%22%20x2%3D%229.8%22%20y2%3D%222.7%22%20stroke%3D%22%23f87171%22%20stroke-width%3D%220.6%22%20%2F%3E%20%3C!--%20Main%20Handle%20(Classic%20LTspice%20Red%20Barrel)%20--%3E%20%3Cpath%20d%3D%22M%2011.2%2C-2.2%20L%2023.5%2C-2.2%20L%2023.5%2C2.2%20L%2011.2%2C2.2%20Z%22%20fill%3D%22%23dc2626%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3C!--%203D%20Cylindrical%20Highlight%20--%3E%20%3Cpath%20d%3D%22M%2011.4%2C-2.0%20L%2023.3%2C-2.0%20L%2023.3%2C-0.6%20L%2011.4%2C-0.6%20Z%22%20fill%3D%22%23ef4444%22%20%2F%3E%20%3Cline%20x1%3D%2211.4%22%20y1%3D%22-1.3%22%20x2%3D%2223.3%22%20y2%3D%22-1.3%22%20stroke%3D%22%23fca5a5%22%20stroke-width%3D%220.6%22%20%2F%3E%20%3C!--%203D%20Bottom%20Shade%20--%3E%20%3Cpath%20d%3D%22M%2011.4%2C1.0%20L%2023.3%2C1.0%20L%2023.3%2C2.0%20L%2011.4%2C2.0%20Z%22%20fill%3D%22%23991b1b%22%20%2F%3E%20%3C!--%20Handle%20Grip%20Ridges%20--%3E%20%3Cline%20x1%3D%2214.5%22%20y1%3D%22-2.0%22%20x2%3D%2214.5%22%20y2%3D%222.0%22%20stroke%3D%22%237f1d1d%22%20stroke-width%3D%220.8%22%20%2F%3E%20%3Cline%20x1%3D%2217.5%22%20y1%3D%22-2.0%22%20x2%3D%2217.5%22%20y2%3D%222.0%22%20stroke%3D%22%237f1d1d%22%20stroke-width%3D%220.8%22%20%2F%3E%20%3Cline%20x1%3D%2220.5%22%20y1%3D%22-2.0%22%20x2%3D%2220.5%22%20y2%3D%222.0%22%20stroke%3D%22%237f1d1d%22%20stroke-width%3D%220.8%22%20%2F%3E%20%3C!--%20Rubber%20Strain%20Relief%20--%3E%20%3Cpath%20d%3D%22M%2023.5%2C-1.8%20L%2026.5%2C-1.0%20L%2026.5%2C1.0%20L%2023.5%2C1.8%20Z%22%20fill%3D%22%231e293b%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%220.8%22%20stroke-linejoin%3D%22round%22%20%2F%3E%20%3C!--%20Flexible%20Lead%20Wire%20Tail%20--%3E%20%3Cpath%20d%3D%22M%2026.5%2C0%20C%2029.5%2C-0.5%2032%2C-1.8%2034%2C-0.8%22%20fill%3D%22none%22%20stroke%3D%22%230f172a%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%3Cpath%20d%3D%22M%2026.5%2C0%20C%2029.5%2C-0.5%2032%2C-1.8%2034%2C-0.8%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%221.2%22%20stroke-linecap%3D%22round%22%20%2F%3E%20%3C%2Fg%3E%20%3C%2Fsvg%3E')
+      1 1,
+    crosshair !important;
 }
 
 /* Subtle EDA trace contact highlight when hovering wires in probe mode */

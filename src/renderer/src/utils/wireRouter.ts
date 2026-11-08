@@ -1,7 +1,5 @@
-import type { Node, Edge } from "reactflow"
-import {
-  type SchematicNodeData,
-} from "../components/schematic/SchematicNode"
+import type { Node, Edge } from 'reactflow'
+import { type SchematicNodeData } from '../components/schematic/SchematicNode'
 
 export interface BoundingBox {
   minX: number
@@ -36,7 +34,7 @@ export function getNodeBoundingBox(node: Node<SchematicNodeData>): BoundingBox {
       maxX: nx + 90,
       minY: ny + 20,
       maxY: ny + 60,
-      nodeId: node.id,
+      nodeId: node.id
     }
   }
 
@@ -45,7 +43,7 @@ export function getNodeBoundingBox(node: Node<SchematicNodeData>): BoundingBox {
     maxX: nx + 95,
     minY: ny + 15,
     maxY: ny + 65,
-    nodeId: node.id,
+    nodeId: node.id
   }
 }
 
@@ -54,11 +52,11 @@ export function getNodeBoundingBox(node: Node<SchematicNodeData>): BoundingBox {
  */
 export function getComponentObstacles(
   nodes: Node<SchematicNodeData>[],
-  excludeNodeIds: (string | undefined)[] = [],
+  excludeNodeIds: (string | undefined)[] = []
 ): BoundingBox[] {
   const excludeSet = new Set(excludeNodeIds.filter(Boolean))
   return nodes
-    .filter((n) => n.type === "schematic" && !excludeSet.has(n.id))
+    .filter((n) => n.type === 'schematic' && !excludeSet.has(n.id))
     .map(getNodeBoundingBox)
 }
 
@@ -125,7 +123,7 @@ function isPointInObstacle(x: number, y: number, box: BoundingBox, clearance = 0
 interface PQNode {
   x: number
   y: number
-  dir: "h" | "v" | "start"
+  dir: 'h' | 'v' | 'start'
   g: number
   f: number
   parent: PQNode | null
@@ -232,7 +230,7 @@ export function routeOrthogonalAvoidance(
   start: Point,
   goal: Point,
   obstacles: BoundingBox[],
-  gridStep = 20,
+  gridStep = 20
 ): Point[] {
   const sx = Math.round(start.x / gridStep) * gridStep
   const sy = Math.round(start.y / gridStep) * gridStep
@@ -266,10 +264,10 @@ export function routeOrthogonalAvoidance(
   const startNode: PQNode = {
     x: sx,
     y: sy,
-    dir: "start",
+    dir: 'start',
     g: 0,
     f: manhattan(sx, sy, gx, gy),
-    parent: null,
+    parent: null
   }
 
   openHeap.push(startNode)
@@ -277,10 +275,10 @@ export function routeOrthogonalAvoidance(
 
   const turnPenalty = 50 // Penalize 90-degree turns to prefer long straight lines
   const directions = [
-    { dx: gridStep, dy: 0, dir: "h" as const },
-    { dx: -gridStep, dy: 0, dir: "h" as const },
-    { dx: 0, dy: gridStep, dir: "v" as const },
-    { dx: 0, dy: -gridStep, dir: "v" as const },
+    { dx: gridStep, dy: 0, dir: 'h' as const },
+    { dx: -gridStep, dy: 0, dir: 'h' as const },
+    { dx: 0, dy: gridStep, dir: 'v' as const },
+    { dx: 0, dy: -gridStep, dir: 'v' as const }
   ]
 
   let bestNode: PQNode | null = null
@@ -321,7 +319,7 @@ export function routeOrthogonalAvoidance(
         if (blocked) continue
       }
 
-      const isTurn = current.dir !== "start" && current.dir !== d.dir
+      const isTurn = current.dir !== 'start' && current.dir !== d.dir
       const tentativeG = current.g + gridStep + (isTurn ? turnPenalty : 0)
 
       const neighborKey = `${nx},${ny},${d.dir}`
@@ -336,7 +334,7 @@ export function routeOrthogonalAvoidance(
           dir: d.dir,
           g: tentativeG,
           f,
-          parent: current,
+          parent: current
         }
         openHeap.push(nextNode)
       }
@@ -348,7 +346,7 @@ export function routeOrthogonalAvoidance(
     return [
       { x: sx, y: sy },
       { x: gx, y: sy },
-      { x: gx, y: gy },
+      { x: gx, y: gy }
     ]
   }
 
@@ -370,7 +368,7 @@ export function routeOrthogonalAvoidance(
 export function computeAvoidanceWaypoints(
   start: Point,
   end: Point,
-  obstacles: BoundingBox[],
+  obstacles: BoundingBox[]
 ): Point[] {
   if (obstacles.length === 0) return []
 
@@ -381,7 +379,10 @@ export function computeAvoidanceWaypoints(
 
   // 1. Direct straight line if on the same axis
   if (sx === ex || sy === ey) {
-    const directStraight = [{ x: sx, y: sy }, { x: ex, y: ey }]
+    const directStraight = [
+      { x: sx, y: sy },
+      { x: ex, y: ey }
+    ]
     if (!doesPathIntersectObstacles(directStraight, obstacles)) {
       return []
     }
@@ -394,10 +395,13 @@ export function computeAvoidanceWaypoints(
           { x: sx, y: sy },
           { x: sx, y: bypassY },
           { x: ex, y: bypassY },
-          { x: ex, y: ey },
+          { x: ex, y: ey }
         ]
         if (!doesPathIntersectObstacles(bypassPath, obstacles)) {
-          return [{ x: sx, y: bypassY }, { x: ex, y: bypassY }]
+          return [
+            { x: sx, y: bypassY },
+            { x: ex, y: bypassY }
+          ]
         }
       }
     } else {
@@ -407,34 +411,45 @@ export function computeAvoidanceWaypoints(
           { x: sx, y: sy },
           { x: bypassX, y: sy },
           { x: bypassX, y: ey },
-          { x: ex, y: ey },
+          { x: ex, y: ey }
         ]
         if (!doesPathIntersectObstacles(bypassPath, obstacles)) {
-          return [{ x: bypassX, y: sy }, { x: bypassX, y: ey }]
+          return [
+            { x: bypassX, y: sy },
+            { x: bypassX, y: ey }
+          ]
         }
       }
     }
   }
 
   // 2. Test standard midpoint Z-step
-  const midX = Math.round(((sx + ex) / 2) / 20) * 20
+  const midX = Math.round((sx + ex) / 2 / 20) * 20
   const pathStep = [
     { x: sx, y: sy },
     { x: midX, y: sy },
     { x: midX, y: ey },
-    { x: ex, y: ey },
+    { x: ex, y: ey }
   ]
   if (!doesPathIntersectObstacles(pathStep, obstacles)) {
     return []
   }
 
   // 3. Test clean 1-bend L-paths (Corner-HV and Corner-VH)
-  const pathHV = [{ x: sx, y: sy }, { x: ex, y: sy }, { x: ex, y: ey }]
+  const pathHV = [
+    { x: sx, y: sy },
+    { x: ex, y: sy },
+    { x: ex, y: ey }
+  ]
   if (!doesPathIntersectObstacles(pathHV, obstacles)) {
     return [{ x: ex, y: sy }]
   }
 
-  const pathVH = [{ x: sx, y: sy }, { x: sx, y: ey }, { x: ex, y: ey }]
+  const pathVH = [
+    { x: sx, y: sy },
+    { x: sx, y: ey },
+    { x: ex, y: ey }
+  ]
   if (!doesPathIntersectObstacles(pathVH, obstacles)) {
     return [{ x: sx, y: ey }]
   }
@@ -454,7 +469,7 @@ export function computeAvoidanceWaypoints(
 export function getRoutedEdgeWaypoints(
   edge: Edge,
   nodes: Node<SchematicNodeData>[],
-  getPinCoordFn: (node: Node, handleId?: string | null) => Point,
+  getPinCoordFn: (node: Node, handleId?: string | null) => Point
 ): Point[] | undefined {
   const srcNode = nodes.find((n) => n.id === edge.source)
   const tgtNode = nodes.find((n) => n.id === edge.target)
@@ -480,8 +495,8 @@ export function getRoutedEdgeWaypoints(
 export function buildOrthogonalDraftPoints(
   draftPoints: Point[],
   targetPoint: Point,
-  bendOrientation: "h" | "v" = "h",
-  obstacles: BoundingBox[] = [],
+  bendOrientation: 'h' | 'v' = 'h',
+  obstacles: BoundingBox[] = []
 ): Point[] {
   if (draftPoints.length === 0) return [targetPoint]
 
@@ -497,16 +512,16 @@ export function buildOrthogonalDraftPoints(
 
     if (prev.x === cur.x || prev.y === cur.y) {
       cleanPts.push(cur)
-      curOri = prev.x === cur.x ? "v" : "h"
+      curOri = prev.x === cur.x ? 'v' : 'h'
     } else {
-      if (curOri === "h") {
+      if (curOri === 'h') {
         cleanPts.push({ x: cur.x, y: prev.y })
         cleanPts.push(cur)
-        curOri = "v"
+        curOri = 'v'
       } else {
         cleanPts.push({ x: prev.x, y: cur.y })
         cleanPts.push(cur)
-        curOri = "h"
+        curOri = 'h'
       }
     }
   }

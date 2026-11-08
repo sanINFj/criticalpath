@@ -1,0 +1,51 @@
+* ============================================================
+* Discrete Semiconductor Technology Library for ASAP EDA
+* Accurate SPICE Models for Common Laboratory & Industry Devices
+* ============================================================
+
+* --- Diodes ---
+.model 1N4148 D(Is=2.52n Rs=0.568 N=1.752 Cjo=4p M=0.4 tt=20n Bv=100 Ibv=100u)
+.model 1N4007 D(Is=7.027n Rs=0.0341 N=1.8 Cjo=10p M=0.333 Bv=1000 Ibv=5u)
+.model 1N5819 D(Is=31.7u Rs=0.051 N=1.05 Cjo=110p M=0.5 Eg=0.69 Bv=40 Ibv=1m)
+.model BAT54 D(Is=21.6n Rs=0.85 N=1.04 Cjo=10p M=0.33 Eg=0.69 Bv=30 Ibv=2u)
+.model MBR0520 D(Is=12.5u Rs=0.045 N=1.08 Cjo=150p M=0.5 Eg=0.69 Bv=20 Ibv=0.5m)
+.model BZX84C5V1 D(Is=1e-15 Rs=10 Bv=5.1 Ibv=5m)
+.model BZX84C3V3 D(Is=1e-15 Rs=20 Bv=3.3 Ibv=5m)
+.model BZX84C12V D(Is=1e-15 Rs=10 Bv=12.0 Ibv=5m)
+.model 1N4733A D(Is=1e-15 Rs=2 Bv=5.1 Ibv=49m)
+.model LED_RED D(Is=1e-19 Rs=2 N=1.8 Eg=2.1 Cjo=15p)
+.model LED_GREEN D(Is=1e-19 Rs=3 N=1.9 Eg=2.2 Cjo=12p)
+.model LED_BLUE D(Is=1e-21 Rs=4 N=2.1 Eg=3.2 Cjo=10p)
+
+* --- Bipolar Junction Transistors (BJT) ---
+.model 2N2222 NPN(Is=14.34f Xti=3 Eg=1.11 Vaf=74.03 Bf=255.9 Ne=1.307 Ise=14.34f Ikf=0.2847 Xtb=1.5 Br=6.092 Nc=2 Isc=0 Ikr=0 Rc=1 Cjc=7.306p Mjc=0.3416 Vjc=0.75 Fc=0.5 Cje=22.01p Mje=0.377 Vje=0.75 Tr=46.91n Tf=411.1p Itf=0.6 Vtf=1.7 Xtf=3 Rb=10)
+.model 2N3904 NPN(Is=1e-14 Xti=3 Eg=1.11 Vaf=100 Bf=300 Ne=1.5 Ise=0 Ikf=0.1 Xtb=1.5 Br=4 Nc=2 Isc=0 Ikr=0 Rc=1 Cjc=4p Mjc=0.33 Vjc=0.75 Fc=0.5 Cje=8p Mje=0.33 Vje=0.75 Tr=30n Tf=400p Rb=10)
+.model BC547B NPN(Is=1.8e-14 Xti=3 Eg=1.11 Vaf=80 Bf=330 Ne=1.4 Ise=5e-14 Ikf=0.15 Xtb=1.5 Br=3.5 Nc=2 Isc=0 Ikr=0 Rc=0.8 Cjc=3.5p Mjc=0.33 Vjc=0.75 Fc=0.5 Cje=9p Mje=0.33 Vje=0.75 Tr=20n Tf=300p Rb=12)
+.model 2N3055 NPN(Is=1.5e-11 Xti=3 Eg=1.11 Vaf=50 Bf=70 Ne=1.6 Ise=2e-10 Ikf=3 Xtb=1.5 Br=3 Nc=2 Isc=0 Ikr=0 Rc=0.08 Cjc=200p Mjc=0.33 Vjc=0.75 Fc=0.5 Cje=400p Mje=0.33 Vje=0.75 Tr=1u Tf=0.1u Rb=1.5)
+.model BD139 NPN(Is=1.2e-13 Xti=3 Eg=1.11 Vaf=100 Bf=160 Ne=1.4 Ise=2e-13 Ikf=0.8 Xtb=1.5 Br=4 Nc=2 Isc=0 Ikr=0 Rc=0.25 Cjc=25p Mjc=0.33 Vjc=0.75 Fc=0.5 Cje=50p Mje=0.33 Vje=0.75 Tr=50n Tf=50n Rb=3)
+
+.model 2N2907 PNP(Is=650.6f Xti=3 Eg=1.11 Vaf=115.7 Bf=231.7 Ne=1.829 Ise=5.492p Ikf=1.079 Xtb=1.5 Br=2.608 Nc=1.5 Isc=0 Ikr=0 Rc=0.715 Cjc=14.76p Mjc=0.5383 Vjc=0.75 Fc=0.5 Cje=19.82p Mje=0.3357 Vje=0.75 Tr=239.8n Tf=500p Itf=0.5 Vtf=2 Xtf=6 Rb=10)
+.model 2N3906 PNP(Is=1.4e-14 Xti=3 Eg=1.11 Vaf=100 Bf=200 Ne=1.5 Ise=0 Ikf=0.1 Xtb=1.5 Br=4 Nc=2 Isc=0 Ikr=0 Rc=1 Cjc=4.5p Mjc=0.33 Vjc=0.75 Fc=0.5 Cje=10p Mje=0.33 Vje=0.75 Tr=30n Tf=400p Rb=10)
+.model BC557B PNP(Is=1.8e-14 Xti=3 Eg=1.11 Vaf=80 Bf=330 Ne=1.4 Ise=5e-14 Ikf=0.15 Xtb=1.5 Br=3.5 Nc=2 Isc=0 Ikr=0 Rc=0.8 Cjc=4.5p Mjc=0.33 Vjc=0.75 Fc=0.5 Cje=11p Mje=0.33 Vje=0.75 Tr=20n Tf=300p Rb=12)
+.model BD140 PNP(Is=1.2e-13 Xti=3 Eg=1.11 Vaf=100 Bf=160 Ne=1.4 Ise=2e-13 Ikf=0.8 Xtb=1.5 Br=4 Nc=2 Isc=0 Ikr=0 Rc=0.25 Cjc=30p Mjc=0.33 Vjc=0.75 Fc=0.5 Cje=60p Mje=0.33 Vje=0.75 Tr=50n Tf=50n Rb=3)
+
+* --- MOSFETs ---
+.model 2N7000 NMOS(Level=1 Vto=2.1 Kp=0.12 Lambda=0.01 Rd=1.2 Rs=1.2 Cgso=60p Cgdo=15p Tox=80n)
+.model IRF540 NMOS(Level=1 Vto=3.7 Kp=5.5 Lambda=0.001 Rd=0.04 Rs=0.04 Cgso=1.5n Cgdo=0.3n Tox=100n)
+.model BS170 NMOS(Level=1 Vto=2.1 Kp=0.15 Lambda=0.01 Rd=1.5 Rs=1.5 Cgso=40p Cgdo=10p Tox=80n)
+.model IRFZ44N NMOS(Level=1 Vto=3.5 Kp=12.0 Lambda=0.001 Rd=0.017 Rs=0.017 Cgso=2.5n Cgdo=0.5n Tox=100n)
+
+.model IRF9530 PMOS(Level=1 Vto=-3.0 Kp=0.2 Lambda=0.01 Rd=0.3 Rs=0.3 Cgso=500p Cgdo=150p Tox=80n)
+.model BS250 PMOS(Level=1 Vto=-2.5 Kp=0.08 Lambda=0.015 Rd=4.0 Rs=4.0 Cgso=40p Cgdo=15p Tox=80n)
+.model VP2106 PMOS(Level=1 Vto=-1.5 Kp=0.12 Lambda=0.01 Rd=2.5 Rs=2.5 Cgso=50p Cgdo=20p Tox=80n)
+
+* --- JFETs ---
+.model 2N5457 NJF(Beta=1.125m Vto=-1.5 Lambda=2.3m Cgs=4.5p Cgd=4.5p)
+.model 2N3819 NJF(Beta=1.3m Vto=-3.0 Lambda=2m Cgs=4p Cgd=4p)
+.model J310 NJF(Beta=4m Vto=-2.5 Lambda=2.5m Cgs=5p Cgd=3p)
+.model BF245A NJF(Beta=1.0m Vto=-1.2 Lambda=2m Cgs=4p Cgd=4p)
+
+.model 2N5460 PJF(Beta=1.125m Vto=1.5 Lambda=2.3m Cgs=4.5p Cgd=4.5p)
+.model J270 PJF(Beta=2.5m Vto=2.0 Lambda=2.5m Cgs=6p Cgd=4p)
+.model 2N3993 PJF(Beta=1.5m Vto=2.5 Lambda=2m Cgs=5p Cgd=4p)
+

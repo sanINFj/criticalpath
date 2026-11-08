@@ -1,10 +1,10 @@
-import {
-  Handle,
-  Position,
-  type NodeProps,
-} from "reactflow"
+import { Handle, Position, type NodeProps } from 'reactflow'
 
-export default function JunctionNode({ data, selected, isConnectable }: NodeProps<{ showDot?: boolean }>) {
+export default function JunctionNode({
+  data,
+  selected,
+  isConnectable
+}: NodeProps<{ showDot?: boolean }>) {
   const showDot = Boolean(data?.showDot)
 
   return (
@@ -14,14 +14,12 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
       style={{
         width: 8,
         height: 8,
-        borderRadius: "50%",
-        background: showDot ? (selected ? "#2563eb" : "#1f2937") : "transparent",
-        boxShadow: selected
-          ? "0 0 0 2px #93c5fd"
-          : "none",
-        position: "relative",
-        boxSizing: "border-box",
-        pointerEvents: showDot || selected ? "all" : "none",
+        borderRadius: '50%',
+        background: showDot ? (selected ? '#2563eb' : '#1f2937') : 'transparent',
+        boxShadow: selected ? '0 0 0 2px #93c5fd' : 'none',
+        position: 'relative',
+        boxSizing: 'border-box',
+        pointerEvents: showDot || selected ? 'all' : 'none'
       }}
     >
       {/* 4 Target Handles centered on the solder dot */}
@@ -36,8 +34,8 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
           height: 8,
           top: 4,
           left: 4,
-          transform: "translate(-50%, -50%)",
-          pointerEvents: isConnectable ? "all" : "none",
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: isConnectable ? 'all' : 'none'
         }}
       />
       <Handle
@@ -51,8 +49,8 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
           height: 8,
           top: 4,
           left: 4,
-          transform: "translate(-50%, -50%)",
-          pointerEvents: isConnectable ? "all" : "none",
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: isConnectable ? 'all' : 'none'
         }}
       />
       <Handle
@@ -66,8 +64,8 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
           height: 8,
           top: 4,
           left: 4,
-          transform: "translate(-50%, -50%)",
-          pointerEvents: isConnectable ? "all" : "none",
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: isConnectable ? 'all' : 'none'
         }}
       />
       <Handle
@@ -81,8 +79,8 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
           height: 8,
           top: 4,
           left: 4,
-          transform: "translate(-50%, -50%)",
-          pointerEvents: isConnectable ? "all" : "none",
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: isConnectable ? 'all' : 'none'
         }}
       />
 
@@ -98,8 +96,8 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
           height: 8,
           top: 4,
           left: 4,
-          transform: "translate(-50%, -50%)",
-          pointerEvents: isConnectable ? "all" : "none",
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: isConnectable ? 'all' : 'none'
         }}
       />
       <Handle
@@ -113,8 +111,8 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
           height: 8,
           top: 4,
           left: 4,
-          transform: "translate(-50%, -50%)",
-          pointerEvents: isConnectable ? "all" : "none",
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: isConnectable ? 'all' : 'none'
         }}
       />
       <Handle
@@ -128,8 +126,8 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
           height: 8,
           top: 4,
           left: 4,
-          transform: "translate(-50%, -50%)",
-          pointerEvents: isConnectable ? "all" : "none",
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: isConnectable ? 'all' : 'none'
         }}
       />
       <Handle
@@ -143,8 +141,8 @@ export default function JunctionNode({ data, selected, isConnectable }: NodeProp
           height: 8,
           top: 4,
           left: 4,
-          transform: "translate(-50%, -50%)",
-          pointerEvents: isConnectable ? "all" : "none",
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: isConnectable ? 'all' : 'none'
         }}
       />
     </div>

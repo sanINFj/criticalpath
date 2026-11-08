@@ -3,8 +3,8 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 // Secure custom APIs for renderer
 const api = {
-  runSimulation: (netlist: string, analysisType?: string) =>
-    ipcRenderer.invoke('simulation:run', { netlist, analysisType }),
+  runSimulation: (netlist: string, analysisType?: string, workingDir?: string) =>
+    ipcRenderer.invoke('simulation:run', { netlist, analysisType, workingDir }),
   stopSimulation: () => ipcRenderer.invoke('simulation:stop'),
   checkEngine: () => ipcRenderer.invoke('simulation:checkEngine'),
   openFile: () => ipcRenderer.invoke('file:open'),
@@ -12,7 +12,7 @@ const api = {
   saveFile: (payload: { filePath?: string | null; content: string; defaultPath?: string }) =>
     ipcRenderer.invoke('file:save', payload),
   confirmClose: (filename: string) => ipcRenderer.invoke('file:confirmClose', filename),
-  aiChat: (payload: any) => ipcRenderer.invoke('ai:chat', payload),
+  aiChat: (payload: any) => ipcRenderer.invoke('ai:chat', payload)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

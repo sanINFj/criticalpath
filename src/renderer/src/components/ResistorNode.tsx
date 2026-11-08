@@ -1,4 +1,4 @@
-import { Handle, Position, type NodeProps } from "reactflow"
+import { Handle, Position, type NodeProps } from 'reactflow'
 
 type ResistorNodeData = {
   label: string
@@ -12,16 +12,14 @@ function ResistorNode({ data, selected }: NodeProps<ResistorNodeData>) {
       style={{
         width: 120,
         height: 70,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-        border: selected ? "2px solid #1976d2" : "2px solid #444",
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        border: selected ? '2px solid #1976d2' : '2px solid #444',
         borderRadius: 6,
-        background: "#fff",
-        boxShadow: selected
-          ? "0 0 0 2px rgba(25, 118, 210, 0.2)"
-          : "none",
+        background: '#fff',
+        boxShadow: selected ? '0 0 0 2px rgba(25, 118, 210, 0.2)' : 'none'
       }}
     >
       <Handle
@@ -30,15 +28,15 @@ function ResistorNode({ data, selected }: NodeProps<ResistorNodeData>) {
         id="pin1"
         style={{
           width: 10,
-          height: 10,
+          height: 10
         }}
       />
 
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: 'center' }}>
         <div
           style={{
             fontWeight: 700,
-            fontSize: 14,
+            fontSize: 14
           }}
         >
           {data.label}
@@ -47,11 +45,11 @@ function ResistorNode({ data, selected }: NodeProps<ResistorNodeData>) {
         <div
           style={{
             fontSize: 12,
-            color: "#666",
-            marginTop: 4,
+            color: '#666',
+            marginTop: 4
           }}
         >
-          {data.value ?? "1k"}
+          {data.value ?? '1k'}
         </div>
       </div>
 
@@ -61,7 +59,7 @@ function ResistorNode({ data, selected }: NodeProps<ResistorNodeData>) {
         id="pin2"
         style={{
           width: 10,
-          height: 10,
+          height: 10
         }}
       />
     </div>

@@ -1,20 +1,21 @@
-import React, { useState } from "react"
-import { Palette, X, Eye, EyeOff, Crosshair } from "lucide-react"
-import type { TraceConfig } from "../../utils/waveformSettings"
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Palette, X, Eye, EyeOff, Crosshair } from 'lucide-react'
+import type { TraceConfig } from '../../utils/waveformSettings'
 
 export const PALETTE_COLORS = [
-  "#10b981", // Emerald
-  "#06b6d4", // Cyan
-  "#f59e0b", // Amber
-  "#ec4899", // Rose
-  "#a855f7", // Purple
-  "#eab308", // Yellow
-  "#3b82f6", // Royal Blue
-  "#14b8a6", // Teal
-  "#f43f5e", // Crimson
-  "#84cc16", // Lime
-  "#f97316", // Bright Orange
-  "#6366f1", // Indigo
+  '#10b981', // Emerald
+  '#06b6d4', // Cyan
+  '#f59e0b', // Amber
+  '#ec4899', // Rose
+  '#a855f7', // Purple
+  '#eab308', // Yellow
+  '#3b82f6', // Royal Blue
+  '#14b8a6', // Teal
+  '#f43f5e', // Crimson
+  '#84cc16', // Lime
+  '#f97316', // Bright Orange
+  '#6366f1' // Indigo
 ]
 
 export interface TraceConfigModalProps {
@@ -42,9 +43,10 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
   onToggleTrace,
   onSoloTrace,
   onShowAll,
-  onHideAll,
+  onHideAll
 }) => {
-  const [activeTraceName, setActiveTraceName] = useState<string>(traces[0]?.name || "")
+  const { t } = useTranslation(['waveform', 'common'])
+  const [activeTraceName, setActiveTraceName] = useState<string>(traces[0]?.name || '')
 
   if (!isOpen) return null
 
@@ -54,27 +56,49 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
 
   return (
     <div className="wf-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="wf-modal-window" onClick={(e) => e.stopPropagation()} style={{ width: "560px" }}>
+      <div
+        className="wf-modal-window"
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: '560px' }}
+      >
         {/* Title bar */}
         <div className="wf-modal-header">
-          <div className="wf-modal-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="wf-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Palette size={15} />
-            Trace Properties & Visibility
+            {t('waveform:traces.traceConfig')}
           </div>
-          <button className="wf-modal-close" onClick={onClose} title="Close" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button
+            className="wf-modal-close"
+            onClick={onClose}
+            title={t('common:actions.close')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <X size={14} />
           </button>
         </div>
 
         {/* Modal body */}
-        <div className="wf-modal-body" style={{ display: "flex", gap: "16px", padding: "14px" }}>
+        <div className="wf-modal-body" style={{ display: 'flex', gap: '16px', padding: '14px' }}>
           {/* Left list of traces */}
-          <div style={{ width: "210px", display: "flex", flexDirection: "column", gap: "8px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", textTransform: "uppercase" }}>Signals</span>
-              <div style={{ display: "flex", gap: "4px" }}>
-                <button type="button" className="wf-mini-btn" onClick={onShowAll}>All</button>
-                <button type="button" className="wf-mini-btn" onClick={onHideAll}>None</button>
+          <div style={{ width: '210px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#475569',
+                  textTransform: 'uppercase'
+                }}
+              >
+                {t('waveform:traces.availableSignals')}
+              </span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button type="button" className="wf-mini-btn" onClick={onShowAll}>
+                  {t('waveform:traces.all')}
+                </button>
+                <button type="button" className="wf-mini-btn" onClick={onHideAll}>
+                  {t('waveform:traces.none')}
+                </button>
               </div>
             </div>
 
@@ -82,13 +106,13 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
               {traces.map((tr) => {
                 const trCfg = traceConfigs[tr.name] || {}
                 const isTrSelected = selectedTraces.includes(tr.name)
-                const color = trCfg.color || "#06b6d4"
+                const color = trCfg.color || '#06b6d4'
                 const isActive = tr.name === activeTraceName
 
                 return (
                   <div
                     key={tr.name}
-                    className={`wf-trace-list-item ${isActive ? "active" : ""}`}
+                    className={`wf-trace-list-item ${isActive ? 'active' : ''}`}
                     onClick={() => setActiveTraceName(tr.name)}
                   >
                     <input
@@ -96,7 +120,7 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
                       checked={isTrSelected}
                       onChange={() => onToggleTrace(tr.name)}
                       onClick={(e) => e.stopPropagation()}
-                      title="Show / Hide on plot"
+                      title={t('waveform:traces.showHide')}
                     />
                     <span className="wf-color-swatch-sm" style={{ background: color }} />
                     <span className="wf-trace-item-name">{tr.name.toUpperCase()}</span>
@@ -111,29 +135,41 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
 
           {/* Right trace detail editor */}
           {activeTrace ? (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #cbd5e1", paddingBottom: "6px" }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid #cbd5e1',
+                  paddingBottom: '6px'
+                }}
+              >
                 <div>
-                  <strong style={{ fontSize: "14px", color: "#0f172a" }}>{activeTrace.name.toUpperCase()}</strong>
-                  <span style={{ fontSize: "11px", color: "#64748b", marginLeft: "6px" }}>({activeTrace.unit || "V"})</span>
+                  <strong style={{ fontSize: '14px', color: '#0f172a' }}>
+                    {activeTrace.name.toUpperCase()}
+                  </strong>
+                  <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '6px' }}>
+                    ({activeTrace.unit || 'V'})
+                  </span>
                 </div>
-                <div style={{ display: "flex", gap: "6px" }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   <button
                     type="button"
-                    className={`wf-action-btn ${isSelected ? "active" : ""}`}
+                    className={`wf-action-btn ${isSelected ? 'active' : ''}`}
                     onClick={() => onToggleTrace(activeTrace.name)}
-                    title={isSelected ? "Hide trace from plot" : "Show trace on plot"}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                    title={isSelected ? t('waveform:traces.hidden') : t('waveform:traces.visible')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     {isSelected ? (
                       <>
                         <Eye size={13} />
-                        <span>Visible</span>
+                        <span>{t('waveform:traces.visible')}</span>
                       </>
                     ) : (
                       <>
                         <EyeOff size={13} />
-                        <span>Hidden</span>
+                        <span>{t('waveform:traces.hidden')}</span>
                       </>
                     )}
                   </button>
@@ -141,56 +177,65 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
                     type="button"
                     className="wf-action-btn"
                     onClick={() => onSoloTrace(activeTrace.name)}
-                    title="Isolate this trace (solo)"
-                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                    title={t('waveform:traces.soloTooltip')}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
                   >
                     <Crosshair size={13} />
-                    <span>Solo</span>
+                    <span>{t('waveform:traces.solo')}</span>
                   </button>
                 </div>
               </div>
 
               {/* Color picker */}
               <div className="wf-field-group">
-                <label className="wf-field-label">Trace Color:</label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "6px" }}>
+                <label className="wf-field-label">{t('waveform:traces.colorLabel')}</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
                   {PALETTE_COLORS.map((c) => (
                     <button
                       key={c}
                       type="button"
-                      className={`wf-palette-btn ${currentConfig.color === c ? "selected" : ""}`}
+                      className={`wf-palette-btn ${currentConfig.color === c ? 'selected' : ''}`}
                       style={{ background: c }}
                       onClick={() => onUpdateTraceConfig(activeTrace.name, { color: c })}
                       title={c}
                     />
                   ))}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input
                     type="color"
-                    value={currentConfig.color || "#10b981"}
-                    onChange={(e) => onUpdateTraceConfig(activeTrace.name, { color: e.target.value })}
-                    style={{ width: "32px", height: "24px", border: "1px solid #cbd5e1", cursor: "pointer" }}
+                    value={currentConfig.color || '#10b981'}
+                    onChange={(e) =>
+                      onUpdateTraceConfig(activeTrace.name, { color: e.target.value })
+                    }
+                    style={{
+                      width: '32px',
+                      height: '24px',
+                      border: '1px solid #cbd5e1',
+                      cursor: 'pointer'
+                    }}
                   />
                   <input
                     type="text"
-                    value={currentConfig.color || "#10b981"}
-                    onChange={(e) => onUpdateTraceConfig(activeTrace.name, { color: e.target.value })}
+                    value={currentConfig.color || '#10b981'}
+                    onChange={(e) =>
+                      onUpdateTraceConfig(activeTrace.name, { color: e.target.value })
+                    }
                     className="wf-text-input"
-                    style={{ width: "90px" }}
+                    style={{ width: '90px' }}
                   />
                 </div>
               </div>
 
               {/* Line Width */}
               <div className="wf-field-group">
-                <label className="wf-field-label">Line Thickness:</label>
-                <div style={{ display: "flex", gap: "6px" }}>
+                <label className="wf-field-label">{t('waveform:traces.lineThickness')}</label>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   {[1, 2, 3, 4].map((w) => (
                     <button
                       key={w}
                       type="button"
-                      className={`wf-option-btn ${(currentConfig.lineWidth || 2) === w ? "active" : ""}`}
+                      className={`wf-option-btn ${(currentConfig.lineWidth || 2) === w ? 'active' : ''}`}
                       onClick={() => onUpdateTraceConfig(activeTrace.name, { lineWidth: w })}
                     >
                       {w}px
@@ -201,15 +246,15 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
 
               {/* Line Style */}
               <div className="wf-field-group">
-                <label className="wf-field-label">Line Style:</label>
-                <div style={{ display: "flex", gap: "6px" }}>
-                  {(["solid", "dashed", "dotted"] as const).map((st) => (
+                <label className="wf-field-label">{t('waveform:traces.style')}:</label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {(['solid', 'dashed', 'dotted'] as const).map((st) => (
                     <button
                       key={st}
                       type="button"
-                      className={`wf-option-btn ${(currentConfig.lineStyle || "solid") === st ? "active" : ""}`}
+                      className={`wf-option-btn ${(currentConfig.lineStyle || 'solid') === st ? 'active' : ''}`}
                       onClick={() => onUpdateTraceConfig(activeTrace.name, { lineStyle: st })}
-                      style={{ textTransform: "capitalize" }}
+                      style={{ textTransform: 'capitalize' }}
                     >
                       {st}
                     </button>
@@ -220,13 +265,13 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
               {/* Pane Assignment (if panes > 1) */}
               {panesCount > 1 && (
                 <div className="wf-field-group">
-                  <label className="wf-field-label">Assigned Plot Pane:</label>
-                  <div style={{ display: "flex", gap: "6px" }}>
+                  <label className="wf-field-label">{t('waveform:traces.paneLabel')}</label>
+                  <div style={{ display: 'flex', gap: '6px' }}>
                     {Array.from({ length: panesCount }).map((_, idx) => (
                       <button
                         key={idx}
                         type="button"
-                        className={`wf-option-btn ${(currentConfig.pane ?? 0) === idx ? "active" : ""}`}
+                        className={`wf-option-btn ${(currentConfig.pane ?? 0) === idx ? 'active' : ''}`}
                         onClick={() => onUpdateTraceConfig(activeTrace.name, { pane: idx })}
                       >
                         Pane {idx + 1}
@@ -237,8 +282,16 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
               )}
             </div>
           ) : (
-            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#94a3b8" }}>
-              Select a trace from the left list.
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#94a3b8'
+              }}
+            >
+              {t('waveform:traces.selectHint')}
             </div>
           )}
         </div>
@@ -246,7 +299,7 @@ export const TraceConfigModal: React.FC<TraceConfigModalProps> = ({
         {/* Modal Footer */}
         <div className="wf-modal-footer">
           <button type="button" className="wf-primary-btn" onClick={onClose}>
-            Done
+            {t('common:actions.close')}
           </button>
         </div>
       </div>

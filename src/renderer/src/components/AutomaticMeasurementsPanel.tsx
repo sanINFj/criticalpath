@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect } from "react"
-import { useTranslation } from "react-i18next"
-import { BarChart2, X, Copy, Info } from "lucide-react"
-import type { SimulationRunResult } from "../../../shared/simulation"
+import React, { useState, useMemo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import { BarChart2, X, Copy, Info } from 'lucide-react'
+import type { SimulationRunResult } from '../../../shared/simulation'
 import {
   calculateAutomaticMeasurements,
-  type MeasurementsReport,
-} from "../utils/automaticMeasurements"
+  type MeasurementsReport
+} from '../utils/automaticMeasurements'
 
 export interface AutomaticMeasurementsPanelProps {
   simulationResult: SimulationRunResult | null
@@ -22,30 +22,41 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
   onClose,
   activePlottedTraces = [],
   initialSignal,
-  embedded = false,
+  embedded = false
 }) => {
   const { t } = useTranslation()
   // Extract all available signal names from simulation result
   const availableSignals = useMemo(() => {
     if (!simulationResult || !simulationResult.variables) return []
-    const xName = simulationResult.xVariable?.toLowerCase() || ""
+    const xName = simulationResult.xVariable?.toLowerCase() || ''
     return simulationResult.variables
-      .filter((v) => v.name.toLowerCase() !== xName && v.name.toLowerCase() !== "time" && v.name.toLowerCase() !== "frequency")
+      .filter(
+        (v) =>
+          v.name.toLowerCase() !== xName &&
+          v.name.toLowerCase() !== 'time' &&
+          v.name.toLowerCase() !== 'frequency'
+      )
       .map((v) => v.name)
   }, [simulationResult])
 
   // Current selected signal to measure
-  const [selectedSignal, setSelectedSignal] = useState<string>("")
-  const [filterCategory, setFilterCategory] = useState<"all" | "primary" | "timing">("all")
+  const [selectedSignal, setSelectedSignal] = useState<string>('')
+  const [filterCategory, setFilterCategory] = useState<'all' | 'primary' | 'timing'>('all')
   const [copiedNotice, setCopiedNotice] = useState(false)
 
   // Initialize or update selected signal
   useEffect(() => {
     if (initialSignal && availableSignals.includes(initialSignal)) {
       setSelectedSignal(initialSignal)
-    } else if (activePlottedTraces.length > 0 && availableSignals.includes(activePlottedTraces[0])) {
+    } else if (
+      activePlottedTraces.length > 0 &&
+      availableSignals.includes(activePlottedTraces[0])
+    ) {
       setSelectedSignal(activePlottedTraces[0])
-    } else if (availableSignals.length > 0 && (!selectedSignal || !availableSignals.includes(selectedSignal))) {
+    } else if (
+      availableSignals.length > 0 &&
+      (!selectedSignal || !availableSignals.includes(selectedSignal))
+    ) {
       setSelectedSignal(availableSignals[0])
     }
   }, [availableSignals, activePlottedTraces, initialSignal])
@@ -57,15 +68,27 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
 
   // Filtered measurement list
   const filteredMeasurements = useMemo(() => {
-    if (filterCategory === "all") return report.measurements
-    if (filterCategory === "primary") {
-      return report.measurements.filter((m) =>
-        m.id.includes("peak") || m.id.includes("min") || m.id.includes("avg") || m.id.includes("rms") || m.id.includes("gain") || m.id.includes("max")
+    if (filterCategory === 'all') return report.measurements
+    if (filterCategory === 'primary') {
+      return report.measurements.filter(
+        (m) =>
+          m.id.includes('peak') ||
+          m.id.includes('min') ||
+          m.id.includes('avg') ||
+          m.id.includes('rms') ||
+          m.id.includes('gain') ||
+          m.id.includes('max')
       )
     }
-    if (filterCategory === "timing") {
-      return report.measurements.filter((m) =>
-        m.id.includes("rise") || m.id.includes("fall") || m.id.includes("overshoot") || m.id.includes("settling") || m.id.includes("cutoff") || m.id.includes("bandwidth")
+    if (filterCategory === 'timing') {
+      return report.measurements.filter(
+        (m) =>
+          m.id.includes('rise') ||
+          m.id.includes('fall') ||
+          m.id.includes('overshoot') ||
+          m.id.includes('settling') ||
+          m.id.includes('cutoff') ||
+          m.id.includes('bandwidth')
       )
     }
     return report.measurements
@@ -78,12 +101,14 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
       `CriticalPath EDA - Automatic Measurements Report`,
       `Signal: ${report.signalName} | Analysis: .${report.analysisType.toUpperCase()} | Points: ${report.pointCount}`,
       `---------------------------------------------------------------------------------------------------------`,
-      `Measurement\tSymbol\tValue\tUnit\tStatus\tDefinition`,
+      `Measurement\tSymbol\tValue\tUnit\tStatus\tDefinition`
     ]
     filteredMeasurements.forEach((m) => {
-      lines.push(`${m.name}\t${m.symbol}\t${m.valueFormatted}\t${m.unit}\t${m.status}\t${m.definition}`)
+      lines.push(
+        `${m.name}\t${m.symbol}\t${m.valueFormatted}\t${m.unit}\t${m.status}\t${m.definition}`
+      )
     })
-    navigator.clipboard.writeText(lines.join("\n"))
+    navigator.clipboard.writeText(lines.join('\n'))
     setCopiedNotice(true)
     setTimeout(() => setCopiedNotice(false), 2000)
   }
@@ -92,9 +117,9 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
 
   return (
     <div
-      className={`measure-win-panel ${embedded ? "embedded" : ""}`}
+      className={`measure-win-panel ${embedded ? 'embedded' : ''}`}
       role="region"
-      aria-label="Automatic Measurements Panel"
+      aria-label={t('measurementsPanel.title')}
     >
       {/* Titlebar / Header */}
       <div className="measure-win-header">
@@ -102,14 +127,18 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
           <span className="measure-win-icon" aria-hidden="true">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
               <rect x="1" y="2" width="14" height="12" fill="#0055ea" />
-              <path d="M3 11 L6 6 L9 9 L13 4" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M3 11 L6 6 L9 9 L13 4"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </span>
           <span className="measure-win-title">{t('measurementsPanel.title')}</span>
 
-          <span className="measure-win-analysis-badge">
-            .{report.analysisType.toUpperCase()}
-          </span>
+          <span className="measure-win-analysis-badge">.{report.analysisType.toUpperCase()}</span>
 
           {/* Plotted Trace Quick Selectors */}
           <div className="measure-win-signal-chips">
@@ -118,7 +147,7 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
               <button
                 key={tr}
                 type="button"
-                className={`measure-win-chip ${selectedSignal === tr ? "active" : ""}`}
+                className={`measure-win-chip ${selectedSignal === tr ? 'active' : ''}`}
                 onClick={() => setSelectedSignal(tr)}
                 title={`Measure signal ${tr}`}
               >
@@ -144,29 +173,31 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
                 {sig.toUpperCase()}
               </option>
             ))}
-            {availableSignals.length === 0 && <option value="">{t('measurementsPanel.noSignals')}</option>}
+            {availableSignals.length === 0 && (
+              <option value="">{t('measurementsPanel.noSignals')}</option>
+            )}
           </select>
 
           {/* Category Filter Tabs */}
           <div className="measure-win-filter-tabs">
             <button
               type="button"
-              className={`measure-win-tab-btn ${filterCategory === "all" ? "active" : ""}`}
-              onClick={() => setFilterCategory("all")}
+              className={`measure-win-tab-btn ${filterCategory === 'all' ? 'active' : ''}`}
+              onClick={() => setFilterCategory('all')}
             >
               {t('measurementsPanel.tabAll')}
             </button>
             <button
               type="button"
-              className={`measure-win-tab-btn ${filterCategory === "primary" ? "active" : ""}`}
-              onClick={() => setFilterCategory("primary")}
+              className={`measure-win-tab-btn ${filterCategory === 'primary' ? 'active' : ''}`}
+              onClick={() => setFilterCategory('primary')}
             >
               {t('measurementsPanel.tabPrimary')}
             </button>
             <button
               type="button"
-              className={`measure-win-tab-btn ${filterCategory === "timing" ? "active" : ""}`}
-              onClick={() => setFilterCategory("timing")}
+              className={`measure-win-tab-btn ${filterCategory === 'timing' ? 'active' : ''}`}
+              onClick={() => setFilterCategory('timing')}
             >
               {t('measurementsPanel.tabTiming')}
             </button>
@@ -176,11 +207,13 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
             type="button"
             className="measure-win-btn"
             onClick={handleCopyClipboard}
-            title="Copy measurements table to clipboard"
-            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+            title={t('measurementsPanel.copyTable')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}
           >
             <Copy size={12} />
-            <span>{copiedNotice ? t('measurementsPanel.copied') : t('measurementsPanel.copy')}</span>
+            <span>
+              {copiedNotice ? t('measurementsPanel.copied') : t('measurementsPanel.copy')}
+            </span>
           </button>
 
           {onClose && (
@@ -188,9 +221,9 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
               type="button"
               className="measure-win-close-btn"
               onClick={onClose}
-              title="Close Measurements Panel"
+              title={t('measurementsPanel.close')}
               aria-label={t('actions.close')}
-              style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <X size={14} />
             </button>
@@ -205,12 +238,12 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
             <table className="measure-win-table">
               <thead>
                 <tr>
-                  <th style={{ width: "18%" }}>{t('measurementsPanel.thMeasurement')}</th>
-                  <th style={{ width: "12%" }}>{t('measurementsPanel.thSymbol')}</th>
-                  <th style={{ width: "20%" }}>{t('measurementsPanel.thCalculatedValue')}</th>
-                  <th style={{ width: "8%" }}>{t('measurementsPanel.thUnit')}</th>
-                  <th style={{ width: "12%" }}>{t('measurementsPanel.thStatus')}</th>
-                  <th style={{ width: "30%" }}>{t('measurementsPanel.thDefinition')}</th>
+                  <th style={{ width: '18%' }}>{t('measurementsPanel.thMeasurement')}</th>
+                  <th style={{ width: '12%' }}>{t('measurementsPanel.thSymbol')}</th>
+                  <th style={{ width: '20%' }}>{t('measurementsPanel.thCalculatedValue')}</th>
+                  <th style={{ width: '8%' }}>{t('measurementsPanel.thUnit')}</th>
+                  <th style={{ width: '12%' }}>{t('measurementsPanel.thStatus')}</th>
+                  <th style={{ width: '30%' }}>{t('measurementsPanel.thDefinition')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -223,20 +256,25 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
                       <code>{m.symbol}</code>
                     </td>
                     <td className="measure-cell-val">
-                      <span className={`measure-val-badge ${m.status}`}>
-                        {m.valueFormatted}
-                      </span>
+                      <span className={`measure-val-badge ${m.status}`}>{m.valueFormatted}</span>
                     </td>
-                    <td className="measure-cell-unit">{m.unit || "—"}</td>
+                    <td className="measure-cell-unit">{m.unit || '—'}</td>
                     <td className="measure-cell-status">
                       <span className={`measure-status-tag ${m.status}`}>
-                        {m.status === "valid" ? t('measurementsPanel.statusValid') : m.status === "insufficient_data" ? t('measurementsPanel.statusInsufficient') : "N/A"}
+                        {m.status === 'valid'
+                          ? t('measurementsPanel.statusValid')
+                          : m.status === 'insufficient_data'
+                            ? t('measurementsPanel.statusInsufficient')
+                            : 'N/A'}
                       </span>
                     </td>
                     <td className="measure-cell-def">
                       <div className="measure-def-text">{m.definition}</div>
                       {m.note && (
-                        <div className="measure-note-text" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <div
+                          className="measure-note-text"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                        >
                           <Info size={11} style={{ flexShrink: 0 }} />
                           <span>{m.note}</span>
                         </div>
@@ -249,7 +287,10 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
           </div>
         ) : (
           <div className="measure-win-empty">
-            <span className="measure-win-empty-icon" style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+            <span
+              className="measure-win-empty-icon"
+              style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}
+            >
               <BarChart2 size={36} strokeWidth={1.5} color="var(--accent, #38bdf8)" />
             </span>
             <div className="measure-win-empty-title">
@@ -269,10 +310,12 @@ export const AutomaticMeasurementsPanel: React.FC<AutomaticMeasurementsPanelProp
       {/* Footer Status Bar */}
       <div className="measure-win-footer">
         <span>
-          Signal: <strong>{report.signalName.toUpperCase()}</strong> ({report.pointCount} points calculated)
+          Signal: <strong>{report.signalName.toUpperCase()}</strong> ({report.pointCount} points
+          calculated)
         </span>
         <span className="measure-win-footer-hint">
-          Evaluated via genuine ngspice simulation vectors · Trapezoidal integration & linear interpolation
+          Evaluated via genuine ngspice simulation vectors · Trapezoidal integration & linear
+          interpolation
         </span>
       </div>
     </div>

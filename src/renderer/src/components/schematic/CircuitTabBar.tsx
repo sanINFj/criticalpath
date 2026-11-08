@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CircuitTab } from '../../utils/circuitProject'
 
 interface CircuitTabBarProps {
@@ -20,8 +21,9 @@ export default function CircuitTabBar({
   onNewTab,
   onSaveTab,
   onCloseOtherTabs,
-  onCloseAllTabs,
+  onCloseAllTabs
 }: CircuitTabBarProps) {
+  const { t } = useTranslation('common')
   const [contextMenu, setContextMenu] = useState<{
     visible: boolean
     x: number
@@ -54,7 +56,7 @@ export default function CircuitTabBar({
       visible: true,
       x: e.clientX,
       y: e.clientY,
-      tabId,
+      tabId
     })
   }
 
@@ -78,7 +80,15 @@ export default function CircuitTabBar({
               {/* Circuit Schematic Icon */}
               <span className="circuit-tab-icon">
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-                  <rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+                  <rect
+                    x="2"
+                    y="2"
+                    width="12"
+                    height="12"
+                    rx="1.5"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                  />
                   <circle cx="8" cy="8" r="2.5" fill="none" stroke="currentColor" strokeWidth="1" />
                   <line x1="2" y1="8" x2="5.5" y2="8" stroke="currentColor" strokeWidth="1.2" />
                   <line x1="10.5" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.2" />
@@ -88,7 +98,11 @@ export default function CircuitTabBar({
               {/* Title & Dirty indicator */}
               <span className="circuit-tab-title">
                 {tab.title}
-                {tab.isDirty && <span className="circuit-tab-dirty-bullet" title="Unsaved changes">*</span>}
+                {tab.isDirty && (
+                  <span className="circuit-tab-dirty-bullet" title={t('tabs.unsavedChanges')}>
+                    *
+                  </span>
+                )}
               </span>
 
               {/* Close Tab Button */}
@@ -98,7 +112,7 @@ export default function CircuitTabBar({
                   e.stopPropagation()
                   onCloseTab(tab.id)
                 }}
-                title="Close Schematic"
+                title={t('tabs.closeTab')}
                 aria-label={`Close ${tab.title}`}
               >
                 ✕
@@ -112,12 +126,28 @@ export default function CircuitTabBar({
       <button
         className="circuit-tab-new-btn"
         onClick={onNewTab}
-        title="New Schematic (Ctrl+N)"
-        aria-label="New Schematic"
+        title={`${t('tabs.newTab')} (Ctrl+N)`}
+        aria-label={t('tabs.newTab')}
       >
         <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-          <line x1="8" y1="3" x2="8" y2="13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <line x1="3" y1="8" x2="13" y2="8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <line
+            x1="8"
+            y1="3"
+            x2="8"
+            y2="13"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <line
+            x1="3"
+            y1="8"
+            x2="13"
+            y2="8"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
         </svg>
       </button>
 
@@ -130,7 +160,7 @@ export default function CircuitTabBar({
             position: 'fixed',
             top: contextMenu.y,
             left: contextMenu.x,
-            zIndex: 1000,
+            zIndex: 1000
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -141,7 +171,7 @@ export default function CircuitTabBar({
               setContextMenu({ visible: false, x: 0, y: 0, tabId: '' })
             }}
           >
-            <span>Close</span>
+            <span>{t('tabs.close')}</span>
             <span className="shortcut">Ctrl+W</span>
           </button>
 
@@ -153,7 +183,7 @@ export default function CircuitTabBar({
                 setContextMenu({ visible: false, x: 0, y: 0, tabId: '' })
               }}
             >
-              <span>Close Others</span>
+              <span>{t('tabs.closeOthers')}</span>
             </button>
           )}
 
@@ -165,7 +195,7 @@ export default function CircuitTabBar({
                 setContextMenu({ visible: false, x: 0, y: 0, tabId: '' })
               }}
             >
-              <span>Close All</span>
+              <span>{t('tabs.closeAll')}</span>
             </button>
           )}
 
@@ -180,7 +210,7 @@ export default function CircuitTabBar({
                   setContextMenu({ visible: false, x: 0, y: 0, tabId: '' })
                 }}
               >
-                <span>Save</span>
+                <span>{t('tabs.save')}</span>
                 <span className="shortcut">Ctrl+S</span>
               </button>
 
@@ -191,7 +221,7 @@ export default function CircuitTabBar({
                   setContextMenu({ visible: false, x: 0, y: 0, tabId: '' })
                 }}
               >
-                <span>Save As...</span>
+                <span>{t('tabs.saveAs')}</span>
                 <span className="shortcut">Ctrl+Shift+S</span>
               </button>
             </>
@@ -207,7 +237,7 @@ export default function CircuitTabBar({
                   setContextMenu({ visible: false, x: 0, y: 0, tabId: '' })
                 }}
               >
-                <span>Copy File Path</span>
+                <span>{t('tabs.copyPath')}</span>
               </button>
             </>
           )}

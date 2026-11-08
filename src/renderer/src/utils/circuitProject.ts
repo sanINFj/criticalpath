@@ -1,13 +1,7 @@
 import type { Node, Edge } from 'reactflow'
 import type { SchematicNodeData } from '../components/schematic/SchematicNode'
-import {
-  type AnalysisConfig,
-  DEFAULT_ANALYSIS_CONFIG,
-} from '../components/ConfigureAnalysisModal'
-import {
-  type SolverSettings,
-  DEFAULT_SOLVER_SETTINGS,
-} from '../components/SimulationSettingsModal'
+import { type AnalysisConfig, DEFAULT_ANALYSIS_CONFIG } from '../components/ConfigureAnalysisModal'
+import { type SolverSettings, DEFAULT_SOLVER_SETTINGS } from '../components/SimulationSettingsModal'
 import type { SimulationRunResult } from '../../../shared/simulation'
 
 export interface CircuitTab {
@@ -80,7 +74,7 @@ export function createDefaultCircuitTab(tabNumber: number): CircuitTab {
     analysisConfig: { ...DEFAULT_ANALYSIS_CONFIG },
     solverSettings: { ...DEFAULT_SOLVER_SETTINGS },
     simulationResult: null,
-    viewport: { x: 0, y: 0, zoom: 1 },
+    viewport: { x: 0, y: 0, zoom: 1 }
   }
 }
 
@@ -96,7 +90,7 @@ export function serializeCircuitTab(tab: CircuitTab): string {
     edges: tab.edges,
     analysisConfig: tab.analysisConfig,
     solverSettings: tab.solverSettings,
-    viewport: tab.viewport,
+    viewport: tab.viewport
   }
   return JSON.stringify(fileData, null, 2)
 }
@@ -107,7 +101,7 @@ export function serializeCircuitTab(tab: CircuitTab): string {
 export function deserializeCircuitTab(
   content: string,
   filePath: string | null,
-  fallbackTitle: string,
+  fallbackTitle: string
 ): CircuitTab {
   const title = filePath ? getFileNameFromPath(filePath) : fallbackTitle
 
@@ -131,7 +125,7 @@ export function deserializeCircuitTab(
           ? { ...DEFAULT_SOLVER_SETTINGS, ...parsed.solverSettings }
           : { ...DEFAULT_SOLVER_SETTINGS },
         simulationResult: null,
-        viewport: parsed.viewport || { x: 0, y: 0, zoom: 1 },
+        viewport: parsed.viewport || { x: 0, y: 0, zoom: 1 }
       }
     }
   } catch (_e) {
@@ -149,7 +143,7 @@ export function deserializeCircuitTab(
     history: { past: [], future: [] },
     analysisConfig: { ...DEFAULT_ANALYSIS_CONFIG },
     solverSettings: { ...DEFAULT_SOLVER_SETTINGS },
-    simulationResult: null,
+    simulationResult: null
   }
 }
 
@@ -176,7 +170,7 @@ export function addRecentFile(filePath: string, title?: string): RecentFile[] {
     const list = getRecentFiles().filter((f) => f.filePath !== filePath)
     const updated: RecentFile[] = [
       { filePath, title: cleanTitle, lastOpened: Date.now() },
-      ...list,
+      ...list
     ].slice(0, 10)
 
     localStorage.setItem(RECENT_FILES_KEY, JSON.stringify(updated))

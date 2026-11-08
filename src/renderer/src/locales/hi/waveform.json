@@ -22,7 +22,15 @@
     "leftAxis": "बायां Y-अक्ष",
     "rightAxis": "दायां Y-अक्ष",
     "assignedPane": "निर्दिष्ट पेन (Pane)",
-    "showHide": "प्लॉट पर दिखाएं"
+    "showHide": "प्लॉट पर दिखाएं",
+    "visible": "दृश्यमान",
+    "hidden": "छिपा हुआ",
+    "solo": "अकेला (Solo)",
+    "soloTooltip": "इस सिग्नल को अलग करें (solo)",
+    "lineThickness": "रेखा की मोटाई:",
+    "colorLabel": "ट्रेस रंग:",
+    "paneLabel": "निर्दिष्ट फलक (Pane):",
+    "selectHint": "बाईं सूची से एक ट्रेस चुनें।"
   },
   "axes": {
     "xAxis": "X-अक्ष (समय / आवृत्ति)",
@@ -31,9 +39,18 @@
     "autoScale": "स्वतः-स्केल",
     "min": "न्यूनतम",
     "max": "अधिकतम",
-    "logScale": "लॉगरिदमिक स्केल",
+    "logScale": "लघुगणकीय पैमाना (Log10)",
     "applyLimits": "सीमाएं लागू करें",
-    "resetAuto": "स्वतः पर रीसेट करें"
+    "resetAuto": "स्वतः पर रीसेट करें",
+    "autoScaleX": "X का स्वतः-स्केल",
+    "minX": "न्यूनतम X:",
+    "maxX": "अधिकतम X:",
+    "autoScaleLeftY": "बाएं Y का स्वतः-स्केल",
+    "minY": "न्यूनतम Y:",
+    "maxY": "अधिकतम Y:",
+    "autoScaleRightY": "दाएं Y का स्वतः-स्केल",
+    "minRightY": "न्यूनतम दायां Y:",
+    "maxRightY": "अधिकतम दायां Y:"
   },
   "appearance": {
     "theme": "थीम",
@@ -48,7 +65,10 @@
     "panesCount": "पेन की संख्या",
     "showLegend": "लेजेंड दिखाएं",
     "showCursors": "कर्सर दिखाएं",
-    "cursorMode": "कर्सर मोड"
+    "cursorMode": "कर्सर मोड",
+    "plotThemeTitle": "प्लॉट पृष्ठभूमि थीम",
+    "gridStyleTitle": "ग्रिड लाइन शैली",
+    "splitPanesTitle": "एकाधिक प्लॉट फलक (LTspice स्प्लिट पैन)"
   },
   "math": {
     "title": "गणितीय व्यंजक ट्रेस जोड़ें",
@@ -57,7 +77,15 @@
     "preview": "सूत्र पूर्वावलोकन",
     "addTrace": "मैथ ट्रेस जोड़ें",
     "valid": "मान्य व्यंजक",
-    "invalid": "वाक्यविन्यास त्रुटि या अज्ञात चर"
+    "invalid": "वाक्यविन्यास त्रुटि या अज्ञात चर",
+    "expressionLabel": "गणितीय समीकरण:",
+    "displayLabel": "ट्रेस लेबल प्रदर्शित करें:",
+    "pane": "फलक:",
+    "traceColor": "ट्रेस रंग:",
+    "removeTrace": "गणित ट्रेस हटाएं",
+    "close": "बंद करें",
+    "placeholderExpr": "उदा. V(out) - V(in)  या  d(V(out))/dt  या  V(out)*I(R1)",
+    "placeholderName": "उदा. Diff_Out"
   },
   "annotations": {
     "title": "प्लॉट टिप्पणियाँ और मार्कर",
@@ -67,13 +95,28 @@
     "refLineV": "लंबवत संदर्भ रेखा",
     "arrow": "तीर सूचक",
     "add": "टिप्पणी जोड़ें",
-    "clearAll": "सभी टिप्पणियाँ साफ़ करें"
+    "clearAll": "सभी टिप्पणियाँ साफ़ करें",
+    "typeLabel": "टिप्पणी प्रकार:",
+    "textNote": "पाठ नोट",
+    "endX": "अंतिम X (तीर शीर्ष):",
+    "endY": "अंतिम Y (तीर शीर्ष):",
+    "labelContent": "लेबल / पाठ सामग्री:",
+    "color": "रंग:",
+    "pane": "फलक:",
+    "delete": "हटाएं",
+    "close": "बंद करें"
   },
   "export": {
     "title": "निर्यात और प्रोफ़ाइल",
     "exportCsv": "CSV के रूप में डेटा निर्यात करें",
     "exportPng": "उच्च रिज़ॉल्यूशन PNG निर्यात करें",
     "saveProfile": "सेटिंग्स प्रोफ़ाइल सहेजें",
-    "loadProfile": "सेटिंग्स प्रोफ़ाइल लोड करें"
+    "loadProfile": "सेटिंग्स प्रोफ़ाइल लोड करें",
+    "dataExportTitle": "वेवफॉर्म डेटा और छवि निर्यात",
+    "exportCsvBtn": "प्लॉट डेटा को CSV में निर्यात करें",
+    "savePngBtn": "उच्च-रिज़ॉल्यूशन PNG छवि सहेजें",
+    "configTitle": "प्लॉट सेटिंग्स कॉन्फ़िगरेशन (JSON)",
+    "saveConfigBtn": "कॉन्फ़िगरेशन सहेजें (.json)",
+    "loadConfigBtn": "कॉन्फ़िगरेशन लोड करें (.json)"
   }
 }

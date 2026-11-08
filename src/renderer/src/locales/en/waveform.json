@@ -22,7 +22,15 @@
     "leftAxis": "Left Y-Axis",
     "rightAxis": "Right Y-Axis",
     "assignedPane": "Assigned Pane",
-    "showHide": "Show on Plot"
+    "showHide": "Show on Plot",
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "solo": "Solo",
+    "soloTooltip": "Isolate this trace (solo)",
+    "lineThickness": "Line Thickness:",
+    "colorLabel": "Trace Color:",
+    "paneLabel": "Assigned Plot Pane:",
+    "selectHint": "Select a trace from the left list."
   },
   "axes": {
     "xAxis": "X-Axis (Time / Frequency)",
@@ -31,9 +39,18 @@
     "autoScale": "Auto-scale",
     "min": "Min",
     "max": "Max",
-    "logScale": "Logarithmic Scale",
+    "logScale": "Logarithmic scale (Log10)",
     "applyLimits": "Apply Limits",
-    "resetAuto": "Reset to Auto"
+    "resetAuto": "Reset to Auto",
+    "autoScaleX": "Auto-scale X",
+    "minX": "Min X:",
+    "maxX": "Max X:",
+    "autoScaleLeftY": "Auto-scale Left Y",
+    "minY": "Min Y:",
+    "maxY": "Max Y:",
+    "autoScaleRightY": "Auto-scale Right Y",
+    "minRightY": "Min Right Y:",
+    "maxRightY": "Max Right Y:"
   },
   "appearance": {
     "theme": "Theme",
@@ -48,7 +65,10 @@
     "panesCount": "Number of Panes",
     "showLegend": "Show Legend",
     "showCursors": "Show Cursors",
-    "cursorMode": "Cursor Mode"
+    "cursorMode": "Cursor Mode",
+    "plotThemeTitle": "Plot Background Theme",
+    "gridStyleTitle": "Grid Line Style",
+    "splitPanesTitle": "Multiple Plot Panes (LTspice Split Panes)"
   },
   "math": {
     "title": "Add Mathematical Expression Trace",
@@ -57,7 +77,15 @@
     "preview": "Formula Preview",
     "addTrace": "Add Math Trace",
     "valid": "Valid expression",
-    "invalid": "Syntax error or unknown variable"
+    "invalid": "Syntax error or unknown variable",
+    "expressionLabel": "Mathematical Expression:",
+    "displayLabel": "Display Trace Label:",
+    "pane": "Pane:",
+    "traceColor": "Trace Color:",
+    "removeTrace": "Remove math trace",
+    "close": "Close",
+    "placeholderExpr": "e.g. V(out) - V(in)  or  d(V(out))/dt  or  V(out)*I(R1)",
+    "placeholderName": "e.g. Diff_Out"
   },
   "annotations": {
     "title": "Plot Annotations & Markers",
@@ -67,13 +95,28 @@
     "refLineV": "Vertical Ref Line",
     "arrow": "Arrow Pointer",
     "add": "Add Annotation",
-    "clearAll": "Clear All Annotations"
+    "clearAll": "Clear All Annotations",
+    "typeLabel": "Annotation Type:",
+    "textNote": "Text Note",
+    "endX": "End X (Arrowhead):",
+    "endY": "End Y (Arrowhead):",
+    "labelContent": "Label / Text Content:",
+    "color": "Color:",
+    "pane": "Pane:",
+    "delete": "Delete",
+    "close": "Close"
   },
   "export": {
     "title": "Export & Profiles",
     "exportCsv": "Export Data as CSV",
     "exportPng": "Export High-Res PNG",
     "saveProfile": "Save Settings Profile",
-    "loadProfile": "Load Settings Profile"
+    "loadProfile": "Load Settings Profile",
+    "dataExportTitle": "Waveform Data & Image Export",
+    "exportCsvBtn": "Export Plotted Data to CSV",
+    "savePngBtn": "Save High-Res PNG Image",
+    "configTitle": "Plot Settings Configuration (JSON)",
+    "saveConfigBtn": "Save Configuration (.json)",
+    "loadConfigBtn": "Load Configuration (.json)"
   }
 }

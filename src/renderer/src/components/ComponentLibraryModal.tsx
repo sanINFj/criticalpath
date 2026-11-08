@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useMemo, useRef } from "react"
-import { useTranslation } from "react-i18next"
-import { X, Search } from "lucide-react"
+import React, { useState, useEffect, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { X, Search } from 'lucide-react'
 import {
   renderSymbol,
   getComponentPins,
-  type SchematicComponentType,
-} from "./schematic/SchematicNode"
+  type SchematicComponentType
+} from './schematic/SchematicNode'
 
 export interface ComponentItem {
-  type: SchematicComponentType | "junction"
+  type: SchematicComponentType | 'junction'
   name: string
   icon: React.ReactNode
   hotkey?: string
@@ -26,15 +26,15 @@ interface ComponentLibraryModalProps {
 }
 
 const CATEGORIES = [
-  "All",
-  "Passives",
-  "Sources",
-  "Diodes",
-  "Transistors",
-  "Analog & Power",
-  "Digital Logic",
-  "Power",
-  "Connectors",
+  'All',
+  'Passives',
+  'Sources',
+  'Diodes',
+  'Transistors',
+  'Analog & Power',
+  'Digital Logic',
+  'Power',
+  'Connectors'
 ] as const
 
 export default function ComponentLibraryModal({
@@ -42,12 +42,12 @@ export default function ComponentLibraryModal({
   onClose,
   onSelectComponent,
   onSelectJunction,
-  catalog,
+  catalog
 }: ComponentLibraryModalProps) {
   const { t } = useTranslation('common')
-  const [selectedCategory, setSelectedCategory] = useState<string>("All")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedItemType, setSelectedItemType] = useState<string>("resistor")
+  const [selectedCategory, setSelectedCategory] = useState<string>('All')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedItemType, setSelectedItemType] = useState<string>('resistor')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Focus search input when modal opens
@@ -64,23 +64,22 @@ export default function ComponentLibraryModal({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault()
         onClose()
-      } else if (e.key === "Enter") {
+      } else if (e.key === 'Enter') {
         e.preventDefault()
         handleConfirmPlacement()
       }
     }
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, selectedItemType, catalog])
 
   // Filter components
   const filteredItems = useMemo(() => {
     return catalog.filter((item) => {
-      const matchesCategory =
-        selectedCategory === "All" || item.category === selectedCategory
+      const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory
       const query = searchQuery.trim().toLowerCase()
       if (!query) return matchesCategory
 
@@ -111,7 +110,7 @@ export default function ComponentLibraryModal({
 
   const handleConfirmPlacement = () => {
     if (!currentItem) return
-    if (currentItem.type === "junction") {
+    if (currentItem.type === 'junction') {
       onSelectJunction()
     } else {
       onSelectComponent(currentItem.type as SchematicComponentType)
@@ -120,7 +119,7 @@ export default function ComponentLibraryModal({
   }
 
   const handleItemDoubleClick = (item: ComponentItem) => {
-    if (item.type === "junction") {
+    if (item.type === 'junction') {
       onSelectJunction()
     } else {
       onSelectComponent(item.type as SchematicComponentType)
@@ -132,7 +131,7 @@ export default function ComponentLibraryModal({
 
   // Pins for current preview item
   const previewPins =
-    currentItem && currentItem.type !== "junction"
+    currentItem && currentItem.type !== 'junction'
       ? getComponentPins(currentItem.type as SchematicComponentType)
       : []
 
@@ -148,19 +147,28 @@ export default function ComponentLibraryModal({
         <div className="comp-lib-header">
           <div className="comp-lib-title-area">
             <span className="comp-lib-badge" aria-hidden="true">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <polygon points="4,2 20,12 4,22" />
                 <line x1="20" y1="12" x2="23" y2="12" strokeWidth="2.5" />
               </svg>
             </span>
-            <span className="comp-lib-title">{t('componentLib.title')} ({catalog.length} {t('componentLib.available')})</span>
+            <span className="comp-lib-title">
+              {t('componentLib.title')} ({catalog.length} {t('componentLib.available')})
+            </span>
           </div>
           <button
             className="comp-lib-close-btn"
             onClick={onClose}
             title={`${t('actions.close')} (Esc)`}
-            aria-label="Close"
-            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+            aria-label={t('actions.close')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <X size={14} />
           </button>
@@ -181,16 +189,16 @@ export default function ComponentLibraryModal({
             {searchQuery && (
               <button
                 className="comp-lib-search-clear"
-                onClick={() => setSearchQuery("")}
-                title="Clear search"
-                style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+                onClick={() => setSearchQuery('')}
+                title={t('componentLib.clearSearch')}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <X size={12} />
               </button>
             )}
           </div>
           <div className="comp-lib-results-count">
-            {filteredItems.length} {filteredItems.length === 1 ? "symbol" : "symbols"}
+            {filteredItems.length} {filteredItems.length === 1 ? 'symbol' : 'symbols'}
           </div>
         </div>
 
@@ -198,17 +206,16 @@ export default function ComponentLibraryModal({
         <div className="comp-lib-categories-bar">
           {CATEGORIES.map((cat) => {
             const count =
-              cat === "All"
-                ? catalog.length
-                : catalog.filter((c) => c.category === cat).length
-            if (count === 0 && cat !== "All") return null
+              cat === 'All' ? catalog.length : catalog.filter((c) => c.category === cat).length
+            if (count === 0 && cat !== 'All') return null
             return (
               <button
                 key={cat}
-                className={`comp-lib-cat-pill ${selectedCategory === cat ? "active" : ""}`}
+                className={`comp-lib-cat-pill ${selectedCategory === cat ? 'active' : ''}`}
                 onClick={() => setSelectedCategory(cat)}
               >
-                {t(`componentLib.categories.${cat}`, cat)} <span className="cat-count">{count}</span>
+                {t(`componentLib.categories.${cat}`, cat)}{' '}
+                <span className="cat-count">{count}</span>
               </button>
             )
           })}
@@ -220,15 +227,18 @@ export default function ComponentLibraryModal({
           <div className="comp-lib-list-container">
             {filteredItems.length === 0 ? (
               <div className="comp-lib-empty">
-                <span className="comp-lib-empty-icon" style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+                <span
+                  className="comp-lib-empty-icon"
+                  style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}
+                >
                   <Search size={36} strokeWidth={1.5} color="#94a3b8" />
                 </span>
                 <p>{t('componentLib.noMatches')}</p>
                 <button
                   className="comp-lib-empty-btn"
                   onClick={() => {
-                    setSearchQuery("")
-                    setSelectedCategory("All")
+                    setSearchQuery('')
+                    setSelectedCategory('All')
                   }}
                 >
                   {t('componentLib.clearFilter')}
@@ -241,7 +251,7 @@ export default function ComponentLibraryModal({
                   return (
                     <div
                       key={item.type}
-                      className={`comp-lib-row ${isSelected ? "selected" : ""}`}
+                      className={`comp-lib-row ${isSelected ? 'selected' : ''}`}
                       onClick={() => setSelectedItemType(item.type)}
                       onDoubleClick={() => handleItemDoubleClick(item)}
                     >
@@ -250,9 +260,7 @@ export default function ComponentLibraryModal({
                         <span className="comp-lib-row-name">{item.name}</span>
                         <span className="comp-lib-row-category">{item.category}</span>
                       </div>
-                      {item.hotkey && (
-                        <kbd className="comp-lib-row-hotkey">{item.hotkey}</kbd>
-                      )}
+                      {item.hotkey && <kbd className="comp-lib-row-hotkey">{item.hotkey}</kbd>}
                     </div>
                   )
                 })}
@@ -263,7 +271,7 @@ export default function ComponentLibraryModal({
           {/* Right: Symbol Preview & Info */}
           <div className="comp-lib-preview-container">
             <div className="comp-lib-preview-header">
-              <span className="comp-lib-preview-title">Symbol Preview</span>
+              <span className="comp-lib-preview-title">{t('componentLib.symbolPreview')}</span>
               {currentItem?.defaultValue && (
                 <span className="comp-lib-preview-def-val">
                   Default: {currentItem.defaultValue}
@@ -276,14 +284,14 @@ export default function ComponentLibraryModal({
               <div className="comp-lib-preview-grid-bg" />
 
               {currentItem ? (
-                currentItem.type === "junction" ? (
+                currentItem.type === 'junction' ? (
                   <div className="comp-lib-preview-junction">
                     <svg width="60" height="60" viewBox="0 0 60 60">
                       <line x1="0" y1="30" x2="60" y2="30" stroke="#1f2937" strokeWidth="2" />
                       <line x1="30" y1="0" x2="30" y2="60" stroke="#1f2937" strokeWidth="2" />
                       <circle cx="30" cy="30" r="6" fill="#1f2937" />
                     </svg>
-                    <span className="comp-lib-preview-name">Solder Junction Dot</span>
+                    <span className="comp-lib-preview-name">{t('componentLib.solderDot')}</span>
                   </div>
                 ) : (
                   <div className="comp-lib-preview-graphic-wrap">
@@ -319,28 +327,28 @@ export default function ComponentLibraryModal({
             {currentItem && (
               <div className="comp-lib-details-card">
                 <div className="comp-lib-details-row">
-                  <span className="comp-lib-detail-label">Component</span>
+                  <span className="comp-lib-detail-label">{t('componentLib.component')}</span>
                   <span className="comp-lib-detail-value">{currentItem.name}</span>
                 </div>
                 <div className="comp-lib-details-row">
-                  <span className="comp-lib-detail-label">Category</span>
+                  <span className="comp-lib-detail-label">{t('componentLib.category')}</span>
                   <span className="comp-lib-detail-value">{currentItem.category}</span>
                 </div>
                 <div className="comp-lib-details-row">
-                  <span className="comp-lib-detail-label">Type Key</span>
+                  <span className="comp-lib-detail-label">{t('componentLib.typeKey')}</span>
                   <span className="comp-lib-detail-value font-mono">{currentItem.type}</span>
                 </div>
                 {previewPins.length > 0 && (
                   <div className="comp-lib-details-row">
                     <span className="comp-lib-detail-label">Pins ({previewPins.length})</span>
                     <span className="comp-lib-detail-value font-mono">
-                      {previewPins.map((p) => p.name).join(", ")}
+                      {previewPins.map((p) => p.name).join(', ')}
                     </span>
                   </div>
                 )}
                 {currentItem.hotkey && (
                   <div className="comp-lib-details-row">
-                    <span className="comp-lib-detail-label">Top Toolbar Hotkey</span>
+                    <span className="comp-lib-detail-label">{t('componentLib.topHotkey')}</span>
                     <span className="comp-lib-detail-value font-mono">
                       <kbd className="comp-lib-hotkey-badge">{currentItem.hotkey}</kbd>
                     </span>
@@ -353,9 +361,7 @@ export default function ComponentLibraryModal({
 
         {/* Footer */}
         <div className="comp-lib-footer">
-          <div className="comp-lib-footer-hint">
-            {t('componentLib.footerHint')}
-          </div>
+          <div className="comp-lib-footer-hint">{t('componentLib.footerHint')}</div>
           <div className="comp-lib-footer-actions">
             <button className="comp-lib-cancel-btn" onClick={onClose}>
               {t('actions.cancel')}

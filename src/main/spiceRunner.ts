@@ -11,7 +11,7 @@ import { app } from 'electron'
 import type {
   SimulationRunResult,
   SimulationVariable,
-  NgspiceEngineStatus,
+  NgspiceEngineStatus
 } from '../shared/simulation'
 
 let cachedExecutablePath: string | null = null
@@ -23,7 +23,11 @@ let activeSimulationProcess: ChildProcess | null = null
  * Prefers the bundled console-mode binary (ngspice_con.exe) on Windows.
  */
 export function findNgspiceExecutable(): string | null {
-  if (cachedExecutablePath && fs.existsSync(cachedExecutablePath)) {
+  if (
+    cachedExecutablePath &&
+    !cachedExecutablePath.includes('app.asar') &&
+    fs.existsSync(cachedExecutablePath)
+  ) {
     return cachedExecutablePath
   }
 
@@ -32,9 +36,7 @@ export function findNgspiceExecutable(): string | null {
   const cwd = process.cwd()
   const resourcesPath = (process as any).resourcesPath || ''
 
-  const candidateBinaries: string[] = isWin
-    ? ['ngspice_con.exe', 'ngspice.exe']
-    : ['ngspice']
+  const candidateBinaries: string[] = isWin ? ['ngspice_con.exe', 'ngspice.exe'] : ['ngspice']
 
   // 1. Check user-defined environment variable
   if (process.env.NGSPICE_PATH && fs.existsSync(process.env.NGSPICE_PATH)) {
@@ -43,15 +45,18 @@ export function findNgspiceExecutable(): string | null {
   }
 
   // 2. Search project bundled directories
+  // In a packaged Electron app, extraResources places ngspice into process.resourcesPath.
+  // Note: Executables inside app.asar CANNOT be spawned by the OS kernel (causes ENOENT).
   const searchRoots = [
+    resourcesPath,
+    path.join(resourcesPath, '..'),
+    cwd,
     path.resolve(__dirname, '../..'),
     path.resolve(__dirname, '..'),
-    __dirname,
     appRoot,
-    cwd,
-    resourcesPath,
+    __dirname,
     path.resolve(appRoot, '..'),
-    path.resolve(cwd, '..'),
+    path.resolve(cwd, '..')
   ].filter(Boolean)
 
   for (const root of searchRoots) {
@@ -60,9 +65,13 @@ export function findNgspiceExecutable(): string | null {
         path.join(root, 'simulation', 'ngspice', 'Spice64', 'bin', binName),
         path.join(root, 'simulation', 'ngspice', 'bin', binName),
         path.join(root, 'simulation', 'bin', binName),
-        path.join(root, 'ngspice', 'bin', binName),
+        path.join(root, 'ngspice', 'bin', binName)
       ]
       for (const cand of candidates) {
+        // Binaries inside app.asar archive cannot be spawned by the OS kernel
+        if (cand.includes('app.asar') && !cand.includes('app.asar.unpacked')) {
+          continue
+        }
         if (fs.existsSync(cand)) {
           cachedExecutablePath = path.normalize(cand)
           return cachedExecutablePath
@@ -70,7 +79,6 @@ export function findNgspiceExecutable(): string | null {
       }
     }
   }
-
   // 3. Search system default locations
   if (isWin) {
     const winDefaults = [
@@ -78,7 +86,7 @@ export function findNgspiceExecutable(): string | null {
       'C:\\Spice64\\bin\\ngspice.exe',
       'C:\\Program Files\\Spice\\bin\\ngspice.exe',
       'C:\\Program Files\\ngspice\\bin\\ngspice.exe',
-      'C:\\Program Files (x86)\\Spice\\bin\\ngspice.exe',
+      'C:\\Program Files (x86)\\Spice\\bin\\ngspice.exe'
     ]
     for (const cand of winDefaults) {
       if (fs.existsSync(cand)) {
@@ -92,22 +100,18 @@ export function findNgspiceExecutable(): string | null {
       try {
         const out = execSync(`where.exe ${binName}`, {
           encoding: 'utf-8',
-          stdio: ['ignore', 'pipe', 'ignore'],
+          stdio: ['ignore', 'pipe', 'ignore']
         })
         const first = out.trim().split(/\r?\n/)[0]
         if (first && fs.existsSync(first)) {
           cachedExecutablePath = first
           return cachedExecutablePath
         }
-      } catch { }
+      } catch {}
     }
   } else {
     // Linux / macOS default locations
-    const unixDefaults = [
-      '/usr/bin/ngspice',
-      '/usr/local/bin/ngspice',
-      '/opt/homebrew/bin/ngspice',
-    ]
+    const unixDefaults = ['/usr/bin/ngspice', '/usr/local/bin/ngspice', '/opt/homebrew/bin/ngspice']
     for (const cand of unixDefaults) {
       if (fs.existsSync(cand)) {
         cachedExecutablePath = cand
@@ -118,14 +122,14 @@ export function findNgspiceExecutable(): string | null {
     try {
       const out = execSync('which ngspice', {
         encoding: 'utf-8',
-        stdio: ['ignore', 'pipe', 'ignore'],
+        stdio: ['ignore', 'pipe', 'ignore']
       })
       const first = out.trim().split(/\n/)[0]
       if (first && fs.existsSync(first)) {
         cachedExecutablePath = first
         return cachedExecutablePath
       }
-    } catch { }
+    } catch {}
   }
 
   return null
@@ -140,7 +144,7 @@ export function getNgspiceStatus(): NgspiceEngineStatus {
     return {
       available: false,
       error:
-        'ngspice executable not found. Place the engine in simulation/ngspice/Spice64/bin or ensure ngspice is in your PATH.',
+        'ngspice executable not found. Place the engine in simulation/ngspice/Spice64/bin or ensure ngspice is in your PATH.'
     }
   }
 
@@ -149,7 +153,7 @@ export function getNgspiceStatus(): NgspiceEngineStatus {
       const out = execSync(`"${exePath}" -v`, {
         encoding: 'utf-8',
         stdio: ['ignore', 'pipe', 'pipe'],
-        timeout: 3000,
+        timeout: 3000
       })
       const firstLine = out
         .split(/\r?\n/)
@@ -163,7 +167,7 @@ export function getNgspiceStatus(): NgspiceEngineStatus {
   return {
     available: true,
     executablePath: exePath,
-    version: cachedVersion,
+    version: cachedVersion
   }
 }
 
@@ -223,7 +227,8 @@ export function parseAsciiRaw(rawText: string): {
         else if (name.startsWith('i(') || rawType.includes('current')) unit = 'A'
         else if (name.startsWith('v(') || rawType.includes('voltage')) unit = 'V'
         else if (rawType.includes('power') || name.includes('[p]')) unit = 'W'
-        else if (rawType.includes('admittance') || name.includes('[gm]') || name.includes('[gds]')) unit = 'S'
+        else if (rawType.includes('admittance') || name.includes('[gm]') || name.includes('[gds]'))
+          unit = 'S'
         else if (rawType.includes('resistance')) unit = 'Ω'
         else if (rawType.includes('capacitance')) unit = 'F'
         else if (rawType.includes('inductance')) unit = 'H'
@@ -316,50 +321,72 @@ export function parseAsciiRaw(rawText: string): {
         index: variables.length,
         name: dbName,
         type: `${rv.type} (dB)`,
-        unit: 'dB',
+        unit: 'dB'
       })
       knownVarNames.add(dbName.toLowerCase())
       variables.push({
         index: variables.length,
         name: phaseName,
         type: `${rv.type} (Phase)`,
-        unit: '°',
+        unit: '°'
       })
       knownVarNames.add(phaseName.toLowerCase())
       variables.push({
         index: variables.length,
         name: realName,
         type: `${rv.type} (Real)`,
-        unit: rv.unit,
+        unit: rv.unit
       })
       knownVarNames.add(realName.toLowerCase())
       variables.push({
         index: variables.length,
         name: imagName,
         type: `${rv.type} (Imag)`,
-        unit: rv.unit,
+        unit: rv.unit
       })
       knownVarNames.add(imagName.toLowerCase())
     }
 
-    // Current Aliasing: v1#branch -> i(v1), @r1[i] -> i(r1), @c1[i] -> i(c1), @d1[id] -> i(d1)
+    // Current & Parameter Aliasing: v1#branch -> i(v1), @r1[i] -> i(r1), @m1[id] / i(@m1[id]) -> i(m1)
     const lowerName = rv.name.toLowerCase()
     let aliasName: string | null = null
+    let aliasType = 'current'
+    let aliasUnit = 'A'
 
     if (lowerName.endsWith('#branch')) {
       const dev = lowerName.replace(/#branch$/, '')
       aliasName = `i(${dev})`
-    } else if (lowerName.startsWith('@') && lowerName.includes('[')) {
-      const match = lowerName.match(/^@([a-z0-9_]+)\[([a-z0-9_]+)\]$/)
+    } else if (
+      (lowerName.startsWith('@') || lowerName.startsWith('i(@') || lowerName.startsWith('v(@')) &&
+      lowerName.includes('[')
+    ) {
+      const match = lowerName.match(/^(?:([iv])\()?@([a-z0-9_]+)\[([a-z0-9_]+)\]\)?$/)
       if (match) {
-        const dev = match[1]
-        const param = match[2]
+        const dev = match[2]
+        const param = match[3]
         if (param === 'i' || param === 'id') {
           aliasName = `i(${dev})`
+          aliasType = 'current'
+          aliasUnit = 'A'
+          // Also store bare @dev[id] and i(@dev[id]) in data lookup
+          data[`@${dev}[${param}]`] = data[rv.name]
+          data[`i(@${dev}[${param}])`] = data[rv.name]
         } else if (param === 'ic') {
           aliasName = `i(${dev}:c)`
+          aliasType = 'current'
+          aliasUnit = 'A'
+          data[`@${dev}[ic]`] = data[rv.name]
         } else if (param === 'ib') {
           aliasName = `i(${dev}:b)`
+          aliasType = 'current'
+          aliasUnit = 'A'
+          data[`@${dev}[ib]`] = data[rv.name]
+        } else if (param === 'vgs' || param === 'vds' || param === 'vbe' || param === 'vce') {
+          aliasName = `v(${dev}:${param})`
+          aliasType = 'voltage'
+          aliasUnit = 'V'
+          data[`@${dev}[${param}]`] = data[rv.name]
+          data[`v(@${dev}[${param}])`] = data[rv.name]
         }
       }
     }
@@ -376,8 +403,8 @@ export function parseAsciiRaw(rawText: string): {
       variables.push({
         index: variables.length,
         name: aliasName,
-        type: 'current',
-        unit: 'A',
+        type: aliasType,
+        unit: aliasUnit
       })
     }
   }
@@ -392,7 +419,7 @@ export function parseAsciiRaw(rawText: string): {
         index: variables.length,
         name: 'v(0)',
         type: 'voltage',
-        unit: 'V',
+        unit: 'V'
       })
       knownVarNames.add('v(0)')
     }
@@ -408,6 +435,80 @@ export function parseAsciiRaw(rawText: string): {
 }
 
 /**
+ * Resolves external .include and .lib files, converting relative paths to
+ * absolute paths and staging files in the simulation temp directory.
+ */
+function resolveDirectivesAndLibraries(
+  netlist: string,
+  tmpDir: string,
+  workingDir?: string
+): string {
+  const appRoot = app ? app.getAppPath() : process.cwd()
+  const resourcesPath = (process as any).resourcesPath || ''
+  const searchRoots = [
+    workingDir,
+    path.resolve(appRoot, 'models'),
+    path.resolve(process.cwd(), 'models'),
+    resourcesPath ? path.join(resourcesPath, 'models') : null,
+    resourcesPath,
+    path.resolve(__dirname, '../../models'),
+    path.resolve(__dirname, '../models'),
+    appRoot,
+    process.cwd()
+  ].filter(Boolean) as string[]
+
+  const lines = netlist.split(/\r?\n/)
+  const resolvedLines = lines.map((line) => {
+    const trimmed = line.trim()
+
+    // Match .include or .inc
+    const incMatch = trimmed.match(/^(\.(?:include|inc))\s+["']?([^"'\r\n]+?)["']?$/i)
+    if (incMatch) {
+      const directive = incMatch[1]
+      const rawPath = incMatch[2].trim()
+      if (path.isAbsolute(rawPath) && fs.existsSync(rawPath)) {
+        return `${directive} "${rawPath.replace(/\\/g, '/')}"`
+      }
+      for (const root of searchRoots) {
+        const candidate = path.resolve(root, rawPath)
+        if (fs.existsSync(candidate)) {
+          try {
+            const dest = path.join(tmpDir, path.basename(candidate))
+            if (!fs.existsSync(dest)) fs.copyFileSync(candidate, dest)
+          } catch {}
+          return `${directive} "${candidate.replace(/\\/g, '/')}"`
+        }
+      }
+    }
+
+    // Match .lib with optional entry/corner
+    const libMatch = trimmed.match(/^(\.lib)\s+["']?([^"'\s]+)["']?(?:\s+(.*))?$/i)
+    if (libMatch) {
+      const directive = libMatch[1]
+      const rawPath = libMatch[2].trim()
+      const section = libMatch[3]?.trim() || ''
+      if (path.isAbsolute(rawPath) && fs.existsSync(rawPath)) {
+        return `${directive} "${rawPath.replace(/\\/g, '/')}" ${section}`.trim()
+      }
+      for (const root of searchRoots) {
+        const candidate = path.resolve(root, rawPath)
+        if (fs.existsSync(candidate)) {
+          try {
+            const dest = path.join(tmpDir, path.basename(candidate))
+            if (!fs.existsSync(dest)) fs.copyFileSync(candidate, dest)
+          } catch {}
+          return `${directive} "${candidate.replace(/\\/g, '/')}" ${section}`.trim()
+        }
+      }
+    }
+
+    return line
+  })
+
+  return resolvedLines.join('\n')
+}
+
+/**
  * Executes a generated SPICE netlist using ngspice in batch mode (-b -a -r).
  * Captures genuine numerical outputs, exit code, stdout, stderr, and cleans up temporary files.
  */
@@ -415,6 +516,7 @@ export async function runNgspiceSimulation(
   netlist: string,
   analysisType: string = 'tran',
   timeoutMs: number = 30000,
+  workingDir?: string
 ): Promise<SimulationRunResult> {
   const exePath = findNgspiceExecutable()
   if (!exePath) {
@@ -429,7 +531,7 @@ export async function runNgspiceSimulation(
       variables: [],
       data: {},
       pointCount: 0,
-      elapsedMs: 0,
+      elapsedMs: 0
     }
   }
 
@@ -442,8 +544,10 @@ export async function runNgspiceSimulation(
   const cirFile = path.join(tmpDir, 'circuit.cir')
   const rawFile = path.join(tmpDir, 'output.raw')
 
+  // Resolve any external .include or .lib paths
+  let finalNetlist = resolveDirectivesAndLibraries(netlist, tmpDir, workingDir).trim()
+
   // Ensure netlist ends with .end
-  let finalNetlist = netlist.trim()
   if (!/\.end$/i.test(finalNetlist)) {
     finalNetlist += '\n.end\n'
   }
@@ -462,14 +566,14 @@ export async function runNgspiceSimulation(
       if (activeSimulationProcess) {
         try {
           activeSimulationProcess.kill()
-        } catch { }
+        } catch {}
       }
     }, timeoutMs)
 
     try {
       const child = spawn(exePath, ['-b', '-a', '-r', rawFile, cirFile], {
         cwd: tmpDir,
-        windowsHide: true,
+        windowsHide: true
       })
 
       activeSimulationProcess = child
@@ -496,7 +600,7 @@ export async function runNgspiceSimulation(
           variables: [],
           data: {},
           pointCount: 0,
-          elapsedMs: Date.now() - startTime,
+          elapsedMs: Date.now() - startTime
         })
       })
 
@@ -517,7 +621,7 @@ export async function runNgspiceSimulation(
             variables: [],
             data: {},
             pointCount: 0,
-            elapsedMs,
+            elapsedMs
           })
           return
         }
@@ -526,7 +630,7 @@ export async function runNgspiceSimulation(
         if (fs.existsSync(rawFile)) {
           try {
             rawContent = fs.readFileSync(rawFile, 'utf-8')
-          } catch { }
+          } catch {}
         }
 
         cleanupDir(tmpDir)
@@ -543,7 +647,7 @@ export async function runNgspiceSimulation(
             variables: [],
             data: {},
             pointCount: 0,
-            elapsedMs,
+            elapsedMs
           })
           return
         }
@@ -553,16 +657,10 @@ export async function runNgspiceSimulation(
 
         // Determine if simulation succeeded: must have points, at least one circuit node besides independent sweep variable, and no fatal errors
         const hasCircuitNodes = parsed.variables.some(
-          (v) =>
-            v.name !== 'time' &&
-            v.name !== 'frequency' &&
-            !v.name.includes('sweep'),
+          (v) => v.name !== 'time' && v.name !== 'frequency' && !v.name.includes('sweep')
         )
         const hasData = parsed.pointCount > 0 && hasCircuitNodes
-        const isSuccessful =
-          (exitCode === 0 || exitCode === null) &&
-          hasData &&
-          !errMsg
+        const isSuccessful = (exitCode === 0 || exitCode === null) && hasData && !errMsg
 
         resolve({
           success: isSuccessful,
@@ -571,9 +669,9 @@ export async function runNgspiceSimulation(
           stderr,
           error: !isSuccessful
             ? errMsg ||
-            (parsed.variables.length <= 1
-              ? 'No valid circuit nodes found to simulate'
-              : 'Simulation produced no output vectors')
+              (parsed.variables.length <= 1
+                ? 'No valid circuit nodes found to simulate'
+                : 'Simulation produced no output vectors')
             : undefined,
           analysisType,
           plotName: parsed.plotName,
@@ -583,7 +681,7 @@ export async function runNgspiceSimulation(
           data: parsed.data,
           pointCount: parsed.pointCount,
           elapsedMs,
-          engineVersion: cachedVersion || undefined,
+          engineVersion: cachedVersion || undefined
         })
       })
     } catch (err: any) {
@@ -600,7 +698,7 @@ export async function runNgspiceSimulation(
         variables: [],
         data: {},
         pointCount: 0,
-        elapsedMs: Date.now() - startTime,
+        elapsedMs: Date.now() - startTime
       })
     }
   })
@@ -637,14 +735,18 @@ function cleanupDir(dirPath: string) {
     if (fs.existsSync(dirPath)) {
       fs.rmSync(dirPath, { recursive: true, force: true })
     }
-  } catch { }
+  } catch {}
 }
 
 function extractNgspiceErrorMessage(stdout: string, stderr: string): string | null {
   const combined = `${stdout}\n${stderr}`
   const errLines = combined
     .split(/\r?\n/)
-    .filter((l) => /error|fatal|singular matrix|do not exist|syntax error|not a valid .* line|unknown device/i.test(l))
+    .filter((l) =>
+      /error|fatal|singular matrix|do not exist|syntax error|not a valid .* line|unknown device/i.test(
+        l
+      )
+    )
     .map((l) => l.trim())
     .filter(Boolean)
 

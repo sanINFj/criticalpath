@@ -1,35 +1,41 @@
-import type { CSSProperties } from "react"
+import type { CSSProperties } from 'react'
 import {
   BaseEdge,
   type EdgeProps,
   type Position,
   type ConnectionLineComponentProps,
-  useViewport,
-} from "reactflow"
+  useViewport
+} from 'reactflow'
 
-export type WireBendMode =
-  | "auto"
-  | "horizontal-step"
-  | "vertical-step"
-  | "corner-hv"
-  | "corner-vh"
+export type WireBendMode = 'auto' | 'horizontal-step' | 'vertical-step' | 'corner-hv' | 'corner-vh'
 
 export interface SchematicEdgeData {
   bendMode?: WireBendMode
   offset?: number
   waypoints?: { x: number; y: number }[]
-  onOffsetChange?: (
-    edgeId: string,
-    newOffset: number,
-    newBendMode?: WireBendMode,
-  ) => void
-  onWaypointsChange?: (
-    edgeId: string,
-    newWaypoints: { x: number; y: number }[],
-  ) => void
+  onOffsetChange?: (edgeId: string, newOffset: number, newBendMode?: WireBendMode) => void
+  onWaypointsChange?: (edgeId: string, newWaypoints: { x: number; y: number }[]) => void
   isHighlighted?: boolean
+  highlightColor?: string
+  probeLabel?: string
   netName?: string
-  ercSeverity?: "error" | "warning"
+  ercSeverity?: 'error' | 'warning'
+}
+
+function hexToRgba(hex?: string, alpha = 0.4): string {
+  if (!hex || !hex.startsWith('#')) return `rgba(2, 132, 199, ${alpha})`
+  const clean = hex.replace('#', '')
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16)
+    const g = parseInt(clean[1] + clean[1], 16)
+    const b = parseInt(clean[2] + clean[2], 16)
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+  const r = parseInt(clean.slice(0, 2), 16)
+  const g = parseInt(clean.slice(2, 4), 16)
+  const b = parseInt(clean.slice(4, 6), 16)
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return `rgba(2, 132, 199, ${alpha})`
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
 export interface WireSegmentDef {
@@ -37,13 +43,11 @@ export interface WireSegmentDef {
   y1: number
   x2: number
   y2: number
-  type: "h" | "v"
+  type: 'h' | 'v'
   index: number
 }
 
-function simplifyOrthogonalPoints(
-  points: { x: number; y: number }[],
-): { x: number; y: number }[] {
+function simplifyOrthogonalPoints(points: { x: number; y: number }[]): { x: number; y: number }[] {
   if (points.length <= 2) return points
   const res: { x: number; y: number }[] = [points[0]]
 
@@ -67,6 +71,7 @@ function simplifyOrthogonalPoints(
   return res
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function getOrthogonalWirePath(
   x1: number,
   y1: number,
@@ -74,10 +79,10 @@ export function getOrthogonalWirePath(
   y2: number,
   sourcePos?: Position,
   targetPos?: Position,
-  bendMode: WireBendMode = "auto",
+  bendMode: WireBendMode = 'auto',
   customOffset?: number,
-  waypoints?: { x: number; y: number }[],
-): [string, number, number, "h" | "v", WireSegmentDef[], { x: number; y: number }[]] {
+  waypoints?: { x: number; y: number }[]
+): [string, number, number, 'h' | 'v', WireSegmentDef[], { x: number; y: number }[]] {
   // Always snap endpoints to exact 20px grid pitch to guarantee zero half-pitch drift
   const sx = Math.round(x1 / 20) * 20
   const sy = Math.round(y1 / 20) * 20
@@ -90,13 +95,12 @@ export function getOrthogonalWirePath(
       { x: sx, y: sy },
       ...waypoints.map((p) => ({
         x: Math.round(p.x / 20) * 20,
-        y: Math.round(p.y / 20) * 20,
+        y: Math.round(p.y / 20) * 20
       })),
-      { x: tx, y: ty },
+      { x: tx, y: ty }
     ]
     const cleanPts: { x: number; y: number }[] = [rawPts[0]]
-    let currentOrientation: "h" | "v" =
-      sourcePos === "top" || sourcePos === "bottom" ? "v" : "h"
+    let currentOrientation: 'h' | 'v' = sourcePos === 'top' || sourcePos === 'bottom' ? 'v' : 'h'
 
     for (let i = 1; i < rawPts.length; i++) {
       const prev = cleanPts[cleanPts.length - 1]
@@ -106,17 +110,17 @@ export function getOrthogonalWirePath(
 
       if (prev.x === cur.x || prev.y === cur.y) {
         cleanPts.push(cur)
-        currentOrientation = prev.x === cur.x ? "v" : "h"
+        currentOrientation = prev.x === cur.x ? 'v' : 'h'
       } else {
         // Enforce 100% strictly orthogonal 90-degree straight bend (zero slant)
-        if (currentOrientation === "h") {
+        if (currentOrientation === 'h') {
           cleanPts.push({ x: cur.x, y: prev.y })
           cleanPts.push(cur)
-          currentOrientation = "v"
+          currentOrientation = 'v'
         } else {
           cleanPts.push({ x: prev.x, y: cur.y })
           cleanPts.push(cur)
-          currentOrientation = "h"
+          currentOrientation = 'h'
         }
       }
     }
@@ -134,8 +138,8 @@ export function getOrthogonalWirePath(
         y1: pPrev.y,
         x2: pCur.x,
         y2: pCur.y,
-        type: isVert ? "v" : "h",
-        index: i - 1,
+        type: isVert ? 'v' : 'h',
+        index: i - 1
       })
     }
 
@@ -143,122 +147,123 @@ export function getOrthogonalWirePath(
     const midSeg = segments[midIdx]
     const labelX = midSeg ? (midSeg.x1 + midSeg.x2) / 2 : (sx + tx) / 2
     const labelY = midSeg ? (midSeg.y1 + midSeg.y2) / 2 : (sy + ty) / 2
-    const orientation = midSeg?.type === "v" ? "h" : "v"
+    const orientation = midSeg?.type === 'v' ? 'h' : 'v'
     return [path, labelX, labelY, orientation, segments, simplifiedPts]
   }
 
   // 1. Direct straight line if on the exact same axis
   if (sx === tx || sy === ty) {
     const path = `M ${sx} ${sy} L ${tx} ${ty}`
-    const segType = sx === tx ? "v" : "h"
-    const pts = [{ x: sx, y: sy }, { x: tx, y: ty }]
+    const segType = sx === tx ? 'v' : 'h'
+    const pts = [
+      { x: sx, y: sy },
+      { x: tx, y: ty }
+    ]
     return [
       path,
       (sx + tx) / 2,
       (sy + ty) / 2,
       segType,
       [{ x1: sx, y1: sy, x2: tx, y2: ty, type: segType, index: 0 }],
-      pts,
+      pts
     ]
   }
 
-  const isSourceHorizontal =
-    sourcePos === "left" || sourcePos === "right"
-  const isTargetHorizontal =
-    targetPos === "left" || targetPos === "right"
+  const isSourceHorizontal = sourcePos === 'left' || sourcePos === 'right'
+  const isTargetHorizontal = targetPos === 'left' || targetPos === 'right'
 
-  const isSourceVertical =
-    sourcePos === "top" || sourcePos === "bottom"
-  const isTargetVertical =
-    targetPos === "top" || targetPos === "bottom"
+  const isSourceVertical = sourcePos === 'top' || sourcePos === 'bottom'
+  const isTargetVertical = targetPos === 'top' || targetPos === 'bottom'
 
   const rawMidX = (sx + tx) / 2
   const rawMidY = (sy + ty) / 2
 
-  const midX =
-    customOffset !== undefined
-      ? customOffset
-      : Math.round(rawMidX / 20) * 20
+  const midX = customOffset !== undefined ? customOffset : Math.round(rawMidX / 20) * 20
 
-  const midY =
-    customOffset !== undefined
-      ? customOffset
-      : Math.round(rawMidY / 20) * 20
+  const midY = customOffset !== undefined ? customOffset : Math.round(rawMidY / 20) * 20
 
   let effectiveMode = bendMode
 
   // Smart LTspice EDA Pipeline: naturally route according to terminal exit vectors
-  if (effectiveMode === "auto") {
+  if (effectiveMode === 'auto') {
     if (isSourceHorizontal && isTargetVertical) {
-      effectiveMode = "corner-hv"
+      effectiveMode = 'corner-hv'
     } else if (isSourceVertical && isTargetHorizontal) {
-      effectiveMode = "corner-vh"
+      effectiveMode = 'corner-vh'
     } else if (isSourceVertical && isTargetVertical) {
-      effectiveMode = "vertical-step"
+      effectiveMode = 'vertical-step'
     } else {
-      effectiveMode = "horizontal-step"
+      effectiveMode = 'horizontal-step'
     }
   }
 
-  let path = ""
+  let path = ''
   let labelX = midX
   let labelY = midY
-  let orientation: "h" | "v" = "h"
+  let orientation: 'h' | 'v' = 'h'
   const segments: WireSegmentDef[] = []
   let fullPoints: { x: number; y: number }[] = []
 
   switch (effectiveMode) {
-    case "corner-hv":
-      fullPoints = [{ x: sx, y: sy }, { x: tx, y: sy }, { x: tx, y: ty }]
+    case 'corner-hv':
+      fullPoints = [
+        { x: sx, y: sy },
+        { x: tx, y: sy },
+        { x: tx, y: ty }
+      ]
       path = `M ${sx} ${sy} L ${tx} ${sy} L ${tx} ${ty}`
       labelX = tx
       labelY = (sy + ty) / 2
-      orientation = "h"
-      segments.push({ x1: sx, y1: sy, x2: tx, y2: sy, type: "h", index: 0 })
-      segments.push({ x1: tx, y1: sy, x2: tx, y2: ty, type: "v", index: 1 })
+      orientation = 'h'
+      segments.push({ x1: sx, y1: sy, x2: tx, y2: sy, type: 'h', index: 0 })
+      segments.push({ x1: tx, y1: sy, x2: tx, y2: ty, type: 'v', index: 1 })
       break
 
-    case "corner-vh":
-      fullPoints = [{ x: sx, y: sy }, { x: sx, y: ty }, { x: tx, y: ty }]
+    case 'corner-vh':
+      fullPoints = [
+        { x: sx, y: sy },
+        { x: sx, y: ty },
+        { x: tx, y: ty }
+      ]
       path = `M ${sx} ${sy} L ${sx} ${ty} L ${tx} ${ty}`
       labelX = (sx + tx) / 2
       labelY = ty
-      orientation = "v"
-      segments.push({ x1: sx, y1: sy, x2: sx, y2: ty, type: "v", index: 0 })
-      segments.push({ x1: sx, y1: ty, x2: tx, y2: ty, type: "h", index: 1 })
+      orientation = 'v'
+      segments.push({ x1: sx, y1: sy, x2: sx, y2: ty, type: 'v', index: 0 })
+      segments.push({ x1: sx, y1: ty, x2: tx, y2: ty, type: 'h', index: 1 })
       break
 
-    case "vertical-step":
+    case 'vertical-step':
       fullPoints = [
         { x: sx, y: sy },
         { x: sx, y: midY },
         { x: tx, y: midY },
-        { x: tx, y: ty },
+        { x: tx, y: ty }
       ]
       path = `M ${sx} ${sy} L ${sx} ${midY} L ${tx} ${midY} L ${tx} ${ty}`
       labelX = (sx + tx) / 2
       labelY = midY
-      orientation = "v"
-      segments.push({ x1: sx, y1: sy, x2: sx, y2: midY, type: "v", index: 0 })
-      segments.push({ x1: sx, y1: midY, x2: tx, y2: midY, type: "h", index: 1 })
-      segments.push({ x1: tx, y1: midY, x2: tx, y2: ty, type: "v", index: 2 })
+      orientation = 'v'
+      segments.push({ x1: sx, y1: sy, x2: sx, y2: midY, type: 'v', index: 0 })
+      segments.push({ x1: sx, y1: midY, x2: tx, y2: midY, type: 'h', index: 1 })
+      segments.push({ x1: tx, y1: midY, x2: tx, y2: ty, type: 'v', index: 2 })
       break
 
-    case "horizontal-step":
+    case 'horizontal-step':
     default:
       fullPoints = [
         { x: sx, y: sy },
         { x: midX, y: sy },
         { x: midX, y: ty },
-        { x: tx, y: ty },
+        { x: tx, y: ty }
       ]
       path = `M ${sx} ${sy} L ${midX} ${sy} L ${midX} ${ty} L ${tx} ${ty}`
       labelX = midX
       labelY = (sy + ty) / 2
-      orientation = "h"
-      segments.push({ x1: sx, y1: sy, x2: midX, y2: sy, type: "h", index: 0 })
-      segments.push({ x1: midX, y1: sy, x2: midX, y2: ty, type: "v", index: 1 })
-      segments.push({ x1: midX, y1: ty, x2: tx, y2: ty, type: "h", index: 2 })
+      orientation = 'h'
+      segments.push({ x1: sx, y1: sy, x2: midX, y2: sy, type: 'h', index: 0 })
+      segments.push({ x1: midX, y1: sy, x2: midX, y2: ty, type: 'v', index: 1 })
+      segments.push({ x1: midX, y1: ty, x2: tx, y2: ty, type: 'h', index: 2 })
       break
   }
 
@@ -273,21 +278,21 @@ export function SchematicConnectionLine({
   fromY,
   toX,
   toY,
-  fromPosition,
-}: ConnectionLineComponentProps) {
+  fromPosition
+}: ConnectionLineComponentProps): React.JSX.Element {
   const snapFromX = Math.round(fromX / 20) * 20
   const snapFromY = Math.round(fromY / 20) * 20
   const snapToX = Math.round(toX / 20) * 20
   const snapToY = Math.round(toY / 20) * 20
 
   const isHorizontalFirst =
-    fromPosition === "left" ||
-    fromPosition === "right" ||
-    (fromPosition !== "top" &&
-      fromPosition !== "bottom" &&
+    fromPosition === 'left' ||
+    fromPosition === 'right' ||
+    (fromPosition !== 'top' &&
+      fromPosition !== 'bottom' &&
       Math.abs(snapToX - snapFromX) >= Math.abs(snapToY - snapFromY))
 
-  let path = ""
+  let path = ''
   if (snapToX === snapFromX || snapToY === snapFromY) {
     path = `M ${snapFromX} ${snapFromY} L ${snapToX} ${snapToY}`
   } else if (isHorizontalFirst) {
@@ -306,14 +311,7 @@ export function SchematicConnectionLine({
         strokeLinejoin="round"
         d={path}
       />
-      <circle
-        cx={snapToX}
-        cy={snapToY}
-        r={3}
-        fill="#2563eb"
-        stroke="#ffffff"
-        strokeWidth={1}
-      />
+      <circle cx={snapToX} cy={snapToY} r={3} fill="#2563eb" stroke="#ffffff" strokeWidth={1} />
     </g>
   )
 }
@@ -328,57 +326,53 @@ export default function SchematicEdge({
   targetPosition,
   selected,
   data,
-  style,
-}: EdgeProps<SchematicEdgeData>) {
+  style
+}: EdgeProps<SchematicEdgeData>): React.JSX.Element {
   const { zoom } = useViewport()
-  const bendMode = data?.bendMode ?? "auto"
+  const bendMode = data?.bendMode ?? 'auto'
   const offset = data?.offset
   const waypoints = data?.waypoints
   const onWaypointsChange = data?.onWaypointsChange
   const onOffsetChange = data?.onOffsetChange
 
-  const [edgePath, labelX, labelY, orientation, segments, fullPoints] =
-    getOrthogonalWirePath(
-      sourceX,
-      sourceY,
-      targetX,
-      targetY,
-      sourcePosition,
-      targetPosition,
-      bendMode,
-      offset,
-      waypoints,
-    )
+  const [edgePath, labelX, labelY, orientation, segments, fullPoints] = getOrthogonalWirePath(
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    bendMode,
+    offset,
+    waypoints
+  )
 
   const isHighlighted = Boolean(data?.isHighlighted)
-  const isErcError = data?.ercSeverity === "error"
-  const isErcWarning = data?.ercSeverity === "warning"
+  const isErcError = data?.ercSeverity === 'error'
+  const isErcWarning = data?.ercSeverity === 'warning'
 
+  const highlightColor = data?.highlightColor || '#0284c7'
   const strokeColor = isHighlighted
-    ? "#0284c7"
+    ? highlightColor
     : isErcError
-    ? "#ef4444"
-    : isErcWarning
-    ? "#f59e0b"
-    : selected
-    ? "#2563eb"
-    : (style?.stroke as string) || "#1f2937"
+      ? '#ef4444'
+      : isErcWarning
+        ? '#f59e0b'
+        : selected
+          ? '#2563eb'
+          : (style?.stroke as string) || '#1f2937'
 
-  const strokeWidth = isHighlighted ? 3 : isErcError ? 2.5 : selected ? 2.5 : 1.8
+  const strokeWidth = isHighlighted ? 2.8 : isErcError ? 2.5 : selected ? 2.5 : 1.8
 
   const edgeStyle: CSSProperties = {
     ...style,
     stroke: strokeColor,
     strokeWidth,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round'
   }
 
-  const startSegmentDrag = (
-    e: React.MouseEvent,
-    segIndex: number,
-    segType: "h" | "v",
-  ) => {
+  const startSegmentDrag = (e: React.MouseEvent, segIndex: number, segType: 'h' | 'v'): void => {
     if (!onWaypointsChange && !onOffsetChange) return
     e.stopPropagation()
     e.preventDefault()
@@ -387,12 +381,12 @@ export default function SchematicEdge({
     const startClientY = e.clientY
     const basePoints = fullPoints.map((p) => ({ ...p }))
     const curSeg = segments.find((s) => s.index === segIndex)
-    const initialCoord = segType === "v" ? (curSeg?.x1 ?? 0) : (curSeg?.y1 ?? 0)
+    const initialCoord = segType === 'v' ? (curSeg?.x1 ?? 0) : (curSeg?.y1 ?? 0)
 
-    const handleMouseMove = (moveEv: MouseEvent) => {
+    const handleMouseMove = (moveEv: MouseEvent): void => {
       const deltaX = (moveEv.clientX - startClientX) / zoom
       const deltaY = (moveEv.clientY - startClientY) / zoom
-      const delta = segType === "v" ? deltaX : deltaY
+      const delta = segType === 'v' ? deltaX : deltaY
       const newPos = Math.round((initialCoord + delta) / 20) * 20
 
       if (onWaypointsChange) {
@@ -400,7 +394,7 @@ export default function SchematicEdge({
         const numPts = pts.length
         if (numPts < 2) return
 
-        if (segType === "v") {
+        if (segType === 'v') {
           // Vertical segment moves horizontally (left / right)
           if (segIndex === 0) {
             // First segment: keep source fixed, insert horizontal bend
@@ -409,7 +403,7 @@ export default function SchematicEdge({
               { x: pts[0].x, y: pts[0].y },
               { x: newPos, y: pts[0].y },
               { x: newPos, y: pts[1].y },
-              ...pts.slice(2),
+              ...pts.slice(2)
             ]
             const simplified = simplifyOrthogonalPoints(updated)
             onWaypointsChange(id, simplified.slice(1, -1))
@@ -420,7 +414,7 @@ export default function SchematicEdge({
               ...pts.slice(0, -2),
               { x: newPos, y: pts[numPts - 2].y },
               { x: newPos, y: last.y },
-              last,
+              last
             ]
             const simplified = simplifyOrthogonalPoints(updated)
             onWaypointsChange(id, simplified.slice(1, -1))
@@ -439,7 +433,7 @@ export default function SchematicEdge({
               pts[0],
               { x: pts[0].x, y: newPos },
               { x: pts[1].x, y: newPos },
-              ...pts.slice(2),
+              ...pts.slice(2)
             ]
             const simplified = simplifyOrthogonalPoints(updated)
             onWaypointsChange(id, simplified.slice(1, -1))
@@ -450,7 +444,7 @@ export default function SchematicEdge({
               ...pts.slice(0, -2),
               { x: pts[numPts - 2].x, y: newPos },
               { x: last.x, y: newPos },
-              last,
+              last
             ]
             const simplified = simplifyOrthogonalPoints(updated)
             onWaypointsChange(id, simplified.slice(1, -1))
@@ -463,21 +457,17 @@ export default function SchematicEdge({
           }
         }
       } else if (onOffsetChange) {
-        onOffsetChange(
-          id,
-          newPos,
-          segType === "v" ? "horizontal-step" : "vertical-step",
-        )
+        onOffsetChange(id, newPos, segType === 'v' ? 'horizontal-step' : 'vertical-step')
       }
     }
 
-    const handleMouseUp = () => {
-      window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mouseup", handleMouseUp)
+    const handleMouseUp = (): void => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
     }
 
-    window.addEventListener("mousemove", handleMouseMove)
-    window.addEventListener("mouseup", handleMouseUp)
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
   }
 
   return (
@@ -487,11 +477,11 @@ export default function SchematicEdge({
         <path
           d={edgePath}
           fill="none"
-          stroke="rgba(2, 132, 199, 0.4)"
+          stroke={hexToRgba(highlightColor, 0.4)}
           strokeWidth={8}
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ pointerEvents: "none" }}
+          style={{ pointerEvents: 'none' }}
         />
       )}
 
@@ -504,15 +494,50 @@ export default function SchematicEdge({
           strokeWidth={7}
           strokeLinecap="round"
           strokeLinejoin="round"
-          style={{ pointerEvents: "none" }}
+          style={{ pointerEvents: 'none' }}
         />
       )}
 
       <BaseEdge id={id} path={edgePath} style={edgeStyle} />
 
+      {/* Probed Voltage Label Badge matching waveform trace color */}
+      {data?.probeLabel && (
+        <g transform={`translate(${labelX}, ${labelY})`} style={{ pointerEvents: 'none' }}>
+          <rect
+            x={-(Math.max(48, data.probeLabel.length * 8 + 16) / 2)}
+            y={-11}
+            width={Math.max(48, data.probeLabel.length * 8 + 16)}
+            height={22}
+            rx={5}
+            fill="#0f172a"
+            stroke={highlightColor}
+            strokeWidth={1.8}
+            filter="drop-shadow(0px 2px 4px rgba(0,0,0,0.45))"
+          />
+          <circle
+            cx={-(Math.max(48, data.probeLabel.length * 8 + 16) / 2) + 9}
+            cy={0}
+            r={3}
+            fill={highlightColor}
+          />
+          <text
+            x={4}
+            y={3.5}
+            textAnchor="middle"
+            fill="#f8fafc"
+            fontSize={11}
+            fontWeight="700"
+            fontFamily='"JetBrains Mono", Consolas, monospace'
+            letterSpacing="0.03em"
+          >
+            {data.probeLabel}
+          </text>
+        </g>
+      )}
+
       {/* Invisible wide hit-areas on segments for easy grabbing & dragging */}
       {segments.map((seg, idx) => {
-        const isVert = seg.type === "v"
+        const isVert = seg.type === 'v'
         return (
           <line
             key={`hit-${idx}`}
@@ -523,7 +548,7 @@ export default function SchematicEdge({
             stroke="transparent"
             strokeWidth={14}
             style={{
-              cursor: isVert ? "ew-resize" : "ns-resize",
+              cursor: isVert ? 'ew-resize' : 'ns-resize'
             }}
             onMouseDown={(e) => startSegmentDrag(e, seg.index, seg.type)}
           />
@@ -534,7 +559,7 @@ export default function SchematicEdge({
       {selected && (
         <g
           transform={`translate(${labelX}, ${labelY})`}
-          style={{ cursor: orientation === "h" ? "ew-resize" : "ns-resize" }}
+          style={{ cursor: orientation === 'h' ? 'ew-resize' : 'ns-resize' }}
           onMouseDown={(e) => {
             const midSegIdx = Math.floor(segments.length / 2)
             const seg = segments[midSegIdx]
@@ -542,10 +567,10 @@ export default function SchematicEdge({
           }}
         >
           <rect
-            x={orientation === "h" ? -4 : -9}
-            y={orientation === "h" ? -9 : -4}
-            width={orientation === "h" ? 8 : 18}
-            height={orientation === "h" ? 18 : 8}
+            x={orientation === 'h' ? -4 : -9}
+            y={orientation === 'h' ? -9 : -4}
+            width={orientation === 'h' ? 8 : 18}
+            height={orientation === 'h' ? 18 : 8}
             rx={4}
             fill="#2563eb"
             stroke="#ffffff"

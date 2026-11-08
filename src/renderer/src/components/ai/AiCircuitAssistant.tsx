@@ -25,7 +25,7 @@ import {
   Search,
   MessageSquare,
   ChevronLeft,
-  Globe,
+  Globe
 } from 'lucide-react'
 import type { AiChatMessage, CircuitAiContext } from '../../../../shared/ai'
 import { MarkdownMessage } from './MarkdownMessage'
@@ -43,7 +43,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   fr: 'French (Français)',
   de: 'German (Deutsch)',
   zh: 'Chinese (中文)',
-  ja: 'Japanese (日本語)',
+  ja: 'Japanese (日本語)'
 }
 
 export interface AiChatSession {
@@ -97,7 +97,7 @@ export const createWelcomeMessage = (lang?: string): AiChatMessage => {
     id: 'welcome',
     role: 'assistant',
     content,
-    timestamp: Date.now(),
+    timestamp: Date.now()
   }
 }
 
@@ -107,7 +107,7 @@ export const createNewSession = (circuitName?: string, lang?: string): AiChatSes
   circuitName: circuitName || 'Schematic',
   createdAt: Date.now(),
   updatedAt: Date.now(),
-  messages: [createWelcomeMessage(lang)],
+  messages: [createWelcomeMessage(lang)]
 })
 
 function formatSessionDate(timestamp: number): string {
@@ -127,7 +127,7 @@ function formatSessionDate(timestamp: number): string {
 export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
   isOpen,
   onClose,
-  context,
+  context
 }) => {
   const [sessions, setSessions] = useState<AiChatSession[]>(() => {
     try {
@@ -140,7 +140,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
     return [createNewSession(context.circuitName)]
   })
 
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation('common')
   const currentUiLang = (i18n.language?.split('-')[0] || 'en').toLowerCase()
 
   const [aiLanguage, setAiLanguage] = useState<string>(() => {
@@ -169,11 +169,11 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
         if (s.messages.length === 1 && s.messages[0].id === 'welcome') {
           return {
             ...s,
-            messages: [createWelcomeMessage(lang)],
+            messages: [createWelcomeMessage(lang)]
           }
         }
         return s
-      }),
+      })
     )
   }, [i18n.language])
 
@@ -211,7 +211,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
   const [dismissErrorBanner, setDismissErrorBanner] = useState(false)
   const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY_AI) || '')
   const [provider, setProvider] = useState<'gemini' | 'groq'>(
-    () => (localStorage.getItem(STORAGE_KEY_PROVIDER) as 'gemini' | 'groq') || 'gemini',
+    () => (localStorage.getItem(STORAGE_KEY_PROVIDER) as 'gemini' | 'groq') || 'gemini'
   )
   const [tempApiKey, setTempApiKey] = useState(apiKey)
 
@@ -250,9 +250,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
     }
   }, [context.simError])
 
-  const updateSessionMessages = (
-    updater: (prevMessages: AiChatMessage[]) => AiChatMessage[]
-  ) => {
+  const updateSessionMessages = (updater: (prevMessages: AiChatMessage[]) => AiChatMessage[]) => {
     setSessions((prevSessions) => {
       const targetId = activeSession ? activeSession.id : prevSessions[0]?.id
       const current = prevSessions.find((s) => s.id === targetId) || prevSessions[0]
@@ -262,7 +260,8 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
       if (title === 'New Conversation' || title === 'Circuit Assistant') {
         const firstUserMsg = updatedMsgs.find((m) => m.role === 'user')
         if (firstUserMsg) {
-          title = firstUserMsg.content.slice(0, 36) + (firstUserMsg.content.length > 36 ? '...' : '')
+          title =
+            firstUserMsg.content.slice(0, 36) + (firstUserMsg.content.length > 36 ? '...' : '')
         }
       }
 
@@ -271,7 +270,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
         title,
         circuitName: context.circuitName || current.circuitName || 'Schematic',
         updatedAt: Date.now(),
-        messages: updatedMsgs,
+        messages: updatedMsgs
       }
 
       const newSessions = prevSessions.map((s) => (s.id === targetId ? updatedSession : s))
@@ -317,7 +316,10 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
   const handleDeleteSession = (sessionId: string) => {
     setSessions((prev) => {
       const remaining = prev.filter((s) => s.id !== sessionId)
-      const finalSessions = remaining.length > 0 ? remaining : [createNewSession(context.circuitName, effectiveLanguage)]
+      const finalSessions =
+        remaining.length > 0
+          ? remaining
+          : [createNewSession(context.circuitName, effectiveLanguage)]
       try {
         localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(finalSessions))
       } catch {}
@@ -355,8 +357,8 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
         id: `stop-${Date.now()}`,
         role: 'assistant',
         content: '⏹ *Response generation stopped.*',
-        timestamp: Date.now(),
-      },
+        timestamp: Date.now()
+      }
     ])
   }
 
@@ -368,7 +370,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
       id: `user-${Date.now()}`,
       role: 'user',
       content: messageContent,
-      timestamp: Date.now(),
+      timestamp: Date.now()
     }
 
     updateSessionMessages((prev) => [...prev, userMsg])
@@ -388,8 +390,8 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             role: 'assistant',
             content:
               '⚠️ **API Key Required**\n\nTo enable instant circuit analysis, please provide a free **Google Gemini** or **Groq Cloud** API key.\n\n1. Get your free key at [Google AI Studio](https://aistudio.google.com/app/apikey) or [Groq Cloud Console](https://console.groq.com/keys).\n2. Click the **⚙️ Settings** icon in the header to save it.',
-            timestamp: Date.now(),
-          },
+            timestamp: Date.now()
+          }
         ])
         setIsLoading(false)
       }, 300)
@@ -410,10 +412,17 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
           context,
           apiKey,
           provider,
-          language: effectiveLanguage,
+          language: effectiveLanguage
         })
       } else {
-        response = await callAiDirect(apiKey, provider, historyToSend, context, controller.signal, effectiveLanguage)
+        response = await callAiDirect(
+          apiKey,
+          provider,
+          historyToSend,
+          context,
+          controller.signal,
+          effectiveLanguage
+        )
       }
 
       if (controller.signal.aborted || response.error === 'ABORTED') {
@@ -427,8 +436,8 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             id: `asst-${Date.now()}`,
             role: 'assistant',
             content: response.reply!,
-            timestamp: Date.now(),
-          },
+            timestamp: Date.now()
+          }
         ])
       } else {
         updateSessionMessages((prev) => [
@@ -437,8 +446,8 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             id: `err-${Date.now()}`,
             role: 'assistant',
             content: `❌ **Error**: ${response.error || 'Failed to generate response.'}`,
-            timestamp: Date.now(),
-          },
+            timestamp: Date.now()
+          }
         ])
       }
     } catch (err: any) {
@@ -451,8 +460,8 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
           id: `err-${Date.now()}`,
           role: 'assistant',
           content: `❌ **Connection Error**: ${err.message || 'Unable to communicate with AI engine.'}`,
-          timestamp: Date.now(),
-        },
+          timestamp: Date.now()
+        }
       ])
     } finally {
       if (!controller.signal.aborted) {
@@ -553,7 +562,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         transition: isDragging ? 'none' : 'width 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
         userSelect: isDragging ? 'none' : 'auto',
-        animation: 'copilotSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+        animation: 'copilotSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
       }}
     >
       {/* Left-edge Horizontal Drag Resize Handle */}
@@ -562,7 +571,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
         onDoubleClick={toggleExpand}
         onMouseEnter={() => setIsHoveringHandle(true)}
         onMouseLeave={() => setIsHoveringHandle(false)}
-        title="Drag horizontally to resize window (Double-click to toggle width)"
+        title={t('aiAssistant.resizeHint')}
         style={{
           position: 'absolute',
           left: -4,
@@ -574,7 +583,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
           background: 'transparent',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'center'
         }}
       >
         <div
@@ -583,7 +592,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             height: '100%',
             background: isDragging || isHoveringHandle ? '#6366f1' : 'transparent',
             boxShadow: isDragging || isHoveringHandle ? '0 0 6px rgba(99, 102, 241, 0.5)' : 'none',
-            transition: 'all 0.15s ease',
+            transition: 'all 0.15s ease'
           }}
         />
       </div>
@@ -643,7 +652,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           borderBottom: '1px solid #1e293b',
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         {/* Left: Logo & Title */}
@@ -658,13 +667,15 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              flexShrink: 0,
+              flexShrink: 0
             }}
           >
             <AiCopilotLogo size={14} active glow />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: '#f8fafc' }}>
+            <span
+              style={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: '#f8fafc' }}
+            >
               Copilot
             </span>
             <span
@@ -678,7 +689,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 maxWidth: 130,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                textOverflow: 'ellipsis'
               }}
               title={context.circuitName || 'Schematic'}
             >
@@ -690,7 +701,9 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
         {/* Right: Actions Group */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {/* AI Response Language Selector (Left of + sign) */}
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginRight: 2 }}>
+          <div
+            style={{ position: 'relative', display: 'flex', alignItems: 'center', marginRight: 2 }}
+          >
             <Globe
               size={12}
               color="#a5b4fc"
@@ -711,28 +724,52 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 height: 25,
                 cursor: 'pointer',
                 outline: 'none',
-                maxWidth: 105,
+                maxWidth: 105
               }}
             >
-              <option value="en" style={{ background: '#0f172a', color: '#f8fafc' }}>English</option>
-              <option value="hi" style={{ background: '#0f172a', color: '#f8fafc' }}>हिन्दी (Hindi)</option>
-              <option value="mr" style={{ background: '#0f172a', color: '#f8fafc' }}>मराठी (Marathi)</option>
-              <option value="te" style={{ background: '#0f172a', color: '#f8fafc' }}>తెలుగు (Telugu)</option>
-              <option value="ta" style={{ background: '#0f172a', color: '#f8fafc' }}>தமிழ் (Tamil)</option>
-              <option value="bn" style={{ background: '#0f172a', color: '#f8fafc' }}>বাংলা (Bengali)</option>
-              <option value="gu" style={{ background: '#0f172a', color: '#f8fafc' }}>ગુજરાતી (Gujarati)</option>
-              <option value="es" style={{ background: '#0f172a', color: '#f8fafc' }}>Español</option>
-              <option value="fr" style={{ background: '#0f172a', color: '#f8fafc' }}>Français</option>
-              <option value="de" style={{ background: '#0f172a', color: '#f8fafc' }}>Deutsch</option>
-              <option value="zh" style={{ background: '#0f172a', color: '#f8fafc' }}>中文</option>
-              <option value="ja" style={{ background: '#0f172a', color: '#f8fafc' }}>日本語</option>
+              <option value="en" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                English
+              </option>
+              <option value="hi" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                हिन्दी (Hindi)
+              </option>
+              <option value="mr" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                मराठी (Marathi)
+              </option>
+              <option value="te" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                తెలుగు (Telugu)
+              </option>
+              <option value="ta" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                தமிழ் (Tamil)
+              </option>
+              <option value="bn" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                বাংলা (Bengali)
+              </option>
+              <option value="gu" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                ગુજરાતી (Gujarati)
+              </option>
+              <option value="es" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                Español
+              </option>
+              <option value="fr" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                Français
+              </option>
+              <option value="de" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                Deutsch
+              </option>
+              <option value="zh" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                中文
+              </option>
+              <option value="ja" style={{ background: '#0f172a', color: '#f8fafc' }}>
+                日本語
+              </option>
             </select>
           </div>
 
           {/* New Chat Button */}
           <button
             onClick={handleCreateNewSession}
-            title="New Conversation"
+            title={t('aiAssistant.newChat')}
             className="copilot-header-btn"
             style={headerBtnStyle}
           >
@@ -745,12 +782,12 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               setShowHistory(!showHistory)
               setShowSettings(false)
             }}
-            title="Chat History"
+            title={t('aiAssistant.history')}
             className="copilot-header-btn"
             style={{
               ...headerBtnStyle,
               background: showHistory ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
-              color: showHistory ? '#c084fc' : '#94a3b8',
+              color: showHistory ? '#c084fc' : '#94a3b8'
             }}
           >
             <History size={15} />
@@ -762,13 +799,13 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               setShowSettings(!showSettings)
               setShowHistory(false)
             }}
-            title="Settings (API Key & Model)"
+            title={t('aiAssistant.settings')}
             className="copilot-header-btn"
             style={{
               ...headerBtnStyle,
               position: 'relative',
               background: showSettings ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
-              color: showSettings ? '#a5b4fc' : '#94a3b8',
+              color: showSettings ? '#a5b4fc' : '#94a3b8'
             }}
           >
             <Settings size={15} />
@@ -781,7 +818,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                   width: 5,
                   height: 5,
                   borderRadius: '50%',
-                  background: '#f59e0b',
+                  background: '#f59e0b'
                 }}
               />
             )}
@@ -800,7 +837,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
           {/* Close Drawer */}
           <button
             onClick={onClose}
-            title="Close"
+            title={t('actions.close')}
             className="copilot-header-btn"
             style={{ ...headerBtnStyle, marginLeft: 2 }}
           >
@@ -821,7 +858,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             background: '#ffffff',
             zIndex: 30,
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'column'
           }}
         >
           <div
@@ -831,7 +868,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#f8fafc',
+              background: '#f8fafc'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -844,7 +881,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                   cursor: 'pointer',
                   padding: 4,
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'center'
                 }}
               >
                 <ChevronLeft size={16} />
@@ -866,7 +903,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 border: 'none',
                 fontSize: 11,
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: 'pointer'
               }}
             >
               <Plus size={12} /> New Chat
@@ -883,13 +920,13 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 background: '#f8fafc',
                 border: '1px solid #cbd5e1',
                 borderRadius: 6,
-                padding: '4px 8px',
+                padding: '4px 8px'
               }}
             >
               <Search size={13} color="#94a3b8" />
               <input
                 type="text"
-                placeholder="Search history..."
+                placeholder={t('aiAssistant.searchHistory')}
                 value={searchHistoryQuery}
                 onChange={(e) => setSearchHistoryQuery(e.target.value)}
                 style={{
@@ -898,13 +935,19 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                   outline: 'none',
                   fontSize: 11.5,
                   background: 'transparent',
-                  color: '#0f172a',
+                  color: '#0f172a'
                 }}
               />
               {searchHistoryQuery && (
                 <button
                   onClick={() => setSearchHistoryQuery('')}
-                  style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: 0 }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
                 >
                   <X size={12} />
                 </button>
@@ -921,7 +964,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               padding: '8px 12px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 4,
+              gap: 4
             }}
           >
             {filteredSessions.length === 0 ? (
@@ -945,11 +988,13 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       gap: 8,
-                      transition: 'all 0.15s ease',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}
+                      >
                         <MessageSquare size={13} color={isActive ? '#16a34a' : '#64748b'} />
                         <span
                           style={{
@@ -958,7 +1003,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                             color: isActive ? '#15803d' : '#0f172a',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
-                            textOverflow: 'ellipsis',
+                            textOverflow: 'ellipsis'
                           }}
                         >
                           {s.title}
@@ -967,7 +1012,9 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                       <div style={{ fontSize: 10, color: '#94a3b8', display: 'flex', gap: 6 }}>
                         <span>{s.circuitName || 'Schematic'}</span>
                         <span>·</span>
-                        <span>{s.messages.length} msg{s.messages.length === 1 ? '' : 's'}</span>
+                        <span>
+                          {s.messages.length} msg{s.messages.length === 1 ? '' : 's'}
+                        </span>
                         <span>·</span>
                         <span>{formatSessionDate(s.updatedAt)}</span>
                       </div>
@@ -978,7 +1025,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                         e.stopPropagation()
                         handleDeleteSession(s.id)
                       }}
-                      title="Delete conversation"
+                      title={t('aiAssistant.deleteChat')}
                       style={{
                         background: 'transparent',
                         border: 'none',
@@ -987,7 +1034,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                         padding: 4,
                         borderRadius: 4,
                         display: 'flex',
-                        alignItems: 'center',
+                        alignItems: 'center'
                       }}
                     >
                       <Trash2 size={13} />
@@ -1012,7 +1059,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             background: '#ffffff',
             zIndex: 30,
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: 'column'
           }}
         >
           <div
@@ -1022,7 +1069,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: '#f8fafc',
+              background: '#f8fafc'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1035,7 +1082,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                   cursor: 'pointer',
                   padding: 4,
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'center'
                 }}
               >
                 <ChevronLeft size={16} />
@@ -1054,7 +1101,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 border: 'none',
                 fontSize: 11,
                 fontWeight: 600,
-                cursor: 'pointer',
+                cursor: 'pointer'
               }}
             >
               Save Changes
@@ -1069,12 +1116,20 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               padding: '16px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 16,
+              gap: 16
             }}
           >
             {/* Model Provider Toggle */}
             <div>
-              <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 6 }}>
+              <label
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: '#334155',
+                  display: 'block',
+                  marginBottom: 6
+                }}
+              >
                 AI Engine Provider
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -1085,11 +1140,27 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                     borderRadius: 8,
                     border: provider === 'gemini' ? '2px solid #4f46e5' : '1px solid #e2e8f0',
                     background: provider === 'gemini' ? '#f5f3ff' : '#ffffff',
-                    cursor: 'pointer',
+                    cursor: 'pointer'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <span style={{ fontWeight: 700, fontSize: 12, color: '#1e1b4b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 2
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 12,
+                        color: '#1e1b4b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
                       <Sparkles size={13} color="#4f46e5" /> Google Gemini
                     </span>
                     {provider === 'gemini' && <Check size={13} color="#4f46e5" />}
@@ -1106,11 +1177,27 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                     borderRadius: 8,
                     border: provider === 'groq' ? '2px solid #10b981' : '1px solid #e2e8f0',
                     background: provider === 'groq' ? '#f0fdf4' : '#ffffff',
-                    cursor: 'pointer',
+                    cursor: 'pointer'
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <span style={{ fontWeight: 700, fontSize: 12, color: '#064e3b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 2
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 12,
+                        color: '#064e3b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
                       <Zap size={13} color="#10b981" /> Groq Cloud
                     </span>
                     {provider === 'groq' && <Check size={13} color="#10b981" />}
@@ -1124,12 +1211,28 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
 
             {/* API Key */}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 6
+                }}
+              >
                 <label style={{ fontSize: 11.5, fontWeight: 700, color: '#334155' }}>
                   API Key ({provider === 'groq' ? 'Groq Key' : 'Google AI Studio Key'})
                 </label>
                 {apiKey && (
-                  <span style={{ fontSize: 10.5, color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      color: '#16a34a',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 3
+                    }}
+                  >
                     <Check size={11} /> Saved
                   </span>
                 )}
@@ -1149,7 +1252,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                     fontFamily: 'Consolas, monospace',
                     background: '#f8fafc',
                     boxSizing: 'border-box',
-                    outline: 'none',
+                    outline: 'none'
                   }}
                 />
                 <button
@@ -1167,19 +1270,37 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                     cursor: 'pointer',
                     padding: 2,
                     display: 'flex',
-                    alignItems: 'center',
+                    alignItems: 'center'
                   }}
                 >
                   {showKeyText ? <EyeOff size={13} /> : <Eye size={13} />}
                 </button>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 5, fontSize: 10.5 }}>
-                <span style={{ color: '#94a3b8' }}>Keys remain safely on your computer.</span>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginTop: 5,
+                  fontSize: 10.5
+                }}
+              >
+                <span style={{ color: '#94a3b8' }}>{t('aiAssistant.keysSafe')}</span>
                 <a
-                  href={provider === 'groq' ? 'https://console.groq.com/keys' : 'https://aistudio.google.com/app/apikey'}
+                  href={
+                    provider === 'groq'
+                      ? 'https://console.groq.com/keys'
+                      : 'https://aistudio.google.com/app/apikey'
+                  }
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                  style={{
+                    color: '#4f46e5',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3
+                  }}
                 >
                   Get free key <ExternalLink size={10} />
                 </a>
@@ -1190,54 +1311,74 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
       )}
 
       {/* Conditional SPICE Simulation Error Pill */}
-      {context.simError && !dismissErrorBanner && !context.simError.toLowerCase().includes('empty') && context.componentSummary !== 'Empty canvas' && (
-        <div
-          style={{
-            margin: '8px 12px 0 12px',
-            padding: '7px 10px',
-            borderRadius: 6,
-            background: '#fef2f2',
-            border: '1px solid #fecaca',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-            fontSize: 11,
-            color: '#991b1b',
-            flexShrink: 0,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-            <AlertTriangle size={13} color="#dc2626" style={{ flexShrink: 0 }} />
-            <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              SPICE Error: {context.simError}
-            </span>
+      {context.simError &&
+        !dismissErrorBanner &&
+        !context.simError.toLowerCase().includes('empty') &&
+        context.componentSummary !== 'Empty canvas' && (
+          <div
+            style={{
+              margin: '8px 12px 0 12px',
+              padding: '7px 10px',
+              borderRadius: 6,
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              fontSize: 11,
+              color: '#991b1b',
+              flexShrink: 0
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <AlertTriangle size={13} color="#dc2626" style={{ flexShrink: 0 }} />
+              <span
+                style={{
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                SPICE Error: {context.simError}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+              <button
+                onClick={() =>
+                  handleSendMessage(
+                    `Analyze and fix this SPICE simulation error step-by-step: ${context.simError}`
+                  )
+                }
+                style={{
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 4,
+                  padding: '2px 7px',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Diagnose
+              </button>
+              <button
+                onClick={() => setDismissErrorBanner(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#991b1b',
+                  cursor: 'pointer',
+                  padding: 2
+                }}
+              >
+                <X size={12} />
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <button
-              onClick={() => handleSendMessage(`Analyze and fix this SPICE simulation error step-by-step: ${context.simError}`)}
-              style={{
-                background: '#dc2626',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: 4,
-                padding: '2px 7px',
-                fontSize: 10,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Diagnose
-            </button>
-            <button
-              onClick={() => setDismissErrorBanner(true)}
-              style={{ background: 'none', border: 'none', color: '#991b1b', cursor: 'pointer', padding: 2 }}
-            >
-              <X size={12} />
-            </button>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* Main Messages View */}
       <div
@@ -1249,7 +1390,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
           display: 'flex',
           flexDirection: 'column',
           gap: 16,
-          background: '#ffffff',
+          background: '#ffffff'
         }}
       >
         {/* Welcome Empty State (Only shown before user sends first message) */}
@@ -1260,7 +1401,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 padding: '14px',
                 borderRadius: 10,
                 background: '#f8fafc',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #e2e8f0'
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -1270,61 +1411,101 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: '#475569' }}>
-                Your engineering assistant for circuit design, component sizing, and SPICE simulation troubleshooting.
+                Your engineering assistant for circuit design, component sizing, and SPICE
+                simulation troubleshooting.
               </p>
             </div>
 
             {/* Clean Prompt Action Cards */}
             <div>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: '#94a3b8',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  marginBottom: 8
+                }}
+              >
                 Suggested Prompts
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 <button
-                  onClick={() => handleSendMessage('Review my current schematic and check for any wiring mistakes, missing grounds, or floating nets.')}
+                  onClick={() =>
+                    handleSendMessage(
+                      'Review my current schematic and check for any wiring mistakes, missing grounds, or floating nets.'
+                    )
+                  }
                   className="copilot-prompt-card"
                   style={promptCardStyle}
                 >
                   <HelpCircle size={14} color="#3b82f6" />
                   <div>
-                    <div style={{ fontWeight: 600, color: '#0f172a' }}>Review Schematic</div>
-                    <div style={{ fontSize: 10, color: '#64748b' }}>Check floating nets & grounds</div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                      {t('aiAssistant.reviewSchematic')}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>
+                      {t('aiAssistant.reviewSchematicDesc')}
+                    </div>
                   </div>
                 </button>
 
                 <button
-                  onClick={() => handleSendMessage('How should I choose and calculate the component values (resistors, capacitors, bias) for this circuit?')}
+                  onClick={() =>
+                    handleSendMessage(
+                      'How should I choose and calculate the component values (resistors, capacitors, bias) for this circuit?'
+                    )
+                  }
                   className="copilot-prompt-card"
                   style={promptCardStyle}
                 >
                   <Calculator size={14} color="#8b5cf6" />
                   <div>
-                    <div style={{ fontWeight: 600, color: '#0f172a' }}>Component Sizing</div>
-                    <div style={{ fontSize: 10, color: '#64748b' }}>Calculate standard values</div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                      {t('aiAssistant.componentSizing')}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>
+                      {t('aiAssistant.componentSizingDesc')}
+                    </div>
                   </div>
                 </button>
 
                 <button
-                  onClick={() => handleSendMessage('What SPICE simulation parameters (.tran, .ac, .dc) are best suited for testing this circuit?')}
+                  onClick={() =>
+                    handleSendMessage(
+                      'What SPICE simulation parameters (.tran, .ac, .dc) are best suited for testing this circuit?'
+                    )
+                  }
                   className="copilot-prompt-card"
                   style={promptCardStyle}
                 >
                   <Cpu size={14} color="#10b981" />
                   <div>
-                    <div style={{ fontWeight: 600, color: '#0f172a' }}>Simulation Setup</div>
-                    <div style={{ fontSize: 10, color: '#64748b' }}>Recommend .tran / .ac directives</div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                      {t('aiAssistant.simulationSetup')}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>
+                      {t('aiAssistant.simulationSetupDesc')}
+                    </div>
                   </div>
                 </button>
 
                 <button
-                  onClick={() => handleSendMessage('Suggest what I should connect or do next on this schematic.')}
+                  onClick={() =>
+                    handleSendMessage('Suggest what I should connect or do next on this schematic.')
+                  }
                   className="copilot-prompt-card"
                   style={promptCardStyle}
                 >
                   <Lightbulb size={14} color="#f59e0b" />
                   <div>
-                    <div style={{ fontWeight: 600, color: '#0f172a' }}>Suggest Next Step</div>
-                    <div style={{ fontSize: 10, color: '#64748b' }}>Circuit design advice</div>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                      {t('aiAssistant.suggestNextStep')}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#64748b' }}>
+                      {t('aiAssistant.suggestNextStepDesc')}
+                    </div>
                   </div>
                 </button>
               </div>
@@ -1343,7 +1524,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 flexDirection: 'column',
                 gap: 4,
                 alignSelf: isUser ? 'flex-end' : 'stretch',
-                maxWidth: isUser ? '85%' : '100%',
+                maxWidth: isUser ? '85%' : '100%'
               }}
             >
               {isUser ? (
@@ -1358,7 +1539,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                     lineHeight: 1.5,
                     boxShadow: '0 1px 3px rgba(79, 70, 229, 0.15)',
                     whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
+                    wordBreak: 'break-word'
                   }}
                 >
                   {m.content}
@@ -1370,11 +1551,17 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 6,
-                    paddingBottom: 6,
+                    paddingBottom: 6
                   }}
                 >
                   {/* Assistant Message Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <div
                         style={{
@@ -1384,7 +1571,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                           background: '#e0e7ff',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
+                          justifyContent: 'center'
                         }}
                       >
                         <Sparkles size={11} color="#4338ca" />
@@ -1396,7 +1583,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
 
                     <button
                       onClick={() => handleCopy(m.content, m.id)}
-                      title="Copy response"
+                      title={t('aiAssistant.copyResponse')}
                       style={{
                         background: 'transparent',
                         border: 'none',
@@ -1406,7 +1593,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         gap: 3,
-                        fontSize: 10,
+                        fontSize: 10
                       }}
                     >
                       {copiedId === m.id ? (
@@ -1424,7 +1611,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                     style={{
                       fontSize: 12.5,
                       lineHeight: 1.6,
-                      color: '#0f172a',
+                      color: '#0f172a'
                     }}
                   >
                     <MarkdownMessage content={m.content} />
@@ -1446,7 +1633,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               borderRadius: 8,
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
-              gap: 8,
+              gap: 8
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1461,7 +1648,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             </div>
             <button
               onClick={handleStopTask}
-              title="Stop (Esc)"
+              title={t('aiAssistant.stop')}
               style={{
                 background: '#fee2e2',
                 color: '#dc2626',
@@ -1473,7 +1660,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 3,
+                gap: 3
               }}
             >
               <Square size={8} fill="currentColor" /> Stop
@@ -1490,7 +1677,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
           padding: '10px 14px 12px 14px',
           borderTop: '1px solid #e2e8f0',
           background: '#ffffff',
-          flexShrink: 0,
+          flexShrink: 0
         }}
       >
         <div
@@ -1500,13 +1687,13 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             boxShadow: isFocused ? '0 0 0 2px rgba(99, 102, 241, 0.15)' : 'none',
             borderRadius: 8,
             padding: '8px 10px',
-            transition: 'all 0.15s ease',
+            transition: 'all 0.15s ease'
           }}
         >
           <textarea
             ref={inputRef}
             rows={2}
-            placeholder="Ask about components, circuit calculations, SPICE..."
+            placeholder={t('aiAssistant.inputPlaceholder')}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -1522,7 +1709,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               fontFamily: 'inherit',
               lineHeight: 1.45,
               color: '#0f172a',
-              boxSizing: 'border-box',
+              boxSizing: 'border-box'
             }}
           />
 
@@ -1533,7 +1720,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               justifyContent: 'space-between',
               paddingTop: 6,
               borderTop: '1px solid #edf2f7',
-              marginTop: 2,
+              marginTop: 2
             }}
           >
             {/* Model Toggle Pill */}
@@ -1541,7 +1728,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               <button
                 type="button"
                 onClick={() => handleToggleProvider(provider === 'gemini' ? 'groq' : 'gemini')}
-                title="Click to toggle model"
+                title={t('aiAssistant.modelToggle')}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -1553,23 +1740,25 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                   color: provider === 'groq' ? '#15803d' : '#1d4ed8',
                   fontSize: 10.5,
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: 'pointer'
                 }}
               >
-                {provider === 'groq' ? <Zap size={10} color="#16a34a" /> : <Sparkles size={10} color="#2563eb" />}
+                {provider === 'groq' ? (
+                  <Zap size={10} color="#16a34a" />
+                ) : (
+                  <Sparkles size={10} color="#2563eb" />
+                )}
                 {provider === 'groq' ? 'Groq LPU' : 'Gemini 3.8'}
               </button>
 
-              <span style={{ fontSize: 10, color: '#94a3b8' }}>
-                Synced
-              </span>
+              <span style={{ fontSize: 10, color: '#94a3b8' }}>Synced</span>
             </div>
 
             {/* Send / Stop Button */}
             {isLoading ? (
               <button
                 onClick={handleStopTask}
-                title="Stop task (Esc)"
+                title={t('aiAssistant.stop')}
                 style={{
                   height: 26,
                   padding: '0 8px',
@@ -1582,7 +1771,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                   gap: 3,
                   cursor: 'pointer',
                   fontSize: 10.5,
-                  fontWeight: 600,
+                  fontWeight: 600
                 }}
               >
                 <Square size={9} fill="currentColor" /> Stop
@@ -1591,7 +1780,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
               <button
                 onClick={() => handleSendMessage()}
                 disabled={!inputText.trim()}
-                title="Send (Enter)"
+                title={t('aiAssistant.send')}
                 style={{
                   width: 26,
                   height: 26,
@@ -1604,7 +1793,7 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
                   justifyContent: 'center',
                   cursor: !inputText.trim() ? 'default' : 'pointer',
                   transition: 'background 0.15s ease',
-                  flexShrink: 0,
+                  flexShrink: 0
                 }}
               >
                 <Send size={12} />
@@ -1619,11 +1808,11 @@ export const AiCircuitAssistant: React.FC<AiCircuitAssistantProps> = ({
             justifyContent: 'space-between',
             marginTop: 4,
             fontSize: 9.5,
-            color: '#94a3b8',
+            color: '#94a3b8'
           }}
         >
-          <span>Enter to send · Shift+Enter for newline</span>
-          <span>CriticalPath Copilot</span>
+          <span>{t('aiAssistant.inputHelp')}</span>
+          <span>{t('aiAssistant.copilotBadge')}</span>
         </div>
       </div>
     </div>
@@ -1640,7 +1829,7 @@ const headerBtnStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  transition: 'all 0.15s ease',
+  transition: 'all 0.15s ease'
 }
 
 const promptCardStyle: React.CSSProperties = {
@@ -1656,7 +1845,7 @@ const promptCardStyle: React.CSSProperties = {
   fontSize: 11,
   lineHeight: 1.3,
   transition: 'all 0.15s ease',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
 }
 
 const SYSTEM_PROMPT = `You are CriticalPath Copilot, an elite Electrical Engineering & SPICE simulation assistant built directly into the CriticalPath EDA application.
@@ -1689,7 +1878,7 @@ async function callAiDirect(
   messages: { role: string; content: string }[],
   context: CircuitAiContext,
   signal?: AbortSignal,
-  language?: string,
+  language?: string
 ): Promise<{ success: boolean; reply?: string; error?: string }> {
   if (signal?.aborted) return { success: false, error: 'ABORTED' }
 
@@ -1708,7 +1897,8 @@ async function callAiDirect(
     if (context.netlist) {
       let netlistText = context.netlist.trim()
       if (netlistText.length > 3000) {
-        netlistText = netlistText.slice(0, 3000) + '\n... [Netlist truncated to save tokens] ...\n.end'
+        netlistText =
+          netlistText.slice(0, 3000) + '\n... [Netlist truncated to save tokens] ...\n.end'
       }
       parts.push(`Generated SPICE Netlist:\n\`\`\`spice\n${netlistText}\n\`\`\``)
     }
@@ -1730,14 +1920,14 @@ async function callAiDirect(
           content = `${contextBlock}User question: ${content}`
         }
         return { role: m.role, content }
-      }),
+      })
     ]
     const groqCandidates = [
       'llama-3.3-70b-versatile',
       'llama-3.1-8b-instant',
       'openai/gpt-oss-120b',
       'openai/gpt-oss-20b',
-      'qwen/qwen3.8-27b',
+      'qwen/qwen3.8-27b'
     ]
 
     let lastError = ''
@@ -1749,15 +1939,15 @@ async function callAiDirect(
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${apiKey}`,
+            Authorization: `Bearer ${apiKey}`
           },
           body: JSON.stringify({
             model,
             messages: formattedMessages,
             temperature: 0.4,
-            max_tokens: 1536,
+            max_tokens: 1536
           }),
-          signal,
+          signal
         })
 
         // On 429 rate limit: capture wait time and fall back to 8b-instant
@@ -1786,7 +1976,10 @@ async function callAiDirect(
         }
 
         if (res.status === 401) {
-          return { success: false, error: 'Invalid Groq API Key. Please verify your key at console.groq.com.' }
+          return {
+            success: false,
+            error: 'Invalid Groq API Key. Please verify your key at console.groq.com.'
+          }
         }
 
         if (!res.ok) {
@@ -1795,7 +1988,10 @@ async function callAiDirect(
         }
 
         const data = await res.json()
-        return { success: true, reply: data?.choices?.[0]?.message?.content || 'No response generated.' }
+        return {
+          success: true,
+          reply: data?.choices?.[0]?.message?.content || 'No response generated.'
+        }
       } catch (err: any) {
         if (err.name === 'AbortError' || signal?.aborted) {
           return { success: false, error: 'ABORTED' }
@@ -1804,16 +2000,24 @@ async function callAiDirect(
       }
     }
 
-    const rateLimitMsg = retryAfterSeconds > 0
-      ? `Groq rate limit reached (TPM). Please wait ${retryAfterSeconds}s or switch to Gemini in settings.`
-      : `Groq rate limit reached. Please wait a few seconds or switch to Gemini in settings.`
+    const rateLimitMsg =
+      retryAfterSeconds > 0
+        ? `Groq rate limit reached (TPM). Please wait ${retryAfterSeconds}s or switch to Gemini in settings.`
+        : `Groq rate limit reached. Please wait a few seconds or switch to Gemini in settings.`
 
     return {
       success: false,
-      error: lastError.includes('429') ? rateLimitMsg : `Groq error: ${lastError || 'No accessible model found.'}`,
+      error: lastError.includes('429')
+        ? rateLimitMsg
+        : `Groq error: ${lastError || 'No accessible model found.'}`
     }
   } else {
-    const candidateModels = ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
+    const candidateModels = [
+      'gemini-3.8-flash',
+      'gemini-2.5-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro'
+    ]
     const contents = messages.map((m, idx) => {
       let text = m.content
       if (idx === messages.length - 1 && m.role === 'user' && contextBlock) {
@@ -1821,7 +2025,7 @@ async function callAiDirect(
       }
       return {
         role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text }],
+        parts: [{ text }]
       }
     })
 
@@ -1835,15 +2039,15 @@ async function callAiDirect(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemInstruction: {
-              parts: [{ text: promptToUse }],
+              parts: [{ text: promptToUse }]
             },
             contents,
             generationConfig: {
               temperature: 0.4,
-              maxOutputTokens: 2048,
-            },
+              maxOutputTokens: 2048
+            }
           }),
-          signal,
+          signal
         })
 
         if (res.status === 404 || res.status === 503 || res.status === 429) {
@@ -1858,7 +2062,7 @@ async function callAiDirect(
           try {
             const parsed = JSON.parse(errText)
             if (parsed.error?.message) parsedMsg = parsed.error.message
-          } catch { }
+          } catch {}
           return { success: false, error: `Gemini error (${res.status}): ${parsedMsg}` }
         }
 
@@ -1872,6 +2076,9 @@ async function callAiDirect(
         lastError = err.message
       }
     }
-    return { success: false, error: `Gemini server error: ${lastError || 'No accessible model found.'}` }
+    return {
+      success: false,
+      error: `Gemini server error: ${lastError || 'No accessible model found.'}`
+    }
   }
 }

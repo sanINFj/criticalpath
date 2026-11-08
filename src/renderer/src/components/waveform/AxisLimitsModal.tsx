@@ -1,6 +1,7 @@
-import React, { useState } from "react"
-import { Sliders, X } from "lucide-react"
-import { formatEngineering } from "../../utils/engineeringFormat"
+import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Sliders, X } from 'lucide-react'
+import { formatEngineering } from '../../utils/engineeringFormat'
 
 export interface AxisLimitsModalProps {
   isOpen: boolean
@@ -36,8 +37,9 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
   naturalYRightRange,
   useLogX,
   onApplyLimits,
-  onResetAuto,
+  onResetAuto
 }) => {
+  const { t } = useTranslation(['waveform', 'common'])
   const [isXAuto, setIsXAuto] = useState(false)
   const [xMinStr, setXMinStr] = useState(activeXRange[0].toString())
   const [xMaxStr, setXMaxStr] = useState(activeXRange[1].toString())
@@ -75,7 +77,7 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
       xRange: newXRange,
       yLeftRange: newYLeftRange,
       yRightRange: newYRightRange,
-      useLogX: logX,
+      useLogX: logX
     })
     onClose()
   }
@@ -94,47 +96,80 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
 
   return (
     <div className="wf-modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="wf-modal-window" onClick={(e) => e.stopPropagation()} style={{ width: "480px" }}>
+      <div
+        className="wf-modal-window"
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: '480px' }}
+      >
         {/* Header */}
         <div className="wf-modal-header">
-          <div className="wf-modal-title" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div className="wf-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Sliders size={15} />
-            Manual Axis Limits & Scale
+            {t('waveform:axes.applyLimits')}
           </div>
-          <button className="wf-modal-close" onClick={onClose} title="Close" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <button
+            className="wf-modal-close"
+            onClick={onClose}
+            title={t('common:actions.close')}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
             <X size={14} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="wf-modal-body" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <div
+          className="wf-modal-body"
+          style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}
+        >
           {/* Horizontal X-Axis Section */}
           <div className="wf-group-box">
-            <legend className="wf-group-title">Horizontal (X) Axis [{xUnit || "Sweep"}]</legend>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", cursor: "pointer" }}>
+            <legend className="wf-group-title">
+              {t('waveform:axes.xAxis')} [{xUnit || 'Sweep'}]
+            </legend>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={isXAuto}
                     onChange={(e) => setIsXAuto(e.target.checked)}
                   />
-                  <span>Auto-scale X</span>
+                  <span>{t('waveform:axes.autoScaleX')}</span>
                 </label>
 
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", cursor: "pointer", marginLeft: "auto" }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    marginLeft: 'auto'
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={logX}
                     onChange={(e) => setLogX(e.target.checked)}
                   />
-                  <span>Logarithmic scale</span>
+                  <span>{t('waveform:axes.logScale')}</span>
                 </label>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="wf-field-label">Min X:</label>
+                  <label className="wf-field-label">{t('waveform:axes.minX')}</label>
                   <input
                     type="number"
                     step="any"
@@ -143,12 +178,12 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
                     onChange={(e) => setXMinStr(e.target.value)}
                     className="wf-text-input"
                   />
-                  <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "2px" }}>
+                  <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
                     Natural: {formatEngineering(naturalXRange[0], xUnit)}
                   </div>
                 </div>
                 <div>
-                  <label className="wf-field-label">Max X:</label>
+                  <label className="wf-field-label">{t('waveform:axes.maxX')}</label>
                   <input
                     type="number"
                     step="any"
@@ -157,7 +192,7 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
                     onChange={(e) => setXMaxStr(e.target.value)}
                     className="wf-text-input"
                   />
-                  <div style={{ fontSize: "10.5px", color: "#64748b", marginTop: "2px" }}>
+                  <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px' }}>
                     Natural: {formatEngineering(naturalXRange[1], xUnit)}
                   </div>
                 </div>
@@ -167,20 +202,32 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
 
           {/* Left Vertical Y-Axis (Voltages/dB) */}
           <div className="wf-group-box">
-            <legend className="wf-group-title">Left Vertical (Y) Axis [Voltages / dB]</legend>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", cursor: "pointer" }}>
+            <legend className="wf-group-title">
+              {t('waveform:axes.yLeftAxis')} [Voltages / dB]
+            </legend>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}
+            >
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={isYLeftAuto}
                   onChange={(e) => setIsYLeftAuto(e.target.checked)}
                 />
-                <span>Auto-scale Left Y</span>
+                <span>{t('waveform:axes.autoScaleLeftY')}</span>
               </label>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label className="wf-field-label">Min Y:</label>
+                  <label className="wf-field-label">{t('waveform:axes.minY')}</label>
                   <input
                     type="number"
                     step="any"
@@ -191,7 +238,7 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="wf-field-label">Max Y:</label>
+                  <label className="wf-field-label">{t('waveform:axes.maxY')}</label>
                   <input
                     type="number"
                     step="any"
@@ -208,20 +255,32 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
           {/* Right Vertical Y-Axis (Currents / Phase) */}
           {hasRightAxis && (
             <div className="wf-group-box">
-              <legend className="wf-group-title">Right Vertical (Y) Axis [Currents / Phase]</legend>
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "8px" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", cursor: "pointer" }}>
+              <legend className="wf-group-title">
+                {t('waveform:axes.yRightAxis')} [Currents / Phase]
+              </legend>
+              <div
+                style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}
+              >
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={isYRightAuto}
                     onChange={(e) => setIsYRightAuto(e.target.checked)}
                   />
-                  <span>Auto-scale Right Y</span>
+                  <span>{t('waveform:axes.autoScaleRightY')}</span>
                 </label>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <label className="wf-field-label">Min Right Y:</label>
+                    <label className="wf-field-label">{t('waveform:axes.minRightY')}</label>
                     <input
                       type="number"
                       step="any"
@@ -232,7 +291,7 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="wf-field-label">Max Right Y:</label>
+                    <label className="wf-field-label">{t('waveform:axes.maxRightY')}</label>
                     <input
                       type="number"
                       step="any"
@@ -259,14 +318,14 @@ export const AxisLimitsModal: React.FC<AxisLimitsModalProps> = ({
               onClose()
             }}
           >
-            Autoscale All (Fit)
+            {t('waveform:axes.resetAuto')}
           </button>
-          <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
             <button type="button" className="wf-secondary-btn" onClick={onClose}>
-              Cancel
+              {t('common:actions.cancel')}
             </button>
             <button type="button" className="wf-primary-btn" onClick={handleApply}>
-              Apply Limits
+              {t('waveform:axes.applyLimits')}
             </button>
           </div>
         </div>

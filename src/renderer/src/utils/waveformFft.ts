@@ -19,7 +19,7 @@ export interface FftResult {
 export function resampleUniform(
   time: number[],
   values: number[],
-  nPoints: number,
+  nPoints: number
 ): { tUniform: number[]; yUniform: number[]; dt: number } {
   if (time.length < 2 || values.length < 2) {
     return { tUniform: [], yUniform: [], dt: 0 }
@@ -130,7 +130,7 @@ export function computeWaveformFft(
   time: number[],
   values: number[],
   fftSize: number = 1024,
-  windowType: "hanning" | "rectangular" = "hanning",
+  windowType: 'hanning' | 'rectangular' = 'hanning'
 ): FftResult | null {
   if (!time || !values || time.length < 8 || values.length < 8) {
     return null
@@ -152,11 +152,11 @@ export function computeWaveformFft(
   const imag = new Float64Array(n)
 
   // Coherent gain for Hanning window is ~0.5
-  const coherentGain = windowType === "hanning" ? 0.5 : 1.0
+  const coherentGain = windowType === 'hanning' ? 0.5 : 1.0
 
   for (let i = 0; i < n; i++) {
     let w = 1.0
-    if (windowType === "hanning") {
+    if (windowType === 'hanning') {
       w = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (n - 1)))
     }
     real[i] = yUniform[i] * w
@@ -206,6 +206,6 @@ export function computeWaveformFft(
     peakFrequency: peakFreq,
     peakMagnitudeDb: peakDb,
     samplingRate: fs,
-    pointCount: n,
+    pointCount: n
   }
 }

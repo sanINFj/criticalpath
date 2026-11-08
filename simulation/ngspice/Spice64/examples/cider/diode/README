@@ -1,4 +1,3 @@
-
 Run:
 
     ngspice -b pd1.cir
